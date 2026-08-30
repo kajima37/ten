@@ -167,6 +167,8 @@ export default function TenGame() {
   const [screen, setScreen] = useState<Screen>('home')
   const [board, setBoard] = useState(() => makeBoard())
   const [selected, setSelected] = useState<Array<number>>([])
+  const [removing, setRemoving] = useState<Array<number>>([])
+  const [boardRevision, setBoardRevision] = useState(0)
   const [score, setScore] = useState(0)
   const [combo, setCombo] = useState(0)
   const [maxCombo, setMaxCombo] = useState(0)
@@ -306,9 +308,8 @@ export default function TenGame() {
       setScore((current) => current + gain)
       setCombo(nextCombo)
       setMaxCombo((current) => Math.max(current, nextCombo))
-      setBoard((current) =>
-        collapseBoard(current, selected, boardRandomRef.current),
-      )
+      const removed = [...selected]
+      setRemoving(removed)
       setSelected([])
       setBoardFeedback('success')
       setFeedbackId((current) => current + 1)
@@ -318,6 +319,13 @@ export default function TenGame() {
           : `+${gain}`,
       )
       vibrate(18)
+      window.setTimeout(() => {
+        setBoard((current) =>
+          collapseBoard(current, removed, boardRandomRef.current),
+        )
+        setBoardRevision((current) => current + 1)
+        setRemoving([])
+      }, 180)
       return
     }
 
@@ -346,6 +354,8 @@ export default function TenGame() {
     setDailyKey(nextDailyKey)
     setBoard(makeBoard(random))
     setSelected([])
+    setRemoving([])
+    setBoardRevision((current) => current + 1)
     setScore(0)
     setCombo(0)
     setMaxCombo(0)
@@ -362,14 +372,14 @@ export default function TenGame() {
   }, [])
 
   const selectFirst = (index: number) => {
-    if (!running || paused) return
+    if (!running || paused || removing.length) return
     setDragging(true)
     setSelected([index])
     vibrate(5)
   }
 
   const extendSelection = (index: number) => {
-    if (!running || paused || !dragging) return
+    if (!running || paused || !dragging || removing.length) return
     setSelected((current) => {
       if (!current.length || current.at(-1) === index) return current
       if (current.length > 1 && current.at(-2) === index)
@@ -406,6 +416,7 @@ export default function TenGame() {
     setScore((current) => current - 50)
     setSelected([])
     setBoard((current) => shuffleWithRandom(current, boardRandomRef.current))
+    setBoardRevision((current) => current + 1)
     showToast(t('toast.shuffled'))
   }
 
@@ -443,11 +454,13 @@ export default function TenGame() {
           <GameScreen
             board={board}
             boardFeedback={boardFeedback}
+            boardRevision={boardRevision}
             bonusUsed={bonusUsed}
             combo={combo}
             feedbackId={feedbackId}
             hints={hints}
             paused={paused}
+            removing={removing}
             score={score}
             selected={selected}
             sum={sum}
@@ -563,8 +576,10 @@ function HomeScreen({
 type GameScreenProps = {
   board: Array<number>
   boardFeedback: BoardFeedback
+  boardRevision: number
   feedbackId: number
   selected: Array<number>
+  removing: Array<number>
   score: number
   combo: number
   timeLeft: number
@@ -635,7 +650,9 @@ function GameScreen(props: GameScreenProps) {
         <GameBoard
           board={props.board}
           selected={props.selected}
-          disabled={props.paused}
+          removing={props.removing}
+          revision={props.boardRevision}
+          disabled={props.paused || props.removing.length > 0}
           theme={props.theme}
           onPointerDown={props.onPointerDown}
           onPointerEnter={props.onPointerEnter}

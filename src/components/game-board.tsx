@@ -1,11 +1,15 @@
-import { Application, extend } from '@pixi/react'
+import { Application, extend, useTick } from '@pixi/react'
 import { Container, Graphics, Text } from 'pixi.js'
+import { useEffect, useRef } from 'react'
+import type { ReactNode } from 'react'
 
 extend({ Container, Graphics, Text })
 
 type GameBoardProps = {
   board: Array<number>
   selected: Array<number>
+  removing: Array<number>
+  revision: number
   disabled?: boolean
   theme: string
   onPointerDown: (index: number) => void
@@ -15,6 +19,8 @@ type GameBoardProps = {
 export default function GameBoard({
   board,
   selected,
+  removing,
+  revision,
   disabled = false,
   theme,
   onPointerDown,
@@ -87,6 +93,29 @@ export default function GameBoard({
         antialias
         resolution={1}
       >
+        {selected.length > 1 && (
+          <pixiGraphics
+            draw={(graphics) => {
+              graphics.clear()
+              const [first, ...rest] = selected
+              graphics.moveTo(
+                40 + (first % 5) * 70,
+                40 + Math.floor(first / 5) * 70,
+              )
+              rest.forEach((index) => {
+                graphics.lineTo(
+                  40 + (index % 5) * 70,
+                  40 + Math.floor(index / 5) * 70,
+                )
+              })
+              graphics.stroke({
+                color: palette.accent,
+                width: 6,
+                alpha: 0.55,
+              })
+            }}
+          />
+        )}
         {board.map((value, index) => {
           const column = index % 5
           const row = Math.floor(index / 5)
@@ -95,16 +124,15 @@ export default function GameBoard({
           const highlighted = selected.includes(index)
 
           return (
-            <pixiContainer
-              key={`${index}-${value}`}
+            <AnimatedCell
+              key={`${revision}-${index}-${value}`}
               x={x}
               y={y}
-              scale={highlighted ? 1.035 : 1}
-              pivot={highlighted ? 1.1 : 0}
-              eventMode={disabled ? 'none' : 'static'}
-              cursor={disabled ? 'default' : 'pointer'}
+              highlighted={highlighted}
+              removing={removing.includes(index)}
+              disabled={disabled}
               onPointerDown={() => onPointerDown(index)}
-              onPointerOver={() => onPointerEnter(index)}
+              onPointerEnter={() => onPointerEnter(index)}
             >
               <pixiGraphics
                 draw={(graphics) => {
@@ -131,10 +159,72 @@ export default function GameBoard({
                   fontWeight: '700',
                 }}
               />
-            </pixiContainer>
+            </AnimatedCell>
           )
         })}
       </Application>
     </div>
+  )
+}
+
+function AnimatedCell({
+  x,
+  y,
+  highlighted,
+  removing,
+  disabled,
+  onPointerDown,
+  onPointerEnter,
+  children,
+}: {
+  x: number
+  y: number
+  highlighted: boolean
+  removing: boolean
+  disabled: boolean
+  onPointerDown: () => void
+  onPointerEnter: () => void
+  children: ReactNode
+}) {
+  const container = useRef<Container>(null)
+  const entrance = useRef(0)
+  const removal = useRef(0)
+
+  useEffect(() => {
+    if (removing) removal.current = 0
+  }, [removing])
+
+  useTick((ticker) => {
+    const cell = container.current
+    if (!cell) return
+
+    entrance.current = Math.min(1, entrance.current + ticker.deltaTime / 8)
+    const eased = 1 - Math.pow(1 - entrance.current, 3)
+    cell.y = y - (1 - eased) * 30
+    cell.alpha = eased
+
+    if (removing) {
+      removal.current = Math.min(1, removal.current + ticker.deltaTime / 7)
+      cell.alpha = 1 - removal.current
+      cell.scale.set(1 - removal.current * 0.28)
+    } else {
+      cell.scale.set(highlighted ? 1.035 : 1)
+    }
+  })
+
+  return (
+    <pixiContainer
+      ref={container}
+      x={x}
+      y={y - 30}
+      alpha={0}
+      pivot={highlighted ? 1.1 : 0}
+      eventMode={disabled ? 'none' : 'static'}
+      cursor={disabled ? 'default' : 'pointer'}
+      onPointerDown={onPointerDown}
+      onPointerOver={onPointerEnter}
+    >
+      {children}
+    </pixiContainer>
   )
 }
