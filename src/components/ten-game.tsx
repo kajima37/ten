@@ -29,11 +29,16 @@ import '#/i18n'
 
 type Screen = 'home' | 'game' | 'result' | 'daily' | 'rank' | 'mypage'
 
+type DailyRecord = {
+  best: number
+  plays: number
+}
+
 type PlayerState = {
   best: number
   plays: number
   total: number
-  dailyBest: number
+  dailyRecords: Record<string, DailyRecord>
   streak: number
 }
 
@@ -50,7 +55,7 @@ const initialPlayerState: PlayerState = {
   best: 0,
   plays: 0,
   total: 0,
-  dailyBest: 0,
+  dailyRecords: {},
   streak: 1,
 }
 
@@ -67,12 +72,15 @@ function mulberry32(seed: number) {
   }
 }
 
-function makeBoard(daily = false) {
-  const today = new Date()
-  const dateSeed = Number(
-    `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`,
-  )
-  const random = daily ? mulberry32(dateSeed) : Math.random
+function getLocalDateKey(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+function createDailyRandom(dateKey: string) {
+  return mulberry32(Number(dateKey.replaceAll('-', '')))
+}
+
+function makeBoard(random = Math.random) {
   const next = Array.from({ length: CELL_COUNT }, () => randomNumber(random))
 
   for (let pair = 0; pair < 5; pair += 1) {
@@ -99,7 +107,11 @@ function isAdjacent(first: number, second: number) {
   )
 }
 
-function collapseBoard(board: Array<number>, removed: Array<number>) {
+function collapseBoard(
+  board: Array<number>,
+  removed: Array<number>,
+  random = Math.random,
+) {
   const removedSet = new Set(removed)
   const next = Array<number>(CELL_COUNT)
 
@@ -109,7 +121,7 @@ function collapseBoard(board: Array<number>, removed: Array<number>) {
       const index = row * GRID_SIZE + column
       if (!removedSet.has(index)) values.push(board[index])
     }
-    while (values.length < GRID_SIZE) values.push(randomNumber())
+    while (values.length < GRID_SIZE) values.push(randomNumber(random))
     for (let row = GRID_SIZE - 1; row >= 0; row -= 1) {
       next[row * GRID_SIZE + column] = values[GRID_SIZE - 1 - row]
     }
@@ -160,6 +172,7 @@ export default function TenGame() {
   const [hints, setHints] = useState(3)
   const [bonusUsed, setBonusUsed] = useState(false)
   const [dailyMode, setDailyMode] = useState(false)
+  const [dailyKey, setDailyKey] = useState(getLocalDateKey)
   const [playerState, setPlayerState] = useState(readPlayerState)
   const [previousBest, setPreviousBest] = useState(0)
   const [isNewBest, setIsNewBest] = useState(false)
@@ -168,6 +181,7 @@ export default function TenGame() {
   const [feedbackId, setFeedbackId] = useState(0)
   const finishedRef = useRef(false)
   const lastTickRef = useRef(0)
+  const boardRandomRef = useRef<() => number>(Math.random)
 
   useEffect(() => {
     const saved = window.localStorage.getItem(LANGUAGE_KEY)
@@ -221,18 +235,28 @@ export default function TenGame() {
     setPreviousBest(playerState.best)
     setIsNewBest(score > playerState.best)
 
-    const next = {
+    const currentDailyRecord = playerState.dailyRecords[dailyKey] ?? {
+      best: 0,
+      plays: 0,
+    }
+    const next: PlayerState = {
       ...playerState,
       best: Math.max(playerState.best, score),
       plays: playerState.plays + 1,
       total: playerState.total + score,
-      dailyBest: dailyMode
-        ? Math.max(playerState.dailyBest, score)
-        : playerState.dailyBest,
+      dailyRecords: dailyMode
+        ? {
+            ...playerState.dailyRecords,
+            [dailyKey]: {
+              best: Math.max(currentDailyRecord.best, score),
+              plays: currentDailyRecord.plays + 1,
+            },
+          }
+        : playerState.dailyRecords,
     }
     saveState(next)
     setScreen('result')
-  }, [dailyMode, playerState, saveState, score])
+  }, [dailyKey, dailyMode, playerState, saveState, score])
 
   useEffect(() => {
     if (!running || paused) return
@@ -261,7 +285,9 @@ export default function TenGame() {
       setScore((current) => current + gain)
       setCombo(nextCombo)
       setMaxCombo((current) => Math.max(current, nextCombo))
-      setBoard((current) => collapseBoard(current, selected))
+      setBoard((current) =>
+        collapseBoard(current, selected, boardRandomRef.current),
+      )
       setSelected([])
       setBoardFeedback('success')
       setFeedbackId((current) => current + 1)
@@ -292,8 +318,12 @@ export default function TenGame() {
   }, [resolveSelection])
 
   const startGame = useCallback((daily: boolean) => {
+    const nextDailyKey = getLocalDateKey()
+    const random = daily ? createDailyRandom(nextDailyKey) : Math.random
+    boardRandomRef.current = random
     setDailyMode(daily)
-    setBoard(makeBoard(daily))
+    setDailyKey(nextDailyKey)
+    setBoard(makeBoard(random))
     setSelected([])
     setScore(0)
     setCombo(0)
@@ -379,6 +409,11 @@ export default function TenGame() {
     1,
     Math.min(99, Math.round(100 - playerState.best / 220)),
   )
+  const todayKey = getLocalDateKey()
+  const todayDailyRecord = playerState.dailyRecords[todayKey] ?? {
+    best: 0,
+    plays: 0,
+  }
 
   return (
     <div className="ten-stage mx-auto min-h-svh w-full max-w-[480px] px-3 pb-24 pt-[max(0.75rem,env(safe-area-inset-top))]">
@@ -423,7 +458,10 @@ export default function TenGame() {
           />
         )}
         {screen === 'daily' && (
-          <DailyScreen state={playerState} onPlay={() => startGame(true)} />
+          <DailyScreen
+            record={todayDailyRecord}
+            onPlay={() => startGame(true)}
+          />
         )}
         {screen === 'rank' && (
           <RankScreen best={playerState.best} percent={rankPercent} />
@@ -751,10 +789,10 @@ function ResultScreen({
 }
 
 function DailyScreen({
-  state,
+  record,
   onPlay,
 }: {
-  state: PlayerState
+  record: DailyRecord
   onPlay: () => void
 }) {
   const { i18n, t } = useTranslation()
@@ -780,24 +818,20 @@ function DailyScreen({
       <div className="my-3 rounded-3xl border bg-card px-5">
         <Metric
           label={t('daily.record')}
-          value={state.dailyBest.toLocaleString()}
+          value={record.best.toLocaleString()}
           accent
         />
         <Metric
           label={t('daily.nationalRank')}
           value={
-            state.dailyBest
+            record.best
               ? t('result.topPercent', {
-                  percent: Math.max(1, Math.round(100 - state.dailyBest / 220)),
+                  percent: Math.max(1, Math.round(100 - record.best / 220)),
                 })
               : t('daily.notPlayed')
           }
         />
-        <Metric
-          label={t('daily.streak')}
-          value={t('daily.days', { count: state.streak })}
-          icon={Fire}
-        />
+        <Metric label={t('daily.playCount')} value={String(record.plays)} />
       </div>
       <Button
         className="h-13 w-full rounded-full text-base font-black"
