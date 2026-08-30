@@ -37,6 +37,7 @@ const resources = {
         themeSelected: '{{theme}}を選択しました',
         shareDownloaded: '共有画像を保存しました',
         shareFailed: '共有画像を作成できませんでした',
+        achievementUnlocked: '新しい実績を解除しました！',
       },
       result: {
         title: '結果',
@@ -115,6 +116,35 @@ const resources = {
         next: '次へ',
         start: 'はじめる',
       },
+      achievements: {
+        title: '実績',
+        items: {
+          first_play: {
+            title: 'はじめの一歩',
+            description: '最初のゲームを完了する',
+          },
+          score_1000: {
+            title: 'スコアハンター',
+            description: '1,000点以上を記録する',
+          },
+          combo_10: {
+            title: 'コンボマスター',
+            description: '10コンボを達成する',
+          },
+          daily_first: {
+            title: '今日の挑戦者',
+            description: 'デイリーを完了する',
+          },
+          streak_7: {
+            title: '一週間の習慣',
+            description: '7日連続でデイリーを遊ぶ',
+          },
+          veteran_25: {
+            title: 'TEN. ベテラン',
+            description: '25ゲームを完了する',
+          },
+        },
+      },
     },
   },
   en: {
@@ -149,6 +179,7 @@ const resources = {
         themeSelected: '{{theme}} selected',
         shareDownloaded: 'Share image saved',
         shareFailed: 'Could not create the share image',
+        achievementUnlocked: 'Achievement unlocked!',
       },
       result: {
         title: 'RESULT',
@@ -227,6 +258,32 @@ const resources = {
         back: 'Back',
         next: 'Next',
         start: 'Start',
+      },
+      achievements: {
+        title: 'Achievements',
+        items: {
+          first_play: {
+            title: 'First Step',
+            description: 'Complete your first game',
+          },
+          score_1000: {
+            title: 'Score Hunter',
+            description: 'Score at least 1,000 points',
+          },
+          combo_10: { title: 'Combo Master', description: 'Reach a 10 combo' },
+          daily_first: {
+            title: 'Daily Challenger',
+            description: 'Complete a daily game',
+          },
+          streak_7: {
+            title: 'Weekly Habit',
+            description: 'Play the daily for 7 days in a row',
+          },
+          veteran_25: {
+            title: 'TEN. Veteran',
+            description: 'Complete 25 games',
+          },
+        },
       },
     },
   },

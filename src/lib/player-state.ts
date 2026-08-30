@@ -1,4 +1,4 @@
-export const PLAYER_STATE_VERSION = 3 as const
+export const PLAYER_STATE_VERSION = 4 as const
 
 export type DailyRecord = {
   best: number
@@ -23,6 +23,7 @@ export type PlayerState = {
   streak: number
   lastDailyDate: string | null
   history: Array<PlayRecord>
+  unlockedAchievements: Array<string>
 }
 
 export const initialPlayerState: PlayerState = {
@@ -34,6 +35,7 @@ export const initialPlayerState: PlayerState = {
   streak: 0,
   lastDailyDate: null,
   history: [],
+  unlockedAchievements: [],
 }
 
 function nonNegativeNumber(value: unknown) {
@@ -115,5 +117,11 @@ export function migratePlayerState(
     lastDailyDate:
       typeof source.lastDailyDate === 'string' ? source.lastDailyDate : null,
     history: readHistory(source.history),
+    unlockedAchievements: Array.isArray(source.unlockedAchievements)
+      ? source.unlockedAchievements.filter(
+          (achievement): achievement is string =>
+            typeof achievement === 'string',
+        )
+      : [],
   }
 }

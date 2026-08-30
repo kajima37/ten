@@ -1,11 +1,13 @@
 import {
   ArrowCounterClockwise,
   CalendarBlank,
+  CheckCircle,
   Clock,
   Crown,
   Fire,
   House,
   Lightbulb,
+  LockSimple,
   Pause,
   Play,
   Question,
@@ -25,6 +27,7 @@ import { ScreenOrientation } from '@capacitor/screen-orientation'
 
 import GameBoard from '#/components/game-board'
 import { Button } from '#/components/ui/button'
+import { ACHIEVEMENT_IDS, getUnlockedAchievements } from '#/lib/achievements'
 import {
   TARGET,
   collapseBoard,
@@ -259,7 +262,7 @@ export default function TenGame() {
     const nextStreak = dailyMode
       ? getNextStreak(playerState.streak, playerState.lastDailyDate, dailyKey)
       : playerState.streak
-    const next: PlayerState = {
+    const nextBase: PlayerState = {
       ...playerState,
       best: Math.max(playerState.best, score),
       plays: playerState.plays + 1,
@@ -286,10 +289,26 @@ export default function TenGame() {
         },
         ...playerState.history,
       ].slice(0, 100),
+      unlockedAchievements: playerState.unlockedAchievements,
     }
+    const unlockedAchievements = getUnlockedAchievements(nextBase)
+    const hasNewAchievement =
+      unlockedAchievements.length > playerState.unlockedAchievements.length
+    const next = { ...nextBase, unlockedAchievements }
     saveState(next)
     setScreen('result')
-  }, [dailyKey, dailyMode, maxCombo, playerState, saveState, score, timeLimit])
+    if (hasNewAchievement) showToast(t('toast.achievementUnlocked'))
+  }, [
+    dailyKey,
+    dailyMode,
+    maxCombo,
+    playerState,
+    saveState,
+    score,
+    showToast,
+    t,
+    timeLimit,
+  ])
 
   useEffect(() => {
     if (!running || paused) return
@@ -1163,6 +1182,40 @@ function MyPage({
         </div>
       </div>
       <div className="mt-3 rounded-3xl border bg-card p-5">
+        <div className="flex items-center justify-between">
+          <strong>{t('achievements.title')}</strong>
+          <span className="text-xs text-muted-foreground">
+            {playerStateAchievementCount(state)} / {ACHIEVEMENT_IDS.length}
+          </span>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {ACHIEVEMENT_IDS.map((id) => {
+            const unlocked = state.unlockedAchievements.includes(id)
+            return (
+              <div
+                key={id}
+                className={`rounded-2xl border p-3 ${unlocked ? 'bg-accent/10' : 'bg-secondary/50 opacity-60'}`}
+              >
+                {unlocked ? (
+                  <CheckCircle
+                    className="mb-2 size-5 text-accent"
+                    weight="fill"
+                  />
+                ) : (
+                  <LockSimple className="mb-2 size-5 text-muted-foreground" />
+                )}
+                <strong className="block text-xs">
+                  {t(`achievements.items.${id}.title`)}
+                </strong>
+                <span className="mt-1 block text-[10px] leading-relaxed text-muted-foreground">
+                  {t(`achievements.items.${id}.description`)}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+      <div className="mt-3 rounded-3xl border bg-card p-5">
         <strong>{t('profile.language')}</strong>
         <div className="mt-3 grid grid-cols-2 gap-2">
           {(['ja', 'en'] as const).map((language) => {
@@ -1193,6 +1246,11 @@ function MyPage({
       </Button>
     </section>
   )
+}
+
+function playerStateAchievementCount(state: PlayerState) {
+  return ACHIEVEMENT_IDS.filter((id) => state.unlockedAchievements.includes(id))
+    .length
 }
 
 function Tutorial({
