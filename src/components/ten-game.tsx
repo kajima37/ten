@@ -40,6 +40,7 @@ type PlayerState = {
   total: number
   dailyRecords: Record<string, DailyRecord>
   streak: number
+  lastDailyDate: string | null
 }
 
 type BoardFeedback = 'success' | 'miss' | null
@@ -56,7 +57,8 @@ const initialPlayerState: PlayerState = {
   plays: 0,
   total: 0,
   dailyRecords: {},
-  streak: 1,
+  streak: 0,
+  lastDailyDate: null,
 }
 
 function randomNumber(random = Math.random) {
@@ -78,6 +80,21 @@ function getLocalDateKey(date = new Date()) {
 
 function createDailyRandom(dateKey: string) {
   return mulberry32(Number(dateKey.replaceAll('-', '')))
+}
+
+function getPreviousDateKey(dateKey: string) {
+  const date = new Date(`${dateKey}T00:00:00Z`)
+  date.setUTCDate(date.getUTCDate() - 1)
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
+}
+
+function getNextStreak(
+  current: number,
+  lastDailyDate: string | null,
+  dateKey: string,
+) {
+  if (lastDailyDate === dateKey) return current
+  return lastDailyDate === getPreviousDateKey(dateKey) ? current + 1 : 1
 }
 
 function makeBoard(random = Math.random) {
@@ -239,6 +256,9 @@ export default function TenGame() {
       best: 0,
       plays: 0,
     }
+    const nextStreak = dailyMode
+      ? getNextStreak(playerState.streak, playerState.lastDailyDate, dailyKey)
+      : playerState.streak
     const next: PlayerState = {
       ...playerState,
       best: Math.max(playerState.best, score),
@@ -253,6 +273,8 @@ export default function TenGame() {
             },
           }
         : playerState.dailyRecords,
+      streak: nextStreak,
+      lastDailyDate: dailyMode ? dailyKey : playerState.lastDailyDate,
     }
     saveState(next)
     setScreen('result')
@@ -460,6 +482,7 @@ export default function TenGame() {
         {screen === 'daily' && (
           <DailyScreen
             record={todayDailyRecord}
+            streak={playerState.streak}
             onPlay={() => startGame(true)}
           />
         )}
@@ -790,9 +813,11 @@ function ResultScreen({
 
 function DailyScreen({
   record,
+  streak,
   onPlay,
 }: {
   record: DailyRecord
+  streak: number
   onPlay: () => void
 }) {
   const { i18n, t } = useTranslation()
@@ -832,6 +857,11 @@ function DailyScreen({
           }
         />
         <Metric label={t('daily.playCount')} value={String(record.plays)} />
+        <Metric
+          label={t('daily.streak')}
+          value={t('daily.days', { count: streak })}
+          icon={Fire}
+        />
       </div>
       <Button
         className="h-13 w-full rounded-full text-base font-black"
