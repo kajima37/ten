@@ -3,13 +3,23 @@ import { Container, Graphics, Text } from 'pixi.js'
 
 extend({ Container, Graphics, Text })
 
-const board = [
-  2, 6, 1, 7, 4, 9, 3, 5, 2, 8, 4, 8, 2, 6, 1, 3, 3, 9, 4, 7, 5, 2, 6, 3, 9,
-]
+type GameBoardProps = {
+  board: Array<number>
+  selected: Array<number>
+  disabled?: boolean
+  onPointerDown: (index: number) => void
+  onPointerEnter: (index: number) => void
+}
 
-function GameBoard() {
+export default function GameBoard({
+  board,
+  selected,
+  disabled = false,
+  onPointerDown,
+  onPointerEnter,
+}: GameBoardProps) {
   return (
-    <div className="aspect-square w-full overflow-hidden rounded-2xl">
+    <div className="game-canvas aspect-square w-full overflow-hidden rounded-2xl">
       <Application
         width={360}
         height={360}
@@ -22,10 +32,18 @@ function GameBoard() {
           const row = Math.floor(index / 5)
           const x = 8 + column * 70
           const y = 8 + row * 70
-          const highlighted = [7, 12, 16, 20].includes(index)
+          const highlighted = selected.includes(index)
 
           return (
-            <pixiContainer key={index} x={x} y={y}>
+            <pixiContainer
+              key={`${index}-${value}`}
+              x={x}
+              y={y}
+              eventMode={disabled ? 'none' : 'static'}
+              cursor={disabled ? 'default' : 'pointer'}
+              onPointerDown={() => onPointerDown(index)}
+              onPointerOver={() => onPointerEnter(index)}
+            >
               <pixiGraphics
                 draw={(graphics) => {
                   graphics.clear()
@@ -56,5 +74,3 @@ function GameBoard() {
     </div>
   )
 }
-
-export default GameBoard
