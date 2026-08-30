@@ -1,0 +1,78 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #09090a;
+  --foreground: #f6f3ed;
+  --card: #121214;
+  --card-foreground: #f6f3ed;
+  --popover: #171719;
+  --popover-foreground: #f6f3ed;
+  --primary: #f6f3ed;
+  --primary-foreground: #111113;
+  --secondary: #1b1b1e;
+  --secondary-foreground: #f6f3ed;
+  --muted: #1b1b1e;
+  --muted-foreground: #9f9c95;
+  --accent: #f3c75f;
+  --accent-foreground: #15120a;
+  --destructive: #f07878;
+  --destructive-foreground: #190707;
+  --border: #2a2a2d;
+  --input: #303033;
+  --ring: #f3c75f;
+  --radius: 0.875rem;
+}
+
+@theme inline {
+  --font-sans: 'Inter', 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    color-scheme: dark;
+    background: var(--background);
+  }
+
+  body {
+    @apply m-0 min-h-screen bg-background text-foreground antialiased;
+    background-image: radial-gradient(
+      circle at 50% -20%,
+      #342b19 0,
+      transparent 34rem
+    );
+  }
+
+  button {
+    @apply cursor-pointer;
+  }
+}

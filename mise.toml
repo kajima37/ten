@@ -1,0 +1,27 @@
+[tools]
+node = "26.8.1"
+pnpm = "12.0.0"
+
+[env]
+_.path = ["{{config_root}}/node_modules/.bin"]
+
+[tasks.install]
+description = "Install project dependencies"
+run = "pnpm install"
+sources = ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "mise.toml"]
+outputs = ["node_modules/.pnpm/lock.yaml"]
+
+[tasks.dev]
+description = "Start the local development server"
+run = "pnpm dev"
+depends = ["install"]
+
+[tasks.check]
+description = "Run formatting, lint, and type checks"
+run = "pnpm check"
+depends = ["install"]
+
+[tasks.build]
+description = "Create a production build"
+run = "pnpm build"
+depends = ["install"]
