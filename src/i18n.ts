@@ -80,6 +80,7 @@ const resources = {
           cafe: 'カフェ',
           sakura: 'サクラ',
           zen: '禅',
+          neon: 'ネオン',
         },
       },
       nav: {
@@ -165,6 +166,7 @@ const resources = {
           cafe: 'Cafe',
           sakura: 'Sakura',
           zen: 'Zen',
+          neon: 'Neon',
         },
       },
       nav: {

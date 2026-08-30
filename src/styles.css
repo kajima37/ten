@@ -23,7 +23,103 @@
   --border: #2a2a2d;
   --input: #303033;
   --ring: #f3c75f;
+  --ambient: #342b19;
   --radius: 0.875rem;
+}
+
+:root[data-theme='midnight'] {
+  --background: #070b16;
+  --foreground: #edf4ff;
+  --card: #0b1020;
+  --card-foreground: #edf4ff;
+  --primary: #dce9ff;
+  --primary-foreground: #09101f;
+  --secondary: #121b31;
+  --secondary-foreground: #edf4ff;
+  --muted: #121b31;
+  --muted-foreground: #91a0bb;
+  --accent: #75a7ff;
+  --accent-foreground: #071126;
+  --border: #263a5f;
+  --input: #263a5f;
+  --ring: #75a7ff;
+  --ambient: #18366d;
+}
+
+:root[data-theme='cafe'] {
+  --background: #17110c;
+  --foreground: #f7ead8;
+  --card: #21170f;
+  --card-foreground: #f7ead8;
+  --primary: #f0dcc2;
+  --primary-foreground: #23170e;
+  --secondary: #302116;
+  --secondary-foreground: #f7ead8;
+  --muted: #302116;
+  --muted-foreground: #b7a28a;
+  --accent: #d9a66f;
+  --accent-foreground: #24160b;
+  --border: #59422d;
+  --input: #59422d;
+  --ring: #d9a66f;
+  --ambient: #70451f;
+}
+
+:root[data-theme='sakura'] {
+  --background: #190f15;
+  --foreground: #fff0f5;
+  --card: #211219;
+  --card-foreground: #fff0f5;
+  --primary: #ffe4ed;
+  --primary-foreground: #271019;
+  --secondary: #321a25;
+  --secondary-foreground: #fff0f5;
+  --muted: #321a25;
+  --muted-foreground: #c9a0ae;
+  --accent: #ff9fbd;
+  --accent-foreground: #2d0d18;
+  --border: #5c3042;
+  --input: #5c3042;
+  --ring: #ff9fbd;
+  --ambient: #782b4d;
+}
+
+:root[data-theme='zen'] {
+  --background: #101513;
+  --foreground: #edf3e9;
+  --card: #141b17;
+  --card-foreground: #edf3e9;
+  --primary: #dfe9d8;
+  --primary-foreground: #101811;
+  --secondary: #1e2922;
+  --secondary-foreground: #edf3e9;
+  --muted: #1e2922;
+  --muted-foreground: #9dab98;
+  --accent: #9ebc86;
+  --accent-foreground: #10190d;
+  --border: #3a4b3e;
+  --input: #3a4b3e;
+  --ring: #9ebc86;
+  --ambient: #31523a;
+}
+
+:root[data-theme='neon'] {
+  --background: #07050d;
+  --foreground: #f6f2ff;
+  --card: #0d0915;
+  --card-foreground: #f6f2ff;
+  --primary: #ecdcff;
+  --primary-foreground: #110719;
+  --secondary: #181022;
+  --secondary-foreground: #f6f2ff;
+  --muted: #181022;
+  --muted-foreground: #a99ab8;
+  --accent: #c8ff38;
+  --accent-foreground: #111704;
+  --border: #493261;
+  --input: #493261;
+  --ring: #c8ff38;
+  --ambient: #61298b;
 }
 
 @theme inline {
@@ -67,7 +163,7 @@
     @apply m-0 min-h-screen bg-background text-foreground antialiased;
     background-image: radial-gradient(
       circle at 50% -20%,
-      #342b19 0,
+      var(--ambient) 0,
       transparent 34rem
     );
   }
@@ -90,7 +186,11 @@
   content: '';
   pointer-events: none;
   background:
-    radial-gradient(circle at 50% 18%, rgb(243 199 95 / 7%), transparent 25rem),
+    radial-gradient(
+      circle at 50% 18%,
+      color-mix(in srgb, var(--accent) 7%, transparent),
+      transparent 25rem
+    ),
     linear-gradient(
       115deg,
       transparent 40%,
@@ -111,10 +211,10 @@
   color: transparent;
   background: linear-gradient(
     105deg,
-    #f6f3ed 25%,
-    #f3c75f 48%,
-    #fff7d4 52%,
-    #f6f3ed 75%
+    var(--foreground) 25%,
+    var(--accent) 48%,
+    color-mix(in srgb, var(--accent) 35%, white) 52%,
+    var(--foreground) 75%
   );
   background-size: 240% auto;
   background-clip: text;
@@ -141,8 +241,8 @@
 
 .game-board-feedback.is-success {
   box-shadow:
-    inset 0 0 0 1px rgb(243 199 95 / 55%),
-    inset 0 0 26px rgb(243 199 95 / 7%);
+    inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent),
+    inset 0 0 26px color-mix(in srgb, var(--accent) 7%, transparent);
   animation: ten-board-success 520ms ease-out;
 }
 
@@ -163,7 +263,7 @@
   height: 12px;
   border-radius: 999px;
   background: var(--accent);
-  box-shadow: 0 0 8px rgb(243 199 95 / 70%);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 70%, transparent);
   opacity: 0;
   animation: ten-spark 540ms ease-out forwards;
   transform: rotate(calc(var(--spark-index) * 45deg)) translateY(-28px);
@@ -195,7 +295,9 @@
 }
 
 .result-crown.is-new-best {
-  filter: drop-shadow(0 0 12px rgb(243 199 95 / 70%));
+  filter: drop-shadow(
+    0 0 12px color-mix(in srgb, var(--accent) 70%, transparent)
+  );
   animation: ten-crown 700ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
@@ -207,7 +309,9 @@
 
 .nav-item.is-active svg {
   transform: translateY(-2px) scale(1.08);
-  filter: drop-shadow(0 3px 6px rgb(243 199 95 / 25%));
+  filter: drop-shadow(
+    0 3px 6px color-mix(in srgb, var(--accent) 25%, transparent)
+  );
 }
 
 button {

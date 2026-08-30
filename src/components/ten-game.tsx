@@ -51,6 +51,16 @@ const TARGET = 10
 const BASE_TIME = 60
 const STORAGE_KEY = 'ten_state'
 const LANGUAGE_KEY = 'ten_language'
+const THEME_KEY = 'ten_theme'
+const THEME_IDS = [
+  'classic',
+  'midnight',
+  'cafe',
+  'sakura',
+  'zen',
+  'neon',
+] as const
+type ThemeId = (typeof THEME_IDS)[number]
 
 const initialPlayerState: PlayerState = {
   best: 0,
@@ -197,6 +207,11 @@ function readPlayerState() {
   }
 }
 
+function readTheme(): ThemeId {
+  const saved = window.localStorage.getItem(THEME_KEY)
+  return THEME_IDS.includes(saved as ThemeId) ? (saved as ThemeId) : 'classic'
+}
+
 function vibrate(duration: number) {
   if (Capacitor.isNativePlatform()) {
     void Haptics.impact({
@@ -230,6 +245,7 @@ export default function TenGame() {
   const [dailyMode, setDailyMode] = useState(false)
   const [dailyKey, setDailyKey] = useState(getLocalDateKey)
   const [playerState, setPlayerState] = useState(readPlayerState)
+  const [theme, setTheme] = useState<ThemeId>(readTheme)
   const [previousBest, setPreviousBest] = useState(0)
   const [isNewBest, setIsNewBest] = useState(false)
   const [toast, setToast] = useState('')
@@ -250,6 +266,11 @@ export default function TenGame() {
     document.documentElement.lang = i18n.resolvedLanguage ?? 'ja'
     document.title = `TEN. — ${t('home.tagline')}`
   }, [i18n.resolvedLanguage, t])
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    window.localStorage.setItem(THEME_KEY, theme)
+  }, [theme])
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
@@ -493,6 +514,7 @@ export default function TenGame() {
             sum={sum}
             timeLeft={timeLeft}
             timeLimit={timeLimit}
+            theme={theme}
             onAddTime={addTime}
             onHint={useHint}
             onPointerDown={selectFirst}
@@ -523,7 +545,13 @@ export default function TenGame() {
           <RankScreen best={playerState.best} percent={rankPercent} />
         )}
         {screen === 'mypage' && (
-          <MyPage average={average} state={playerState} onToast={showToast} />
+          <MyPage
+            average={average}
+            state={playerState}
+            theme={theme}
+            onThemeChange={setTheme}
+            onToast={showToast}
+          />
         )}
       </div>
 
@@ -584,6 +612,7 @@ type GameScreenProps = {
   combo: number
   timeLeft: number
   timeLimit: number
+  theme: ThemeId
   sum: number
   hints: number
   bonusUsed: boolean
@@ -650,6 +679,7 @@ function GameScreen(props: GameScreenProps) {
           board={props.board}
           selected={props.selected}
           disabled={props.paused}
+          theme={props.theme}
           onPointerDown={props.onPointerDown}
           onPointerEnter={props.onPointerEnter}
         />
@@ -933,21 +963,25 @@ function RankScreen({ best, percent }: { best: number; percent: number }) {
 function MyPage({
   average,
   state,
+  theme,
+  onThemeChange,
   onToast,
 }: {
   average: number
   state: PlayerState
+  theme: ThemeId
+  onThemeChange: (theme: ThemeId) => void
   onToast: (message: string) => void
 }) {
   const { i18n, t } = useTranslation()
-  const [theme, setTheme] = useState(0)
   const themes = [
-    { id: 'classic', label: t('profile.themes.classic') },
-    { id: 'midnight', label: t('profile.themes.midnight') },
-    { id: 'cafe', label: t('profile.themes.cafe') },
-    { id: 'sakura', label: t('profile.themes.sakura') },
-    { id: 'zen', label: t('profile.themes.zen') },
-  ]
+    { id: 'classic', label: t('profile.themes.classic'), color: '#242426' },
+    { id: 'midnight', label: t('profile.themes.midnight'), color: '#111b33' },
+    { id: 'cafe', label: t('profile.themes.cafe'), color: '#3b281a' },
+    { id: 'sakura', label: t('profile.themes.sakura'), color: '#442232' },
+    { id: 'zen', label: t('profile.themes.zen'), color: '#26352a' },
+    { id: 'neon', label: t('profile.themes.neon'), color: '#251635' },
+  ] satisfies Array<{ id: ThemeId; label: string; color: string }>
   return (
     <section>
       <ScreenTitle title={t('profile.title')} icon={UserCircle} />
@@ -981,22 +1015,14 @@ function MyPage({
       </div>
       <div className="rounded-3xl border bg-card p-5">
         <strong>{t('profile.theme')}</strong>
-        <div className="mt-3 grid grid-cols-5 gap-2">
-          {themes.map(({ id, label }, index) => (
+        <div className="mt-3 grid grid-cols-6 gap-2">
+          {themes.map(({ id, label, color }) => (
             <button
               key={id}
-              className={`aspect-[3/4] rounded-xl border ${index === theme ? 'ring-2 ring-accent' : ''}`}
-              style={{
-                background: [
-                  '#242426',
-                  '#111522',
-                  '#352e24',
-                  '#3a2630',
-                  '#272c2d',
-                ][index],
-              }}
+              className={`aspect-[3/4] rounded-xl border ${id === theme ? 'ring-2 ring-accent' : ''}`}
+              style={{ background: color }}
               onClick={() => {
-                setTheme(index)
+                onThemeChange(id)
                 onToast(t('toast.themeSelected', { theme: label }))
               }}
             >
@@ -1004,7 +1030,7 @@ function MyPage({
             </button>
           ))}
         </div>
-        <div className="mt-2 grid grid-cols-5 gap-2 text-center text-[7px] text-muted-foreground">
+        <div className="mt-2 grid grid-cols-6 gap-2 text-center text-[7px] text-muted-foreground">
           {themes.map(({ id, label }) => (
             <span key={id}>{label}</span>
           ))}
