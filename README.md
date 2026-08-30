@@ -50,6 +50,16 @@
 .\.tools\mise\mise.exe exec -- pnpm build
 ```
 
+## モバイル
+
+AndroidとiOSにはCapacitor 8を使って配布します。モバイル用SPAをビルドし、両方のネイティブプロジェクトへ同期するには次を実行します。
+
+```powershell
+.\.tools\mise\mise.exe exec -- pnpm mobile:sync
+```
+
+ローカル環境、GitHub Actionsの成果物、ストア署名については [`docs/deployment/mobile.md`](./docs/deployment/mobile.md) を参照してください。
+
 ## 主な場所
 
 - `src/routes` — TanStack Routerのファイルベースルート
@@ -57,6 +67,8 @@
 - `src/components/ui` — shadcn/uiコンポーネント
 - `src/styles.css` — TailwindとTEN.のデザイントークン
 - `docs/product` — 企画・仕様・生成画像
+- `android` / `ios` — Capacitorネイティブプロジェクト
+- `.github/workflows` — Web・Android・iOSの継続的インテグレーション
 
 ## 参照した公式ドキュメント
 

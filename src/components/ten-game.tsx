@@ -12,6 +12,10 @@ import {
   UserRound,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { App } from '@capacitor/app'
+import { Capacitor } from '@capacitor/core'
+import { Haptics, ImpactStyle } from '@capacitor/haptics'
+import { ScreenOrientation } from '@capacitor/screen-orientation'
 
 import GameBoard from '#/components/game-board'
 import { Button } from '#/components/ui/button'
@@ -118,6 +122,13 @@ function readPlayerState() {
 }
 
 function vibrate(duration: number) {
+  if (Capacitor.isNativePlatform()) {
+    void Haptics.impact({
+      style: duration > 10 ? ImpactStyle.Medium : ImpactStyle.Light,
+    }).catch(() => undefined)
+    return
+  }
+
   try {
     navigator.vibrate(duration)
   } catch {
@@ -148,6 +159,22 @@ export default function TenGame() {
   const [feedbackId, setFeedbackId] = useState(0)
   const finishedRef = useRef(false)
   const lastTickRef = useRef(0)
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+
+    void ScreenOrientation.lock({ orientation: 'portrait' }).catch(
+      () => undefined,
+    )
+
+    const listener = App.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive) setPaused(true)
+    })
+
+    return () => {
+      void listener.then((handle) => handle.remove())
+    }
+  }, [])
 
   const sum = useMemo(
     () => selected.reduce((total, index) => total + board[index], 0),

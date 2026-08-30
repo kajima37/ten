@@ -6,3 +6,5 @@ yarn.lock
 .tools
 dist
 node_modules
+android
+ios

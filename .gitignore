@@ -8,6 +8,13 @@ dist
 dist-ssr
 *.local
 .env
+*.jks
+*.keystore
+*.p12
+*.mobileprovision
+*.ipa
+*.xcarchive
+android/keystore.properties
 .nitro
 .tanstack
 .wrangler
