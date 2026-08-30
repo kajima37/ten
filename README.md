@@ -12,6 +12,7 @@
 - React / TypeScript
 - Tailwind CSS
 - PixiJS / `@pixi/react`
+- Phosphor Icons
 - shadcn/ui
 - ESLint / Prettier
 

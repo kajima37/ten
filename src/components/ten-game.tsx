@@ -1,16 +1,21 @@
 import {
-  CalendarDays,
-  Clock3,
+  ArrowCounterClockwise,
+  CalendarBlank,
+  Clock,
   Crown,
-  HelpCircle,
-  Home,
+  Fire,
+  House,
   Lightbulb,
+  Medal,
   Pause,
   Play,
-  RotateCcw,
+  Question,
   Shuffle,
-  UserRound,
-} from 'lucide-react'
+  Star,
+  Trophy,
+  UserCircle,
+} from '@phosphor-icons/react'
+import type { Icon as PhosphorIcon } from '@phosphor-icons/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { App } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
@@ -448,7 +453,7 @@ function HomeScreen({
         className="mt-5 gap-2 text-xs text-muted-foreground"
         onClick={onRank}
       >
-        <Crown className="size-4" /> RANKING
+        <Crown className="size-4" weight="bold" /> RANKING
       </Button>
     </section>
   )
@@ -487,9 +492,9 @@ function GameScreen(props: GameScreenProps) {
           onClick={props.onTogglePause}
         >
           {props.paused ? (
-            <Play className="size-4" />
+            <Play className="size-4" weight="fill" />
           ) : (
-            <Pause className="size-4" />
+            <Pause className="size-4" weight="fill" />
           )}
           <span className="sr-only">{props.paused ? '再開' : '一時停止'}</span>
         </Button>
@@ -549,7 +554,7 @@ function GameScreen(props: GameScreenProps) {
             onClick={props.onTogglePause}
           >
             <span className="flex items-center gap-2 font-black tracking-[0.18em]">
-              <Play className="size-5" /> PAUSED
+              <Play className="size-5" weight="fill" /> PAUSED
             </span>
           </button>
         )}
@@ -574,7 +579,7 @@ function GameScreen(props: GameScreenProps) {
           onClick={props.onHint}
         />
         <ActionButton
-          icon={Clock3}
+          icon={Clock}
           label="+10秒"
           detail={props.bonusUsed ? '使用済み' : '1回'}
           disabled={props.bonusUsed}
@@ -620,7 +625,7 @@ function ActionButton({
   disabled = false,
   onClick,
 }: {
-  icon: typeof Shuffle
+  icon: PhosphorIcon
   label: string
   detail: string
   disabled?: boolean
@@ -633,7 +638,7 @@ function ActionButton({
       disabled={disabled}
       onClick={onClick}
     >
-      <Icon className="size-5" />
+      <Icon className="size-5" weight="bold" />
       <span>{label}</span>
       <span className="text-[9px] text-muted-foreground">{detail}</span>
     </Button>
@@ -668,7 +673,7 @@ function ResultScreen({
           className="rounded-full"
           onClick={onHome}
         >
-          <Home className="size-4" />
+          <House className="size-4" weight="bold" />
         </Button>
         <strong className="tracking-[0.16em]">RESULT</strong>
         <div className="size-9" />
@@ -676,6 +681,7 @@ function ResultScreen({
       <div className="rounded-3xl border bg-card p-7 text-center">
         <Crown
           className={`result-crown mx-auto mb-2 size-8 text-accent ${isNewBest ? 'is-new-best' : ''}`}
+          weight="fill"
         />
         <p className="text-xs font-bold tracking-[0.16em] text-accent">
           {isNewBest ? 'NEW BEST!' : 'RESULT'}
@@ -700,7 +706,8 @@ function ResultScreen({
         className="h-13 w-full rounded-full text-base font-black"
         onClick={onRetry}
       >
-        <RotateCcw className="mr-2 size-4" /> もう一度プレイ
+        <ArrowCounterClockwise className="mr-2 size-4" weight="bold" />
+        もう一度プレイ
       </Button>
       <Button
         variant="secondary"
@@ -726,7 +733,7 @@ function DailyScreen({
     .toUpperCase()
   return (
     <section>
-      <ScreenTitle title="TODAY'S TEN." icon={HelpCircle} />
+      <ScreenTitle title="TODAY'S TEN." icon={Question} />
       <div className="rounded-3xl border bg-card p-6 text-center">
         <span className="rounded-full bg-foreground px-3 py-1 text-xs font-bold text-background">
           {date}
@@ -750,7 +757,7 @@ function DailyScreen({
               : '未挑戦'
           }
         />
-        <Metric label="連続プレイ" value={`${state.streak}日 🔥`} />
+        <Metric label="連続プレイ" value={`${state.streak}日`} icon={Fire} />
       </div>
       <Button
         className="h-13 w-full rounded-full text-base font-black"
@@ -767,9 +774,14 @@ function RankScreen({ best, percent }: { best: number; percent: number }) {
     <section>
       <ScreenTitle title="RANKING" icon={Crown} />
       <div className="rounded-3xl border bg-card px-5">
-        <Metric label="🥇 1" value="18,430" />
-        <Metric label="🥈 2" value="17,960" />
-        <Metric label="🥉 3" value="17,240" />
+        <Metric
+          label="1"
+          value="18,430"
+          icon={Medal}
+          iconClassName="text-accent"
+        />
+        <Metric label="2" value="17,960" icon={Medal} />
+        <Metric label="3" value="17,240" icon={Medal} />
         <Metric label="あなた" value={best.toLocaleString()} accent />
       </div>
       <p className="mt-3 text-center text-xs text-muted-foreground">
@@ -792,18 +804,34 @@ function MyPage({
   const themes = ['CLASSIC', 'MIDNIGHT', 'CAFE', 'SAKURA', 'ZEN']
   return (
     <section>
-      <ScreenTitle title="MY PAGE" icon={UserRound} />
+      <ScreenTitle title="MY PAGE" icon={UserCircle} />
       <div className="rounded-3xl border bg-card p-6 text-center">
         <div className="mx-auto grid size-16 place-items-center rounded-full bg-gradient-to-b from-zinc-500 to-zinc-900">
-          <UserRound className="size-8" />
+          <UserCircle className="size-8" weight="duotone" />
         </div>
         <h2 className="mt-3 font-bold">Player</h2>
       </div>
       <div className="my-3 rounded-3xl border bg-card px-5">
-        <Metric label="♛ 最高得点" value={state.best.toLocaleString()} />
-        <Metric label="🏆 総プレイ回数" value={String(state.plays)} />
-        <Metric label="★ 平均スコア" value={average.toLocaleString()} />
-        <Metric label="🔥 連続プレイ日数" value={`${state.streak}日`} />
+        <Metric
+          label="最高得点"
+          value={state.best.toLocaleString()}
+          icon={Crown}
+        />
+        <Metric
+          label="総プレイ回数"
+          value={String(state.plays)}
+          icon={Trophy}
+        />
+        <Metric
+          label="平均スコア"
+          value={average.toLocaleString()}
+          icon={Star}
+        />
+        <Metric
+          label="連続プレイ日数"
+          value={`${state.streak}日`}
+          icon={Fire}
+        />
       </div>
       <div className="rounded-3xl border bg-card p-5">
         <strong>テーマ</strong>
@@ -844,14 +872,23 @@ function Metric({
   label,
   value,
   accent = false,
+  icon: Icon,
+  iconClassName = '',
 }: {
   label: string
   value: string
   accent?: boolean
+  icon?: PhosphorIcon
+  iconClassName?: string
 }) {
   return (
     <div className="flex items-center justify-between border-b py-4 last:border-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="flex items-center gap-2 text-sm text-muted-foreground">
+        {Icon && (
+          <Icon className={`size-4 ${iconClassName}`} weight="duotone" />
+        )}
+        {label}
+      </span>
       <strong className={`text-xl ${accent ? 'text-accent' : ''}`}>
         {value}
       </strong>
@@ -864,12 +901,12 @@ function ScreenTitle({
   icon: Icon,
 }: {
   title: string
-  icon: typeof Crown
+  icon: PhosphorIcon
 }) {
   return (
     <div className="mb-4 flex items-center justify-between">
       <strong className="tracking-[0.13em]">{title}</strong>
-      <Icon className="size-5 text-muted-foreground" />
+      <Icon className="size-5 text-muted-foreground" weight="duotone" />
     </div>
   )
 }
@@ -882,10 +919,10 @@ function BottomNavigation({
   onNavigate: (screen: Screen) => void
 }) {
   const items = [
-    { screen: 'home' as const, label: 'ホーム', icon: Home },
-    { screen: 'daily' as const, label: 'デイリー', icon: CalendarDays },
+    { screen: 'home' as const, label: 'ホーム', icon: House },
+    { screen: 'daily' as const, label: 'デイリー', icon: CalendarBlank },
     { screen: 'rank' as const, label: 'ランキング', icon: Crown },
-    { screen: 'mypage' as const, label: 'マイページ', icon: UserRound },
+    { screen: 'mypage' as const, label: 'マイページ', icon: UserCircle },
   ]
   return (
     <nav className="fixed bottom-0 left-1/2 z-40 grid w-full max-w-[480px] -translate-x-1/2 grid-cols-4 border-t bg-background/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl">
@@ -897,6 +934,7 @@ function BottomNavigation({
         >
           <Icon
             className={`size-5 ${active === screen ? 'text-accent' : ''}`}
+            weight={active === screen ? 'fill' : 'regular'}
           />
           {label}
         </button>
