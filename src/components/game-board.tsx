@@ -39,6 +39,8 @@ export default function GameBoard({
               key={`${index}-${value}`}
               x={x}
               y={y}
+              scale={highlighted ? 1.035 : 1}
+              pivot={highlighted ? 1.1 : 0}
               eventMode={disabled ? 'none' : 'static'}
               cursor={disabled ? 'default' : 'pointer'}
               onPointerDown={() => onPointerDown(index)}

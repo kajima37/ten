@@ -26,6 +26,8 @@ type PlayerState = {
   streak: number
 }
 
+type BoardFeedback = 'success' | 'miss' | null
+
 const GRID_SIZE = 5
 const CELL_COUNT = GRID_SIZE * GRID_SIZE
 const TARGET = 10
@@ -142,6 +144,8 @@ export default function TenGame() {
   const [previousBest, setPreviousBest] = useState(0)
   const [isNewBest, setIsNewBest] = useState(false)
   const [toast, setToast] = useState('')
+  const [boardFeedback, setBoardFeedback] = useState<BoardFeedback>(null)
+  const [feedbackId, setFeedbackId] = useState(0)
   const finishedRef = useRef(false)
   const lastTickRef = useRef(0)
 
@@ -211,12 +215,18 @@ export default function TenGame() {
       setMaxCombo((current) => Math.max(current, nextCombo))
       setBoard((current) => collapseBoard(current, selected))
       setSelected([])
+      setBoardFeedback('success')
+      setFeedbackId((current) => current + 1)
       showToast(nextCombo >= 3 ? `COMBO ×${nextCombo}  +${gain}` : `+${gain}`)
       vibrate(18)
       return
     }
 
     setCombo(0)
+    if (selected.length > 1) {
+      setBoardFeedback('miss')
+      setFeedbackId((current) => current + 1)
+    }
     setSelected([])
   }, [combo, dragging, selected, showToast, sum])
 
@@ -242,6 +252,7 @@ export default function TenGame() {
     setBonusUsed(false)
     setPaused(false)
     setDragging(false)
+    setBoardFeedback(null)
     finishedRef.current = false
     setScreen('game')
     setRunning(true)
@@ -318,53 +329,57 @@ export default function TenGame() {
   )
 
   return (
-    <div className="mx-auto min-h-svh w-full max-w-[480px] px-3 pb-24 pt-[max(0.75rem,env(safe-area-inset-top))]">
-      {screen === 'home' && (
-        <HomeScreen
-          onPlay={() => startGame(false)}
-          onRank={() => setScreen('rank')}
-        />
-      )}
-      {screen === 'game' && (
-        <GameScreen
-          board={board}
-          bonusUsed={bonusUsed}
-          combo={combo}
-          hints={hints}
-          paused={paused}
-          score={score}
-          selected={selected}
-          sum={sum}
-          timeLeft={timeLeft}
-          timeLimit={timeLimit}
-          onAddTime={addTime}
-          onHint={useHint}
-          onPointerDown={selectFirst}
-          onPointerEnter={extendSelection}
-          onShuffle={shuffleBoard}
-          onTogglePause={() => setPaused((current) => !current)}
-        />
-      )}
-      {screen === 'result' && (
-        <ResultScreen
-          best={playerState.best}
-          isNewBest={isNewBest}
-          maxCombo={maxCombo}
-          previousBest={previousBest}
-          score={score}
-          onHome={() => setScreen('home')}
-          onRetry={() => startGame(dailyMode)}
-        />
-      )}
-      {screen === 'daily' && (
-        <DailyScreen state={playerState} onPlay={() => startGame(true)} />
-      )}
-      {screen === 'rank' && (
-        <RankScreen best={playerState.best} percent={rankPercent} />
-      )}
-      {screen === 'mypage' && (
-        <MyPage average={average} state={playerState} onToast={showToast} />
-      )}
+    <div className="ten-stage mx-auto min-h-svh w-full max-w-[480px] px-3 pb-24 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <div key={screen} className="ten-screen-enter">
+        {screen === 'home' && (
+          <HomeScreen
+            onPlay={() => startGame(false)}
+            onRank={() => setScreen('rank')}
+          />
+        )}
+        {screen === 'game' && (
+          <GameScreen
+            board={board}
+            boardFeedback={boardFeedback}
+            bonusUsed={bonusUsed}
+            combo={combo}
+            feedbackId={feedbackId}
+            hints={hints}
+            paused={paused}
+            score={score}
+            selected={selected}
+            sum={sum}
+            timeLeft={timeLeft}
+            timeLimit={timeLimit}
+            onAddTime={addTime}
+            onHint={useHint}
+            onPointerDown={selectFirst}
+            onPointerEnter={extendSelection}
+            onShuffle={shuffleBoard}
+            onTogglePause={() => setPaused((current) => !current)}
+          />
+        )}
+        {screen === 'result' && (
+          <ResultScreen
+            best={playerState.best}
+            isNewBest={isNewBest}
+            maxCombo={maxCombo}
+            previousBest={previousBest}
+            score={score}
+            onHome={() => setScreen('home')}
+            onRetry={() => startGame(dailyMode)}
+          />
+        )}
+        {screen === 'daily' && (
+          <DailyScreen state={playerState} onPlay={() => startGame(true)} />
+        )}
+        {screen === 'rank' && (
+          <RankScreen best={playerState.best} percent={rankPercent} />
+        )}
+        {screen === 'mypage' && (
+          <MyPage average={average} state={playerState} onToast={showToast} />
+        )}
+      </div>
 
       {screen !== 'game' && screen !== 'result' && (
         <BottomNavigation active={screen} onNavigate={setScreen} />
@@ -372,7 +387,7 @@ export default function TenGame() {
 
       <div
         aria-live="polite"
-        className={`fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-foreground px-4 py-2 text-xs font-bold text-background shadow-xl transition-all ${toast ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-2 opacity-0'}`}
+        className={`ten-toast fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-foreground px-4 py-2 text-xs font-bold text-background shadow-xl transition-all ${toast ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-2 opacity-0'}`}
       >
         {toast}
       </div>
@@ -389,7 +404,9 @@ function HomeScreen({
 }) {
   return (
     <section className="flex min-h-[78svh] flex-col items-center justify-center text-center">
-      <div className="mb-3 text-6xl font-black tracking-[0.13em]">TEN.</div>
+      <div className="ten-logo mb-3 text-6xl font-black tracking-[0.13em]">
+        TEN.
+      </div>
       <p className="text-[11px] tracking-[0.22em] text-muted-foreground">
         MAKE 10. BEAT YOUR BEST.
       </p>
@@ -412,6 +429,8 @@ function HomeScreen({
 
 type GameScreenProps = {
   board: Array<number>
+  boardFeedback: BoardFeedback
+  feedbackId: number
   selected: Array<number>
   score: number
   combo: number
@@ -449,9 +468,22 @@ function GameScreen(props: GameScreenProps) {
         </Button>
       </div>
       <div className="grid grid-cols-3 gap-2 px-1">
-        <Stat label="SCORE" value={props.score.toLocaleString()} />
-        <Stat label="COMBO" value={`×${props.combo}`} accent />
-        <Stat label="TIME" value={props.timeLeft.toFixed(1)} />
+        <Stat
+          label="SCORE"
+          value={props.score.toLocaleString()}
+          pulseKey={props.score}
+        />
+        <Stat
+          label="COMBO"
+          value={`×${props.combo}`}
+          accent
+          pulseKey={props.combo}
+        />
+        <Stat
+          label="TIME"
+          value={props.timeLeft.toFixed(1)}
+          urgent={props.timeLeft <= 10}
+        />
       </div>
       <div className="my-3 h-1 overflow-hidden rounded-full bg-secondary">
         <div
@@ -461,7 +493,7 @@ function GameScreen(props: GameScreenProps) {
           }}
         />
       </div>
-      <div className="relative overflow-hidden rounded-[1.7rem] border bg-card p-3 shadow-2xl shadow-black/60 touch-none select-none">
+      <div className="game-board-shell relative overflow-hidden rounded-[1.7rem] border bg-card p-3 shadow-2xl shadow-black/60 touch-none select-none">
         <GameBoard
           board={props.board}
           selected={props.selected}
@@ -469,6 +501,21 @@ function GameScreen(props: GameScreenProps) {
           onPointerDown={props.onPointerDown}
           onPointerEnter={props.onPointerEnter}
         />
+        {props.boardFeedback && (
+          <div
+            key={props.feedbackId}
+            className={`game-board-feedback is-${props.boardFeedback}`}
+            aria-hidden="true"
+          >
+            {props.boardFeedback === 'success' && (
+              <div className="ten-sparks">
+                {Array.from({ length: 8 }, (_, index) => (
+                  <i key={index} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         {props.paused && (
           <button
             className="absolute inset-3 grid place-items-center rounded-2xl bg-black/75 backdrop-blur-sm"
@@ -515,10 +562,14 @@ function Stat({
   label,
   value,
   accent = false,
+  pulseKey,
+  urgent = false,
 }: {
   label: string
   value: string
   accent?: boolean
+  pulseKey?: number
+  urgent?: boolean
 }) {
   return (
     <div>
@@ -526,7 +577,8 @@ function Stat({
         {label}
       </span>
       <strong
-        className={`block text-xl tabular-nums ${accent ? 'text-accent' : ''}`}
+        key={pulseKey}
+        className={`stat-value block text-xl tabular-nums ${accent ? 'text-accent' : ''} ${urgent ? 'is-urgent' : ''}`}
       >
         {value}
       </strong>
@@ -595,7 +647,9 @@ function ResultScreen({
         <div className="size-9" />
       </div>
       <div className="rounded-3xl border bg-card p-7 text-center">
-        <Crown className="mx-auto mb-2 size-8 text-accent" />
+        <Crown
+          className={`result-crown mx-auto mb-2 size-8 text-accent ${isNewBest ? 'is-new-best' : ''}`}
+        />
         <p className="text-xs font-bold tracking-[0.16em] text-accent">
           {isNewBest ? 'NEW BEST!' : 'RESULT'}
         </p>
@@ -811,7 +865,7 @@ function BottomNavigation({
       {items.map(({ screen, label, icon: Icon }) => (
         <button
           key={screen}
-          className={`flex flex-col items-center gap-1 py-1 text-[9px] ${active === screen ? 'text-foreground' : 'text-muted-foreground'}`}
+          className={`nav-item flex flex-col items-center gap-1 py-1 text-[9px] ${active === screen ? 'is-active text-foreground' : 'text-muted-foreground'}`}
           onClick={() => onNavigate(screen)}
         >
           <Icon
