@@ -17,6 +17,7 @@ import {
 } from '@phosphor-icons/react'
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { App } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
 import { Haptics, ImpactStyle } from '@capacitor/haptics'
@@ -24,6 +25,7 @@ import { ScreenOrientation } from '@capacitor/screen-orientation'
 
 import GameBoard from '#/components/game-board'
 import { Button } from '#/components/ui/button'
+import '#/i18n'
 
 type Screen = 'home' | 'game' | 'result' | 'daily' | 'rank' | 'mypage'
 
@@ -42,6 +44,7 @@ const CELL_COUNT = GRID_SIZE * GRID_SIZE
 const TARGET = 10
 const BASE_TIME = 60
 const STORAGE_KEY = 'ten_state'
+const LANGUAGE_KEY = 'ten_language'
 
 const initialPlayerState: PlayerState = {
   best: 0,
@@ -142,6 +145,7 @@ function vibrate(duration: number) {
 }
 
 export default function TenGame() {
+  const { i18n, t } = useTranslation()
   const [screen, setScreen] = useState<Screen>('home')
   const [board, setBoard] = useState(() => makeBoard())
   const [selected, setSelected] = useState<Array<number>>([])
@@ -164,6 +168,18 @@ export default function TenGame() {
   const [feedbackId, setFeedbackId] = useState(0)
   const finishedRef = useRef(false)
   const lastTickRef = useRef(0)
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(LANGUAGE_KEY)
+    const preferred =
+      saved ?? (navigator.language.startsWith('en') ? 'en' : 'ja')
+    void i18n.changeLanguage(preferred)
+  }, [i18n])
+
+  useEffect(() => {
+    document.documentElement.lang = i18n.resolvedLanguage ?? 'ja'
+    document.title = `TEN. — ${t('home.tagline')}`
+  }, [i18n.resolvedLanguage, t])
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
@@ -249,7 +265,11 @@ export default function TenGame() {
       setSelected([])
       setBoardFeedback('success')
       setFeedbackId((current) => current + 1)
-      showToast(nextCombo >= 3 ? `COMBO ×${nextCombo}  +${gain}` : `+${gain}`)
+      showToast(
+        nextCombo >= 3
+          ? t('toast.combo', { combo: nextCombo, gain })
+          : `+${gain}`,
+      )
       vibrate(18)
       return
     }
@@ -260,7 +280,7 @@ export default function TenGame() {
       setFeedbackId((current) => current + 1)
     }
     setSelected([])
-  }, [combo, dragging, selected, showToast, sum])
+  }, [combo, dragging, selected, showToast, sum, t])
 
   useEffect(() => {
     window.addEventListener('pointerup', resolveSelection)
@@ -318,7 +338,7 @@ export default function TenGame() {
 
   const useHint = () => {
     if (!running || paused) return
-    if (hints <= 0) return showToast('ヒントを使い切りました')
+    if (hints <= 0) return showToast(t('toast.hintsEmpty'))
     for (let first = 0; first < board.length; first += 1) {
       for (let second = first + 1; second < board.length; second += 1) {
         if (
@@ -332,16 +352,16 @@ export default function TenGame() {
         }
       }
     }
-    showToast('組み合わせが見つかりません')
+    showToast(t('toast.noMatch'))
   }
 
   const shuffleBoard = () => {
     if (!running || paused) return
-    if (score < 50) return showToast('スコア50から使えます')
+    if (score < 50) return showToast(t('toast.shuffleLocked'))
     setScore((current) => current - 50)
     setSelected([])
     setBoard((current) => [...current].sort(() => Math.random() - 0.5))
-    showToast('SHUFFLE −50')
+    showToast(t('toast.shuffled'))
   }
 
   const addTime = () => {
@@ -349,7 +369,7 @@ export default function TenGame() {
     setBonusUsed(true)
     setTimeLimit((current) => current + 10)
     setTimeLeft((current) => current + 10)
-    showToast('+10秒！')
+    showToast(t('toast.timeAdded'))
   }
 
   const average = playerState.plays
@@ -434,26 +454,28 @@ function HomeScreen({
   onPlay: () => void
   onRank: () => void
 }) {
+  const { t } = useTranslation()
+
   return (
     <section className="flex min-h-[78svh] flex-col items-center justify-center text-center">
       <div className="ten-logo mb-3 text-6xl font-black tracking-[0.13em]">
         TEN.
       </div>
       <p className="text-[11px] tracking-[0.22em] text-muted-foreground">
-        MAKE 10. BEAT YOUR BEST.
+        {t('home.tagline')}
       </p>
       <Button
         className="mt-20 h-14 w-4/5 max-w-80 rounded-full text-base font-black"
         onClick={onPlay}
       >
-        PLAY
+        {t('home.play')}
       </Button>
       <Button
         variant="ghost"
         className="mt-5 gap-2 text-xs text-muted-foreground"
         onClick={onRank}
       >
-        <Crown className="size-4" weight="bold" /> RANKING
+        <Crown className="size-4" weight="bold" /> {t('home.ranking')}
       </Button>
     </section>
   )
@@ -481,6 +503,8 @@ type GameScreenProps = {
 }
 
 function GameScreen(props: GameScreenProps) {
+  const { t } = useTranslation()
+
   return (
     <section>
       <div className="mb-3 flex items-center justify-between">
@@ -496,23 +520,25 @@ function GameScreen(props: GameScreenProps) {
           ) : (
             <Pause className="size-4" weight="fill" />
           )}
-          <span className="sr-only">{props.paused ? '再開' : '一時停止'}</span>
+          <span className="sr-only">
+            {props.paused ? t('game.resume') : t('game.pause')}
+          </span>
         </Button>
       </div>
       <div className="grid grid-cols-3 gap-2 px-1">
         <Stat
-          label="SCORE"
+          label={t('game.score')}
           value={props.score.toLocaleString()}
           pulseKey={props.score}
         />
         <Stat
-          label="COMBO"
+          label={t('game.combo')}
           value={`×${props.combo}`}
           accent
           pulseKey={props.combo}
         />
         <Stat
-          label="TIME"
+          label={t('game.time')}
           value={props.timeLeft.toFixed(1)}
           urgent={props.timeLeft <= 10}
         />
@@ -554,34 +580,34 @@ function GameScreen(props: GameScreenProps) {
             onClick={props.onTogglePause}
           >
             <span className="flex items-center gap-2 font-black tracking-[0.18em]">
-              <Play className="size-5" weight="fill" /> PAUSED
+              <Play className="size-5" weight="fill" /> {t('game.paused')}
             </span>
           </button>
         )}
       </div>
       <div className="mt-3 rounded-2xl border bg-card px-5 py-3 text-center text-sm">
-        合計 <strong className="mx-1 text-xl">{props.sum}</strong> → あと{' '}
+        {t('game.sum')} <strong className="mx-1 text-xl">{props.sum}</strong> →{' '}
         <strong className="mx-1 text-xl text-accent">
-          {Math.max(0, TARGET - props.sum)}
+          {t('game.remaining', { count: Math.max(0, TARGET - props.sum) })}
         </strong>
       </div>
       <div className="mt-2 grid grid-cols-3 gap-2">
         <ActionButton
           icon={Shuffle}
-          label="シャッフル"
+          label={t('game.shuffle')}
           detail="−50"
           onClick={props.onShuffle}
         />
         <ActionButton
           icon={Lightbulb}
-          label="ヒント"
+          label={t('game.hint')}
           detail={String(props.hints)}
           onClick={props.onHint}
         />
         <ActionButton
           icon={Clock}
-          label="+10秒"
-          detail={props.bonusUsed ? '使用済み' : '1回'}
+          label={t('game.secondsBonus')}
+          detail={props.bonusUsed ? t('game.used') : t('game.once')}
           disabled={props.bonusUsed}
           onClick={props.onAddTime}
         />
@@ -662,6 +688,7 @@ function ResultScreen({
   onRetry: () => void
   onHome: () => void
 }) {
+  const { t } = useTranslation()
   const delta = score - previousBest
   const percent = Math.max(1, Math.min(99, Math.round(100 - score / 220)))
   return (
@@ -675,7 +702,7 @@ function ResultScreen({
         >
           <House className="size-4" weight="bold" />
         </Button>
-        <strong className="tracking-[0.16em]">RESULT</strong>
+        <strong className="tracking-[0.16em]">{t('result.title')}</strong>
         <div className="size-9" />
       </div>
       <div className="rounded-3xl border bg-card p-7 text-center">
@@ -684,37 +711,40 @@ function ResultScreen({
           weight="fill"
         />
         <p className="text-xs font-bold tracking-[0.16em] text-accent">
-          {isNewBest ? 'NEW BEST!' : 'RESULT'}
+          {isNewBest ? t('result.newBest') : t('result.title')}
         </p>
         <p className="my-3 text-6xl font-black tabular-nums">
           {score.toLocaleString()}
         </p>
         <p className="text-sm text-muted-foreground">
-          BEST SCORE · {best.toLocaleString()}
+          {t('result.bestScore', { score: best.toLocaleString() })}
         </p>
       </div>
       <div className="my-3 rounded-3xl border bg-card px-5">
         <Metric
-          label="前回ベストより"
+          label={t('result.versusBest')}
           value={`${delta >= 0 ? '+' : ''}${delta.toLocaleString()}`}
           accent
         />
-        <Metric label="全国順位（目安）" value={`上位 ${percent}%`} />
-        <Metric label="最高コンボ" value={`×${maxCombo}`} />
+        <Metric
+          label={t('result.nationalRank')}
+          value={t('result.topPercent', { percent })}
+        />
+        <Metric label={t('result.maxCombo')} value={`×${maxCombo}`} />
       </div>
       <Button
         className="h-13 w-full rounded-full text-base font-black"
         onClick={onRetry}
       >
         <ArrowCounterClockwise className="mr-2 size-4" weight="bold" />
-        もう一度プレイ
+        {t('result.retry')}
       </Button>
       <Button
         variant="secondary"
         className="mt-2 h-13 w-full rounded-full"
         onClick={onHome}
       >
-        ホームへ
+        {t('result.home')}
       </Button>
     </section>
   )
@@ -727,13 +757,17 @@ function DailyScreen({
   state: PlayerState
   onPlay: () => void
 }) {
+  const { i18n, t } = useTranslation()
   const today = new Date()
   const date = today
-    .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    .toLocaleDateString(i18n.resolvedLanguage === 'en' ? 'en-US' : 'ja-JP', {
+      month: 'short',
+      day: 'numeric',
+    })
     .toUpperCase()
   return (
     <section>
-      <ScreenTitle title="TODAY'S TEN." icon={Question} />
+      <ScreenTitle title={t('daily.title')} icon={Question} />
       <div className="rounded-3xl border bg-card p-6 text-center">
         <span className="rounded-full bg-foreground px-3 py-1 text-xs font-bold text-background">
           {date}
@@ -741,38 +775,46 @@ function DailyScreen({
         <div className="mx-auto my-5 grid size-36 place-items-center rounded-full border border-dashed border-muted-foreground text-5xl font-black shadow-[inset_0_0_0_10px_rgba(255,255,255,0.02)]">
           10
         </div>
-        <p className="text-sm text-muted-foreground">今日のTEN.に挑戦しよう</p>
+        <p className="text-sm text-muted-foreground">{t('daily.invitation')}</p>
       </div>
       <div className="my-3 rounded-3xl border bg-card px-5">
         <Metric
-          label="今日の記録"
+          label={t('daily.record')}
           value={state.dailyBest.toLocaleString()}
           accent
         />
         <Metric
-          label="全国順位"
+          label={t('daily.nationalRank')}
           value={
             state.dailyBest
-              ? `上位 ${Math.max(1, Math.round(100 - state.dailyBest / 220))}%`
-              : '未挑戦'
+              ? t('result.topPercent', {
+                  percent: Math.max(1, Math.round(100 - state.dailyBest / 220)),
+                })
+              : t('daily.notPlayed')
           }
         />
-        <Metric label="連続プレイ" value={`${state.streak}日`} icon={Fire} />
+        <Metric
+          label={t('daily.streak')}
+          value={t('daily.days', { count: state.streak })}
+          icon={Fire}
+        />
       </div>
       <Button
         className="h-13 w-full rounded-full text-base font-black"
         onClick={onPlay}
       >
-        プレイする
+        {t('daily.play')}
       </Button>
     </section>
   )
 }
 
 function RankScreen({ best, percent }: { best: number; percent: number }) {
+  const { t } = useTranslation()
+
   return (
     <section>
-      <ScreenTitle title="RANKING" icon={Crown} />
+      <ScreenTitle title={t('ranking.title')} icon={Crown} />
       <div className="rounded-3xl border bg-card px-5">
         <Metric
           label="1"
@@ -782,10 +824,10 @@ function RankScreen({ best, percent }: { best: number; percent: number }) {
         />
         <Metric label="2" value="17,960" icon={Medal} />
         <Metric label="3" value="17,240" icon={Medal} />
-        <Metric label="あなた" value={best.toLocaleString()} accent />
+        <Metric label={t('ranking.you')} value={best.toLocaleString()} accent />
       </div>
       <p className="mt-3 text-center text-xs text-muted-foreground">
-        現在は表示サンプルです · あなたは上位 {percent}%
+        {t('ranking.sample', { percent })}
       </p>
     </section>
   )
@@ -800,45 +842,52 @@ function MyPage({
   state: PlayerState
   onToast: (message: string) => void
 }) {
+  const { i18n, t } = useTranslation()
   const [theme, setTheme] = useState(0)
-  const themes = ['CLASSIC', 'MIDNIGHT', 'CAFE', 'SAKURA', 'ZEN']
+  const themes = [
+    { id: 'classic', label: t('profile.themes.classic') },
+    { id: 'midnight', label: t('profile.themes.midnight') },
+    { id: 'cafe', label: t('profile.themes.cafe') },
+    { id: 'sakura', label: t('profile.themes.sakura') },
+    { id: 'zen', label: t('profile.themes.zen') },
+  ]
   return (
     <section>
-      <ScreenTitle title="MY PAGE" icon={UserCircle} />
+      <ScreenTitle title={t('profile.title')} icon={UserCircle} />
       <div className="rounded-3xl border bg-card p-6 text-center">
         <div className="mx-auto grid size-16 place-items-center rounded-full bg-gradient-to-b from-zinc-500 to-zinc-900">
           <UserCircle className="size-8" weight="duotone" />
         </div>
-        <h2 className="mt-3 font-bold">Player</h2>
+        <h2 className="mt-3 font-bold">{t('profile.player')}</h2>
       </div>
       <div className="my-3 rounded-3xl border bg-card px-5">
         <Metric
-          label="最高得点"
+          label={t('profile.best')}
           value={state.best.toLocaleString()}
           icon={Crown}
         />
         <Metric
-          label="総プレイ回数"
+          label={t('profile.plays')}
           value={String(state.plays)}
           icon={Trophy}
         />
         <Metric
-          label="平均スコア"
+          label={t('profile.average')}
           value={average.toLocaleString()}
           icon={Star}
         />
         <Metric
-          label="連続プレイ日数"
-          value={`${state.streak}日`}
+          label={t('profile.streak')}
+          value={t('daily.days', { count: state.streak })}
           icon={Fire}
         />
       </div>
       <div className="rounded-3xl border bg-card p-5">
-        <strong>テーマ</strong>
+        <strong>{t('profile.theme')}</strong>
         <div className="mt-3 grid grid-cols-5 gap-2">
-          {themes.map((name, index) => (
+          {themes.map(({ id, label }, index) => (
             <button
-              key={name}
+              key={id}
               className={`aspect-[3/4] rounded-xl border ${index === theme ? 'ring-2 ring-accent' : ''}`}
               style={{
                 background: [
@@ -851,17 +900,38 @@ function MyPage({
               }}
               onClick={() => {
                 setTheme(index)
-                onToast(`${name} を選択しました`)
+                onToast(t('toast.themeSelected', { theme: label }))
               }}
             >
-              <span className="sr-only">{name}</span>
+              <span className="sr-only">{label}</span>
             </button>
           ))}
         </div>
         <div className="mt-2 grid grid-cols-5 gap-2 text-center text-[7px] text-muted-foreground">
-          {themes.map((name) => (
-            <span key={name}>{name}</span>
+          {themes.map(({ id, label }) => (
+            <span key={id}>{label}</span>
           ))}
+        </div>
+      </div>
+      <div className="mt-3 rounded-3xl border bg-card p-5">
+        <strong>{t('profile.language')}</strong>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {(['ja', 'en'] as const).map((language) => {
+            const active = i18n.resolvedLanguage === language
+            return (
+              <Button
+                key={language}
+                variant={active ? 'default' : 'secondary'}
+                className="rounded-full"
+                onClick={() => {
+                  window.localStorage.setItem(LANGUAGE_KEY, language)
+                  void i18n.changeLanguage(language)
+                }}
+              >
+                {t(language === 'ja' ? 'profile.japanese' : 'profile.english')}
+              </Button>
+            )
+          })}
         </div>
       </div>
     </section>
@@ -918,11 +988,12 @@ function BottomNavigation({
   active: Screen
   onNavigate: (screen: Screen) => void
 }) {
+  const { t } = useTranslation()
   const items = [
-    { screen: 'home' as const, label: 'ホーム', icon: House },
-    { screen: 'daily' as const, label: 'デイリー', icon: CalendarBlank },
-    { screen: 'rank' as const, label: 'ランキング', icon: Crown },
-    { screen: 'mypage' as const, label: 'マイページ', icon: UserCircle },
+    { screen: 'home' as const, label: t('nav.home'), icon: House },
+    { screen: 'daily' as const, label: t('nav.daily'), icon: CalendarBlank },
+    { screen: 'rank' as const, label: t('nav.ranking'), icon: Crown },
+    { screen: 'mypage' as const, label: t('nav.profile'), icon: UserCircle },
   ]
   return (
     <nav className="fixed bottom-0 left-1/2 z-40 grid w-full max-w-[480px] -translate-x-1/2 grid-cols-4 border-t bg-background/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl">

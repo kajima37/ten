@@ -10,6 +10,7 @@
 - Node.js / pnpm
 - TanStack Start / TanStack Router / Vite
 - React / TypeScript
+- i18next / react-i18next
 - Tailwind CSS
 - PixiJS / `@pixi/react`
 - Phosphor Icons
