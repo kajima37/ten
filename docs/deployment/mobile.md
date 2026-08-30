@@ -1,19 +1,20 @@
-# TEN. Mobile deployment
+# TEN. モバイルデプロイ
 
-TEN. uses Capacitor 8 to package the existing TanStack Start application for
-Android and iOS. The web deployment remains SSR-capable; mobile builds use
-TanStack Start's SPA mode and generate `dist/client/index.html`.
+TEN. は Capacitor 8 を使用し、既存の TanStack Start アプリケーションを
+Android および iOS 向けにパッケージ化します。Web 版は引き続き SSR に対応し、
+モバイルビルドでは TanStack Start の SPA モードを使用して
+`dist/client/index.html` を生成します。
 
-## Application identity
+## アプリケーション情報
 
-- Name: `TEN.`
-- Bundle/application ID: `com.ten.game`
+- アプリ名: `TEN.`
+- Bundle ID / Application ID: `com.ten.game`
 
-Change the application ID before the first store submission if a permanent
-reverse-domain identifier is available. Changing it after publishing creates a
-different application in the stores.
+正式な逆ドメイン形式の識別子が決まっている場合は、最初にストアへ申請する前に
+Application ID を変更してください。公開後に変更すると、ストア上では別の
+アプリケーションとして扱われます。
 
-## Local workflow
+## ローカルでのビルド手順
 
 ```sh
 pnpm build:mobile
@@ -22,30 +23,36 @@ pnpm mobile:open:android
 pnpm mobile:open:ios
 ```
 
-`pnpm mobile:sync` creates the mobile SPA, copies it to both native projects,
-and synchronizes Capacitor plugins. Android Studio is required for Android
-device builds. Xcode on macOS is required for iOS device builds.
+`pnpm mobile:sync` はモバイル用 SPA を生成して両方のネイティブプロジェクトへ
+コピーし、Capacitor プラグインを同期します。Android の端末向けビルドには
+Android Studio が必要です。iOS の端末向けビルドには macOS 上の Xcode が
+必要です。
 
-## Continuous integration
+## 継続的インテグレーション
 
-- `CI`: formatting, lint, types, web build, and mobile web bundle
-- `Android`: a debug APK for pull requests and pushes to `main`
-- `iOS`: an unsigned Simulator app for version tags and manual runs
+- `CI`: push および pull request ごとに、フォーマット、lint、型、Web ビルド、
+  モバイル用 Web バンドルを検証します。
+- `Android`: 手動実行時にデバッグ APK を生成します。
+- `iOS`: 手動実行時に署名なしの Simulator アプリを生成します。
 
-Build artifacts are retained in GitHub Actions for 14 days.
+Android と iOS のネイティブビルドは実行時間とコストを抑えるため、push や
+pull request では自動実行されません。GitHub のリポジトリで
+**Actions → Android または iOS → Run workflow** を選択して実行してください。
 
-## Store signing
+生成されたビルド成果物は GitHub Actions に14日間保存されます。
 
-The current workflows intentionally produce unsigned development artifacts.
-For Google Play, add an upload keystore using GitHub environment secrets and
-build an Android App Bundle (`bundleRelease`). For App Store Connect, add an
-Apple distribution certificate, provisioning profile, and team ID, then create
-an Xcode archive on a protected GitHub environment.
+## ストア用の署名
 
-Recommended GitHub environments:
+現在の workflow は、意図的に署名なしの開発用成果物を生成します。
+Google Play 向けには、GitHub Environment のシークレットを使ってアップロード用
+keystore を追加し、Android App Bundle（`bundleRelease`）をビルドしてください。
+App Store Connect 向けには、Apple Distribution 証明書、Provisioning Profile、
+Team ID を追加し、保護された GitHub Environment 上で Xcode Archive を作成します。
+
+推奨する GitHub Environment:
 
 - `android-release`
 - `ios-release`
 
-Require manual approval for both environments and keep signing credentials in
-environment secrets, never in the repository.
+どちらの Environment にも手動承認を必須とし、署名情報はリポジトリへ保存せず、
+必ず Environment のシークレットで管理してください。

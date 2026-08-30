@@ -2,11 +2,6 @@ name: iOS
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    tags: ['v*']
-  pull_request:
-    branches: [main]
 
 concurrency:
   group: ios-${{ github.ref }}
