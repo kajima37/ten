@@ -99,15 +99,7 @@ function getNextStreak(
 
 function makeBoard(random = Math.random) {
   const next = Array.from({ length: CELL_COUNT }, () => randomNumber(random))
-
-  for (let pair = 0; pair < 5; pair += 1) {
-    const row = Math.floor(random() * GRID_SIZE)
-    const column = Math.floor(random() * (GRID_SIZE - 1))
-    next[row * GRID_SIZE + column] = 5
-    next[row * GRID_SIZE + column + 1] = 5
-  }
-
-  return next
+  return ensurePlayableBoard(next, random)
 }
 
 function isAdjacent(first: number, second: number) {
@@ -122,6 +114,53 @@ function isAdjacent(first: number, second: number) {
       Math.abs(firstColumn - secondColumn),
     ) === 1
   )
+}
+
+function findCombination(board: Array<number>) {
+  const search = (
+    index: number,
+    path: Array<number>,
+    sum: number,
+  ): Array<number> | null => {
+    const nextPath = [...path, index]
+    const nextSum = sum + board[index]
+    if (nextSum === TARGET && nextPath.length >= 2) return nextPath
+    if (nextSum >= TARGET) return null
+
+    for (let candidate = 0; candidate < board.length; candidate += 1) {
+      if (!nextPath.includes(candidate) && isAdjacent(index, candidate)) {
+        const result = search(candidate, nextPath, nextSum)
+        if (result) return result
+      }
+    }
+    return null
+  }
+
+  for (let index = 0; index < board.length; index += 1) {
+    const result = search(index, [], 0)
+    if (result) return result
+  }
+  return null
+}
+
+function ensurePlayableBoard(board: Array<number>, random = Math.random) {
+  if (findCombination(board)) return board
+
+  const next = [...board]
+  const row = Math.floor(random() * GRID_SIZE)
+  const column = Math.floor(random() * (GRID_SIZE - 1))
+  next[row * GRID_SIZE + column] = 5
+  next[row * GRID_SIZE + column + 1] = 5
+  return next
+}
+
+function shuffleWithRandom(board: Array<number>, random = Math.random) {
+  const next = [...board]
+  for (let index = next.length - 1; index > 0; index -= 1) {
+    const target = Math.floor(random() * (index + 1))
+    ;[next[index], next[target]] = [next[target], next[index]]
+  }
+  return ensurePlayableBoard(next, random)
 }
 
 function collapseBoard(
@@ -144,7 +183,7 @@ function collapseBoard(
     }
   }
 
-  return next
+  return ensurePlayableBoard(next, random)
 }
 
 function readPlayerState() {
@@ -391,18 +430,12 @@ export default function TenGame() {
   const useHint = () => {
     if (!running || paused) return
     if (hints <= 0) return showToast(t('toast.hintsEmpty'))
-    for (let first = 0; first < board.length; first += 1) {
-      for (let second = first + 1; second < board.length; second += 1) {
-        if (
-          isAdjacent(first, second) &&
-          board[first] + board[second] === TARGET
-        ) {
-          setHints((current) => current - 1)
-          setSelected([first, second])
-          window.setTimeout(() => setSelected([]), 900)
-          return
-        }
-      }
+    const combination = findCombination(board)
+    if (combination) {
+      setHints((current) => current - 1)
+      setSelected(combination)
+      window.setTimeout(() => setSelected([]), 900)
+      return
     }
     showToast(t('toast.noMatch'))
   }
@@ -412,7 +445,7 @@ export default function TenGame() {
     if (score < 50) return showToast(t('toast.shuffleLocked'))
     setScore((current) => current - 50)
     setSelected([])
-    setBoard((current) => [...current].sort(() => Math.random() - 0.5))
+    setBoard((current) => shuffleWithRandom(current, boardRandomRef.current))
     showToast(t('toast.shuffled'))
   }
 
