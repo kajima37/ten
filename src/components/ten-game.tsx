@@ -10,6 +10,7 @@ import {
   Pause,
   Play,
   Question,
+  ShareFat,
   Shuffle,
   Star,
   Trophy,
@@ -225,6 +226,77 @@ function vibrate(duration: number) {
   } catch {
     // Vibration is a progressive enhancement and is unavailable on some browsers.
   }
+}
+
+function createResultImage({
+  score,
+  best,
+  maxCombo,
+  daily,
+  labels,
+}: {
+  score: number
+  best: number
+  maxCombo: number
+  daily: boolean
+  labels: { result: string; best: string; combo: string; daily: string }
+}) {
+  const canvas = document.createElement('canvas')
+  canvas.width = 1200
+  canvas.height = 630
+  const context = canvas.getContext('2d')
+  if (!context) throw new Error('Canvas is unavailable')
+
+  const styles = getComputedStyle(document.documentElement)
+  const background = styles.getPropertyValue('--background').trim() || '#09090a'
+  const foreground = styles.getPropertyValue('--foreground').trim() || '#f6f3ed'
+  const card = styles.getPropertyValue('--card').trim() || '#121214'
+  const accent = styles.getPropertyValue('--accent').trim() || '#f3c75f'
+  const muted =
+    styles.getPropertyValue('--muted-foreground').trim() || '#9f9c95'
+
+  context.fillStyle = background
+  context.fillRect(0, 0, canvas.width, canvas.height)
+  const gradient = context.createRadialGradient(600, 0, 20, 600, 0, 620)
+  gradient.addColorStop(0, accent)
+  gradient.addColorStop(1, 'transparent')
+  context.globalAlpha = 0.16
+  context.fillStyle = gradient
+  context.fillRect(0, 0, canvas.width, canvas.height)
+  context.globalAlpha = 1
+
+  context.fillStyle = card
+  context.beginPath()
+  context.roundRect(90, 75, 1020, 480, 42)
+  context.fill()
+
+  context.textAlign = 'center'
+  context.fillStyle = foreground
+  context.font = '900 64px Arial, sans-serif'
+  context.fillText('TEN.', 600, 165)
+  context.fillStyle = accent
+  context.font = '700 28px Arial, sans-serif'
+  context.fillText(daily ? labels.daily : labels.result, 600, 220)
+  context.font = '900 132px Arial, sans-serif'
+  context.fillText(score.toLocaleString(), 600, 370)
+
+  context.fillStyle = muted
+  context.font = '600 26px Arial, sans-serif'
+  context.fillText(
+    `${labels.best} ${best.toLocaleString()}    ·    ${labels.combo} ×${maxCombo}`,
+    600,
+    450,
+  )
+  context.fillStyle = foreground
+  context.font = '600 22px Arial, sans-serif'
+  context.fillText('MAKE 10. BEAT YOUR BEST.', 600, 510)
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob)
+      else reject(new Error('Could not create image'))
+    }, 'image/png')
+  })
 }
 
 export default function TenGame() {
@@ -530,6 +602,8 @@ export default function TenGame() {
             maxCombo={maxCombo}
             previousBest={previousBest}
             score={score}
+            daily={dailyMode}
+            onToast={showToast}
             onHome={() => setScreen('home')}
             onRetry={() => startGame(dailyMode)}
           />
@@ -801,20 +875,74 @@ function ResultScreen({
   previousBest,
   maxCombo,
   isNewBest,
+  daily,
   onRetry,
   onHome,
+  onToast,
 }: {
   score: number
   best: number
   previousBest: number
   maxCombo: number
   isNewBest: boolean
+  daily: boolean
   onRetry: () => void
   onHome: () => void
+  onToast: (message: string) => void
 }) {
   const { t } = useTranslation()
+  const [sharing, setSharing] = useState(false)
   const delta = score - previousBest
   const percent = Math.max(1, Math.min(99, Math.round(100 - score / 220)))
+
+  const shareResult = async () => {
+    if (sharing) return
+    setSharing(true)
+    try {
+      const blob = await createResultImage({
+        score,
+        best,
+        maxCombo,
+        daily,
+        labels: {
+          result: t('result.title'),
+          best: t('profile.best'),
+          combo: t('result.maxCombo'),
+          daily: t('daily.title'),
+        },
+      })
+      const file = new File([blob], `ten-score-${getLocalDateKey()}.png`, {
+        type: 'image/png',
+      })
+
+      if (
+        Reflect.has(navigator, 'share') &&
+        Reflect.has(navigator, 'canShare') &&
+        navigator.canShare({ files: [file] })
+      ) {
+        await navigator.share({
+          title: t('result.shareTitle'),
+          text: t('result.shareMessage', { score: score.toLocaleString() }),
+          files: [file],
+        })
+        return
+      }
+
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = file.name
+      link.click()
+      URL.revokeObjectURL(url)
+      onToast(t('toast.shareDownloaded'))
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === 'AbortError')) {
+        onToast(t('toast.shareFailed'))
+      }
+    } finally {
+      setSharing(false)
+    }
+  }
   return (
     <section>
       <div className="mb-4 flex items-center justify-between">
@@ -862,6 +990,15 @@ function ResultScreen({
       >
         <ArrowCounterClockwise className="mr-2 size-4" weight="bold" />
         {t('result.retry')}
+      </Button>
+      <Button
+        variant="secondary"
+        className="mt-2 h-13 w-full rounded-full"
+        disabled={sharing}
+        onClick={() => void shareResult()}
+      >
+        <ShareFat className="mr-2 size-4" weight="bold" />
+        {sharing ? t('result.sharing') : t('result.share')}
       </Button>
       <Button
         variant="secondary"

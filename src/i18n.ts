@@ -35,6 +35,8 @@ const resources = {
         shuffled: 'シャッフル −50',
         timeAdded: '+10秒！',
         themeSelected: '{{theme}}を選択しました',
+        shareDownloaded: '共有画像を保存しました',
+        shareFailed: '共有画像を作成できませんでした',
       },
       result: {
         title: '結果',
@@ -46,6 +48,10 @@ const resources = {
         maxCombo: '最高コンボ',
         retry: 'もう一度プレイ',
         home: 'ホームへ',
+        share: '結果を共有',
+        sharing: '画像を作成中…',
+        shareTitle: 'TEN. のプレイ結果',
+        shareMessage: 'TEN.で{{score}}点を獲得しました。',
       },
       daily: {
         title: '今日のTEN.',
@@ -121,6 +127,8 @@ const resources = {
         shuffled: 'SHUFFLE −50',
         timeAdded: '+10 seconds!',
         themeSelected: '{{theme}} selected',
+        shareDownloaded: 'Share image saved',
+        shareFailed: 'Could not create the share image',
       },
       result: {
         title: 'RESULT',
@@ -132,6 +140,10 @@ const resources = {
         maxCombo: 'Max combo',
         retry: 'Play again',
         home: 'Back home',
+        share: 'Share result',
+        sharing: 'Creating image…',
+        shareTitle: 'My TEN. result',
+        shareMessage: 'I scored {{score}} points in TEN.',
       },
       daily: {
         title: "TODAY'S TEN.",
