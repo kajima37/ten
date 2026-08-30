@@ -78,6 +78,7 @@ const resources = {
         streak: '連続プレイ日数',
         theme: 'テーマ',
         language: '言語',
+        tutorial: '遊び方を見る',
         japanese: '日本語',
         english: 'English',
         themes: {
@@ -94,6 +95,20 @@ const resources = {
         daily: 'デイリー',
         ranking: 'ランキング',
         profile: 'マイページ',
+      },
+      tutorial: {
+        title: '遊び方',
+        connectTitle: '合計10を作ろう',
+        connectBody:
+          '縦・横・斜めに隣り合う数字を、合計が10になるようになぞります。',
+        comboTitle: '連続成功でコンボ',
+        comboBody: '続けて10を作るほどコンボボーナスが増え、高得点を狙えます。',
+        toolsTitle: '3つの補助機能',
+        toolsBody:
+          'シャッフル、ヒント、＋10秒を使って自己ベストを更新しましょう。',
+        back: '戻る',
+        next: '次へ',
+        start: 'はじめる',
       },
     },
   },
@@ -170,6 +185,7 @@ const resources = {
         streak: 'Play streak',
         theme: 'Theme',
         language: 'Language',
+        tutorial: 'How to play',
         japanese: '日本語',
         english: 'English',
         themes: {
@@ -186,6 +202,21 @@ const resources = {
         daily: 'Daily',
         ranking: 'Ranking',
         profile: 'My page',
+      },
+      tutorial: {
+        title: 'HOW TO PLAY',
+        connectTitle: 'Make a total of 10',
+        connectBody:
+          'Trace adjacent numbers vertically, horizontally, or diagonally until they total 10.',
+        comboTitle: 'Build your combo',
+        comboBody:
+          'Make 10 repeatedly to grow your combo bonus and score more points.',
+        toolsTitle: 'Use three helpers',
+        toolsBody:
+          'Shuffle, hints, and +10 seconds can help you beat your best score.',
+        back: 'Back',
+        next: 'Next',
+        start: 'Start',
       },
     },
   },
