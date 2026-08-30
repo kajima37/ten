@@ -6,7 +6,6 @@ import {
   Fire,
   House,
   Lightbulb,
-  Medal,
   Pause,
   Play,
   Question,
@@ -276,10 +275,21 @@ export default function TenGame() {
         : playerState.dailyRecords,
       streak: nextStreak,
       lastDailyDate: dailyMode ? dailyKey : playerState.lastDailyDate,
+      history: [
+        {
+          id: `${Date.now()}-${playerState.plays + 1}`,
+          playedAt: new Date().toISOString(),
+          score,
+          maxCombo,
+          daily: dailyMode,
+          durationSeconds: Math.round(timeLimit),
+        },
+        ...playerState.history,
+      ].slice(0, 100),
     }
     saveState(next)
     setScreen('result')
-  }, [dailyKey, dailyMode, playerState, saveState, score])
+  }, [dailyKey, dailyMode, maxCombo, playerState, saveState, score, timeLimit])
 
   useEffect(() => {
     if (!running || paused) return
@@ -431,10 +441,6 @@ export default function TenGame() {
   const average = playerState.plays
     ? Math.round(playerState.total / playerState.plays)
     : 0
-  const rankPercent = Math.max(
-    1,
-    Math.min(99, Math.round(100 - playerState.best / 220)),
-  )
   const todayKey = getLocalDateKey()
   const todayDailyRecord = playerState.dailyRecords[todayKey] ?? {
     best: 0,
@@ -495,9 +501,7 @@ export default function TenGame() {
             onPlay={() => startGame(true)}
           />
         )}
-        {screen === 'rank' && (
-          <RankScreen best={playerState.best} percent={rankPercent} />
-        )}
+        {screen === 'rank' && <StatsScreen state={playerState} />}
         {screen === 'mypage' && (
           <MyPage
             average={average}
@@ -973,27 +977,110 @@ function DailyScreen({
   )
 }
 
-function RankScreen({ best, percent }: { best: number; percent: number }) {
-  const { t } = useTranslation()
+function StatsScreen({ state }: { state: PlayerState }) {
+  const { i18n, t } = useTranslation()
+  const average = state.plays ? Math.round(state.total / state.plays) : 0
+  const historyMaxCombo = state.history.reduce(
+    (maximum, record) => Math.max(maximum, record.maxCombo),
+    0,
+  )
+  const totalMinutes = Math.round(
+    state.history.reduce((total, record) => total + record.durationSeconds, 0) /
+      60,
+  )
 
   return (
     <section>
-      <ScreenTitle title={t('ranking.title')} icon={Crown} />
-      <div className="rounded-3xl border bg-card px-5">
-        <Metric
-          label="1"
-          value="18,430"
-          icon={Medal}
-          iconClassName="text-accent"
+      <ScreenTitle title={t('ranking.title')} icon={Star} />
+      <div className="grid grid-cols-2 gap-2">
+        <StatCard
+          label={t('ranking.games')}
+          value={state.plays.toLocaleString()}
         />
-        <Metric label="2" value="17,960" icon={Medal} />
-        <Metric label="3" value="17,240" icon={Medal} />
-        <Metric label={t('ranking.you')} value={best.toLocaleString()} accent />
+        <StatCard
+          label={t('profile.best')}
+          value={state.best.toLocaleString()}
+          accent
+        />
+        <StatCard
+          label={t('profile.average')}
+          value={average.toLocaleString()}
+        />
+        <StatCard label={t('ranking.maxCombo')} value={`×${historyMaxCombo}`} />
+        <StatCard
+          label={t('ranking.playTime')}
+          value={t('ranking.minutes', { count: totalMinutes })}
+        />
+        <StatCard
+          label={t('daily.streak')}
+          value={t('daily.days', { count: state.streak })}
+        />
       </div>
-      <p className="mt-3 text-center text-xs text-muted-foreground">
-        {t('ranking.sample', { percent })}
-      </p>
+
+      <h2 className="mb-2 mt-6 text-sm font-bold tracking-wide">
+        {t('ranking.recent')}
+      </h2>
+      <div className="rounded-3xl border bg-card px-4">
+        {state.history.length ? (
+          state.history.slice(0, 10).map((record) => (
+            <div
+              key={record.id}
+              className="flex items-center justify-between border-b py-3 last:border-0"
+            >
+              <div>
+                <span className="block text-xs font-bold">
+                  {record.daily ? t('daily.title') : t('ranking.normal')}
+                </span>
+                <time className="text-[10px] text-muted-foreground">
+                  {new Date(record.playedAt).toLocaleString(
+                    i18n.resolvedLanguage === 'en' ? 'en-US' : 'ja-JP',
+                    {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    },
+                  )}
+                </time>
+              </div>
+              <div className="text-right">
+                <strong className="block text-lg tabular-nums">
+                  {record.score.toLocaleString()}
+                </strong>
+                <span className="text-[10px] text-muted-foreground">
+                  ×{record.maxCombo}
+                </span>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            {t('ranking.empty')}
+          </p>
+        )}
+      </div>
     </section>
+  )
+}
+
+function StatCard({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string
+  value: string
+  accent?: boolean
+}) {
+  return (
+    <div className="rounded-2xl border bg-card p-4">
+      <span className="block text-[10px] text-muted-foreground">{label}</span>
+      <strong
+        className={`mt-1 block text-xl tabular-nums ${accent ? 'text-accent' : ''}`}
+      >
+        {value}
+      </strong>
+    </div>
   )
 }
 

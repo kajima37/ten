@@ -1,8 +1,17 @@
-export const PLAYER_STATE_VERSION = 2 as const
+export const PLAYER_STATE_VERSION = 3 as const
 
 export type DailyRecord = {
   best: number
   plays: number
+}
+
+export type PlayRecord = {
+  id: string
+  playedAt: string
+  score: number
+  maxCombo: number
+  daily: boolean
+  durationSeconds: number
 }
 
 export type PlayerState = {
@@ -13,6 +22,7 @@ export type PlayerState = {
   dailyRecords: Record<string, DailyRecord>
   streak: number
   lastDailyDate: string | null
+  history: Array<PlayRecord>
 }
 
 export const initialPlayerState: PlayerState = {
@@ -23,6 +33,7 @@ export const initialPlayerState: PlayerState = {
   dailyRecords: {},
   streak: 0,
   lastDailyDate: null,
+  history: [],
 }
 
 function nonNegativeNumber(value: unknown) {
@@ -56,6 +67,32 @@ function readDailyRecords(value: unknown) {
   )
 }
 
+function readHistory(value: unknown) {
+  if (!Array.isArray(value)) return []
+  return value
+    .flatMap((record): Array<PlayRecord> => {
+      if (!record || typeof record !== 'object') return []
+      const candidate = record as Record<string, unknown>
+      if (
+        typeof candidate.id !== 'string' ||
+        typeof candidate.playedAt !== 'string'
+      ) {
+        return []
+      }
+      return [
+        {
+          id: candidate.id,
+          playedAt: candidate.playedAt,
+          score: nonNegativeNumber(candidate.score),
+          maxCombo: nonNegativeNumber(candidate.maxCombo),
+          daily: candidate.daily === true,
+          durationSeconds: nonNegativeNumber(candidate.durationSeconds),
+        },
+      ]
+    })
+    .slice(0, 100)
+}
+
 export function migratePlayerState(
   value: unknown,
   currentDateKey: string,
@@ -77,5 +114,6 @@ export function migratePlayerState(
     streak: nonNegativeNumber(source.streak),
     lastDailyDate:
       typeof source.lastDailyDate === 'string' ? source.lastDailyDate : null,
+    history: readHistory(source.history),
   }
 }

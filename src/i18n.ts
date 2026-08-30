@@ -10,7 +10,7 @@ const resources = {
       home: {
         tagline: '10を作って、自己ベストへ。',
         play: 'プレイ',
-        ranking: 'ランキング',
+        ranking: 'プレイ統計',
       },
       game: {
         resume: '再開',
@@ -65,9 +65,14 @@ const resources = {
         play: 'プレイする',
       },
       ranking: {
-        title: 'ランキング',
-        you: 'あなた',
-        sample: '現在は表示サンプルです · あなたは上位 {{percent}}%',
+        title: 'プレイ統計',
+        games: 'プレイ回数',
+        maxCombo: '最高コンボ',
+        playTime: '合計プレイ時間',
+        minutes: '{{count}}分',
+        recent: '最近のプレイ',
+        normal: '通常プレイ',
+        empty: 'プレイすると、ここに履歴が表示されます。',
       },
       profile: {
         title: 'マイページ',
@@ -93,7 +98,7 @@ const resources = {
       nav: {
         home: 'ホーム',
         daily: 'デイリー',
-        ranking: 'ランキング',
+        ranking: '統計',
         profile: 'マイページ',
       },
       tutorial: {
@@ -117,7 +122,7 @@ const resources = {
       home: {
         tagline: 'MAKE 10. BEAT YOUR BEST.',
         play: 'PLAY',
-        ranking: 'RANKING',
+        ranking: 'STATS',
       },
       game: {
         resume: 'Resume',
@@ -172,9 +177,14 @@ const resources = {
         play: 'Play today',
       },
       ranking: {
-        title: 'RANKING',
-        you: 'You',
-        sample: 'Sample ranking · You are in the top {{percent}}%',
+        title: 'PLAY STATS',
+        games: 'Games',
+        maxCombo: 'Max combo',
+        playTime: 'Play time',
+        minutes: '{{count}} min',
+        recent: 'Recent games',
+        normal: 'Standard',
+        empty: 'Your play history will appear here.',
       },
       profile: {
         title: 'MY PAGE',
@@ -200,7 +210,7 @@ const resources = {
       nav: {
         home: 'Home',
         daily: 'Daily',
-        ranking: 'Ranking',
+        ranking: 'Stats',
         profile: 'My page',
       },
       tutorial: {
