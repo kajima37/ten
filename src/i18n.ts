@@ -38,6 +38,11 @@ const resources = {
         shareDownloaded: '共有画像を保存しました',
         shareFailed: '共有画像を作成できませんでした',
         achievementUnlocked: '新しい実績を解除しました！',
+        dataExported: 'バックアップを保存しました',
+        dataImported: 'バックアップを復元しました',
+        dataImportFailed: 'バックアップを読み込めませんでした',
+        recordsReset: 'プレイ記録をリセットしました',
+        settingsReset: '設定をリセットしました',
       },
       result: {
         title: '結果',
@@ -154,6 +159,21 @@ const resources = {
         on: 'オン',
         off: 'オフ',
       },
+      data: {
+        title: 'データ管理',
+        description:
+          'プレイ記録と設定をJSONファイルに保存し、この端末や別の端末で復元できます。',
+        plays: '総プレイ回数',
+        history: '保存済み履歴',
+        export: '書き出す',
+        import: '読み込む',
+        resetRecords: '記録をリセット',
+        resetSettings: '設定をリセット',
+        resetRecordsConfirm:
+          'すべてのスコア、履歴、実績を削除します。元に戻せません。続けますか？',
+        resetSettingsConfirm:
+          'テーマ、言語、振動、アニメーション、チュートリアル設定を初期状態に戻しますか？',
+      },
     },
   },
   en: {
@@ -189,6 +209,11 @@ const resources = {
         shareDownloaded: 'Share image saved',
         shareFailed: 'Could not create the share image',
         achievementUnlocked: 'Achievement unlocked!',
+        dataExported: 'Backup saved',
+        dataImported: 'Backup restored',
+        dataImportFailed: 'Could not read the backup',
+        recordsReset: 'Play records reset',
+        settingsReset: 'Settings reset',
       },
       result: {
         title: 'RESULT',
@@ -302,6 +327,21 @@ const resources = {
         reducedMotionDescription: 'Minimize board and screen animations',
         on: 'On',
         off: 'Off',
+      },
+      data: {
+        title: 'Data management',
+        description:
+          'Save your play records and settings as JSON, then restore them on this or another device.',
+        plays: 'Total plays',
+        history: 'Saved history',
+        export: 'Export',
+        import: 'Import',
+        resetRecords: 'Reset records',
+        resetSettings: 'Reset settings',
+        resetRecordsConfirm:
+          'Delete all scores, history, and achievements? This cannot be undone.',
+        resetSettingsConfirm:
+          'Restore theme, language, vibration, motion, and tutorial settings to their defaults?',
       },
     },
   },

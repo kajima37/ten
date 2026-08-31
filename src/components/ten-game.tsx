@@ -4,6 +4,7 @@ import {
   CheckCircle,
   Clock,
   Crown,
+  DownloadSimple,
   Fire,
   House,
   Lightbulb,
@@ -15,6 +16,7 @@ import {
   Shuffle,
   Star,
   Trophy,
+  UploadSimple,
   UserCircle,
 } from '@phosphor-icons/react'
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react'
@@ -28,6 +30,13 @@ import { ScreenOrientation } from '@capacitor/screen-orientation'
 import GameBoard from '#/components/game-board'
 import { Button } from '#/components/ui/button'
 import { ACHIEVEMENT_IDS, getUnlockedAchievements } from '#/lib/achievements'
+import {
+  THEME_IDS,
+  createBackup,
+  normalizePreferences,
+  parseBackup,
+} from '#/lib/backup'
+import type { Preferences, ThemeId } from '#/lib/backup'
 import {
   TARGET,
   collapseBoard,
@@ -53,21 +62,6 @@ const LANGUAGE_KEY = 'ten_language'
 const THEME_KEY = 'ten_theme'
 const TUTORIAL_KEY = 'ten_tutorial_complete'
 const PREFERENCES_KEY = 'ten_preferences'
-const THEME_IDS = [
-  'classic',
-  'midnight',
-  'cafe',
-  'sakura',
-  'zen',
-  'neon',
-] as const
-type ThemeId = (typeof THEME_IDS)[number]
-
-type Preferences = {
-  vibration: boolean
-  reducedMotion: boolean
-}
-
 const initialPreferences: Preferences = {
   vibration: true,
   reducedMotion: false,
@@ -93,11 +87,7 @@ function readPreferences(): Preferences {
   try {
     const saved = window.localStorage.getItem(PREFERENCES_KEY)
     if (!saved) return initialPreferences
-    const value = JSON.parse(saved) as Partial<Preferences>
-    return {
-      vibration: value.vibration !== false,
-      reducedMotion: value.reducedMotion === true,
-    }
+    return normalizePreferences(JSON.parse(saved))
   } catch {
     return initialPreferences
   }
@@ -491,6 +481,71 @@ export default function TenGame() {
     showToast(t('toast.timeAdded'))
   }
 
+  const exportData = () => {
+    const backup = createBackup({
+      playerState,
+      language: i18n.resolvedLanguage === 'en' ? 'en' : 'ja',
+      theme,
+      preferences,
+      tutorialComplete: window.localStorage.getItem(TUTORIAL_KEY) === 'true',
+    })
+    const blob = new Blob([JSON.stringify(backup, null, 2)], {
+      type: 'application/json',
+    })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `ten-backup-${getLocalDateKey()}.json`
+    anchor.click()
+    URL.revokeObjectURL(url)
+    showToast(t('toast.dataExported'))
+  }
+
+  const importData = async (file: File) => {
+    try {
+      const backup = parseBackup(
+        JSON.parse(await file.text()),
+        getLocalDateKey(),
+      )
+      saveState(backup.playerState)
+      setTheme(backup.theme)
+      setPreferences(backup.preferences)
+      window.localStorage.setItem(LANGUAGE_KEY, backup.language)
+      window.localStorage.setItem(TUTORIAL_KEY, String(backup.tutorialComplete))
+      await i18n.changeLanguage(backup.language)
+      setTutorialOpen(!backup.tutorialComplete)
+      showToast(t('toast.dataImported'))
+    } catch {
+      showToast(t('toast.dataImportFailed'))
+    }
+  }
+
+  const resetRecords = () => {
+    if (!window.confirm(t('data.resetRecordsConfirm'))) return
+    saveState({
+      ...initialPlayerState,
+      dailyRecords: {},
+      history: [],
+      unlockedAchievements: [],
+    })
+    showToast(t('toast.recordsReset'))
+  }
+
+  const resetSettings = () => {
+    if (!window.confirm(t('data.resetSettingsConfirm'))) return
+    const preferred = navigator.language.startsWith('en') ? 'en' : 'ja'
+    window.localStorage.removeItem(LANGUAGE_KEY)
+    window.localStorage.removeItem(THEME_KEY)
+    window.localStorage.removeItem(PREFERENCES_KEY)
+    window.localStorage.removeItem(TUTORIAL_KEY)
+    setTheme('classic')
+    setPreferences(initialPreferences)
+    setTutorialStep(0)
+    setTutorialOpen(true)
+    void i18n.changeLanguage(preferred)
+    showToast(t('toast.settingsReset'))
+  }
+
   const average = playerState.plays
     ? Math.round(playerState.total / playerState.plays)
     : 0
@@ -564,6 +619,10 @@ export default function TenGame() {
             preferences={preferences}
             onPreferencesChange={setPreferences}
             onThemeChange={setTheme}
+            onExport={exportData}
+            onImport={importData}
+            onResetRecords={resetRecords}
+            onResetSettings={resetSettings}
             onTutorial={() => {
               setTutorialStep(0)
               setTutorialOpen(true)
@@ -1149,6 +1208,10 @@ function MyPage({
   preferences,
   onPreferencesChange,
   onThemeChange,
+  onExport,
+  onImport,
+  onResetRecords,
+  onResetSettings,
   onTutorial,
   onToast,
 }: {
@@ -1158,10 +1221,15 @@ function MyPage({
   preferences: Preferences
   onPreferencesChange: (preferences: Preferences) => void
   onThemeChange: (theme: ThemeId) => void
+  onExport: () => void
+  onImport: (file: File) => Promise<void>
+  onResetRecords: () => void
+  onResetSettings: () => void
   onTutorial: () => void
   onToast: (message: string) => void
 }) {
   const { i18n, t } = useTranslation()
+  const importInputRef = useRef<HTMLInputElement>(null)
   const themes = [
     { id: 'classic', label: t('profile.themes.classic'), color: '#242426' },
     { id: 'midnight', label: t('profile.themes.midnight'), color: '#111b33' },
@@ -1308,7 +1376,67 @@ function MyPage({
         <Question className="mr-2 size-4" weight="bold" />
         {t('profile.tutorial')}
       </Button>
+      <div className="mt-3 rounded-3xl border bg-card p-5">
+        <strong>{t('data.title')}</strong>
+        <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+          {t('data.description')}
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <DataCount label={t('data.plays')} value={state.plays} />
+          <DataCount label={t('data.history')} value={state.history.length} />
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Button className="rounded-full" onClick={onExport}>
+            <DownloadSimple className="mr-2 size-4" weight="bold" />
+            {t('data.export')}
+          </Button>
+          <Button
+            variant="secondary"
+            className="rounded-full"
+            onClick={() => importInputRef.current?.click()}
+          >
+            <UploadSimple className="mr-2 size-4" weight="bold" />
+            {t('data.import')}
+          </Button>
+          <input
+            ref={importInputRef}
+            className="hidden"
+            type="file"
+            accept="application/json,.json"
+            onChange={(event) => {
+              const file = event.currentTarget.files?.[0]
+              if (file) void onImport(file)
+              event.currentTarget.value = ''
+            }}
+          />
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <Button
+            variant="outline"
+            className="rounded-full text-xs"
+            onClick={onResetRecords}
+          >
+            {t('data.resetRecords')}
+          </Button>
+          <Button
+            variant="outline"
+            className="rounded-full text-xs"
+            onClick={onResetSettings}
+          >
+            {t('data.resetSettings')}
+          </Button>
+        </div>
+      </div>
     </section>
+  )
+}
+
+function DataCount({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl bg-secondary px-4 py-3">
+      <span className="block text-[10px] text-muted-foreground">{label}</span>
+      <strong className="mt-1 block tabular-nums">{value}</strong>
+    </div>
   )
 }
 
