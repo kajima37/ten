@@ -52,6 +52,7 @@ const STORAGE_KEY = 'ten_state'
 const LANGUAGE_KEY = 'ten_language'
 const THEME_KEY = 'ten_theme'
 const TUTORIAL_KEY = 'ten_tutorial_complete'
+const PREFERENCES_KEY = 'ten_preferences'
 const THEME_IDS = [
   'classic',
   'midnight',
@@ -61,6 +62,16 @@ const THEME_IDS = [
   'neon',
 ] as const
 type ThemeId = (typeof THEME_IDS)[number]
+
+type Preferences = {
+  vibration: boolean
+  reducedMotion: boolean
+}
+
+const initialPreferences: Preferences = {
+  vibration: true,
+  reducedMotion: false,
+}
 
 function readPlayerState() {
   try {
@@ -78,7 +89,22 @@ function readTheme(): ThemeId {
   return THEME_IDS.includes(saved as ThemeId) ? (saved as ThemeId) : 'classic'
 }
 
-function vibrate(duration: number) {
+function readPreferences(): Preferences {
+  try {
+    const saved = window.localStorage.getItem(PREFERENCES_KEY)
+    if (!saved) return initialPreferences
+    const value = JSON.parse(saved) as Partial<Preferences>
+    return {
+      vibration: value.vibration !== false,
+      reducedMotion: value.reducedMotion === true,
+    }
+  } catch {
+    return initialPreferences
+  }
+}
+
+function vibrate(duration: number, enabled: boolean) {
+  if (!enabled) return
   if (Capacitor.isNativePlatform()) {
     void Haptics.impact({
       style: duration > 10 ? ImpactStyle.Medium : ImpactStyle.Light,
@@ -185,6 +211,7 @@ export default function TenGame() {
   const [dailyKey, setDailyKey] = useState(getLocalDateKey)
   const [playerState, setPlayerState] = useState(readPlayerState)
   const [theme, setTheme] = useState<ThemeId>(readTheme)
+  const [preferences, setPreferences] = useState(readPreferences)
   const [previousBest, setPreviousBest] = useState(0)
   const [isNewBest, setIsNewBest] = useState(false)
   const [toast, setToast] = useState('')
@@ -214,6 +241,13 @@ export default function TenGame() {
     document.documentElement.dataset.theme = theme
     window.localStorage.setItem(THEME_KEY, theme)
   }, [theme])
+
+  useEffect(() => {
+    document.documentElement.dataset.reducedMotion = String(
+      preferences.reducedMotion,
+    )
+    window.localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences))
+  }, [preferences])
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
@@ -347,7 +381,7 @@ export default function TenGame() {
           ? t('toast.combo', { combo: nextCombo, gain })
           : `+${gain}`,
       )
-      vibrate(18)
+      vibrate(18, preferences.vibration)
       window.setTimeout(() => {
         setBoard((current) =>
           collapseBoard(current, removed, boardRandomRef.current),
@@ -364,7 +398,7 @@ export default function TenGame() {
       setFeedbackId((current) => current + 1)
     }
     setSelected([])
-  }, [combo, dragging, selected, showToast, sum, t])
+  }, [combo, dragging, preferences.vibration, selected, showToast, sum, t])
 
   useEffect(() => {
     window.addEventListener('pointerup', resolveSelection)
@@ -404,7 +438,7 @@ export default function TenGame() {
     if (!running || paused || removing.length) return
     setDragging(true)
     setSelected([index])
-    vibrate(5)
+    vibrate(5, preferences.vibration)
   }
 
   const extendSelection = (index: number) => {
@@ -419,7 +453,7 @@ export default function TenGame() {
         !current.includes(index) &&
         isAdjacent(last, index)
       ) {
-        vibrate(5)
+        vibrate(5, preferences.vibration)
         return [...current, index]
       }
       return current
@@ -486,6 +520,7 @@ export default function TenGame() {
             hints={hints}
             paused={paused}
             removing={removing}
+            reducedMotion={preferences.reducedMotion}
             score={score}
             selected={selected}
             sum={sum}
@@ -526,6 +561,8 @@ export default function TenGame() {
             average={average}
             state={playerState}
             theme={theme}
+            preferences={preferences}
+            onPreferencesChange={setPreferences}
             onThemeChange={setTheme}
             onTutorial={() => {
               setTutorialStep(0)
@@ -603,6 +640,7 @@ type GameScreenProps = {
   feedbackId: number
   selected: Array<number>
   removing: Array<number>
+  reducedMotion: boolean
   score: number
   combo: number
   timeLeft: number
@@ -674,6 +712,7 @@ function GameScreen(props: GameScreenProps) {
           board={props.board}
           selected={props.selected}
           removing={props.removing}
+          reducedMotion={props.reducedMotion}
           revision={props.boardRevision}
           disabled={props.paused || props.removing.length > 0}
           theme={props.theme}
@@ -1107,6 +1146,8 @@ function MyPage({
   average,
   state,
   theme,
+  preferences,
+  onPreferencesChange,
   onThemeChange,
   onTutorial,
   onToast,
@@ -1114,6 +1155,8 @@ function MyPage({
   average: number
   state: PlayerState
   theme: ThemeId
+  preferences: Preferences
+  onPreferencesChange: (preferences: Preferences) => void
   onThemeChange: (theme: ThemeId) => void
   onTutorial: () => void
   onToast: (message: string) => void
@@ -1236,6 +1279,27 @@ function MyPage({
           })}
         </div>
       </div>
+      <div className="mt-3 rounded-3xl border bg-card p-5">
+        <strong>{t('settings.title')}</strong>
+        <div className="mt-3 space-y-2">
+          <SettingToggle
+            label={t('settings.vibration')}
+            description={t('settings.vibrationDescription')}
+            enabled={preferences.vibration}
+            onChange={(vibration) =>
+              onPreferencesChange({ ...preferences, vibration })
+            }
+          />
+          <SettingToggle
+            label={t('settings.reducedMotion')}
+            description={t('settings.reducedMotionDescription')}
+            enabled={preferences.reducedMotion}
+            onChange={(reducedMotion) =>
+              onPreferencesChange({ ...preferences, reducedMotion })
+            }
+          />
+        </div>
+      </div>
       <Button
         variant="secondary"
         className="mt-3 h-12 w-full rounded-full"
@@ -1251,6 +1315,41 @@ function MyPage({
 function playerStateAchievementCount(state: PlayerState) {
   return ACHIEVEMENT_IDS.filter((id) => state.unlockedAchievements.includes(id))
     .length
+}
+
+function SettingToggle({
+  label,
+  description,
+  enabled,
+  onChange,
+}: {
+  label: string
+  description: string
+  enabled: boolean
+  onChange: (enabled: boolean) => void
+}) {
+  const { t } = useTranslation()
+  return (
+    <button
+      className="flex w-full items-center justify-between rounded-2xl bg-secondary px-4 py-3 text-left"
+      type="button"
+      role="switch"
+      aria-checked={enabled}
+      onClick={() => onChange(!enabled)}
+    >
+      <span>
+        <strong className="block text-sm">{label}</strong>
+        <span className="mt-0.5 block text-[10px] text-muted-foreground">
+          {description}
+        </span>
+      </span>
+      <span
+        className={`rounded-full px-3 py-1 text-[10px] font-bold ${enabled ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground'}`}
+      >
+        {enabled ? t('settings.on') : t('settings.off')}
+      </span>
+    </button>
+  )
 }
 
 function Tutorial({

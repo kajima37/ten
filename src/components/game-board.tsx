@@ -10,6 +10,7 @@ type GameBoardProps = {
   selected: Array<number>
   removing: Array<number>
   revision: number
+  reducedMotion: boolean
   disabled?: boolean
   theme: string
   onPointerDown: (index: number) => void
@@ -21,6 +22,7 @@ export default function GameBoard({
   selected,
   removing,
   revision,
+  reducedMotion,
   disabled = false,
   theme,
   onPointerDown,
@@ -130,6 +132,7 @@ export default function GameBoard({
               y={y}
               highlighted={highlighted}
               removing={removing.includes(index)}
+              reducedMotion={reducedMotion}
               disabled={disabled}
               onPointerDown={() => onPointerDown(index)}
               onPointerEnter={() => onPointerEnter(index)}
@@ -172,6 +175,7 @@ function AnimatedCell({
   y,
   highlighted,
   removing,
+  reducedMotion,
   disabled,
   onPointerDown,
   onPointerEnter,
@@ -181,6 +185,7 @@ function AnimatedCell({
   y: number
   highlighted: boolean
   removing: boolean
+  reducedMotion: boolean
   disabled: boolean
   onPointerDown: () => void
   onPointerEnter: () => void
@@ -197,6 +202,13 @@ function AnimatedCell({
   useTick((ticker) => {
     const cell = container.current
     if (!cell) return
+
+    if (reducedMotion) {
+      cell.y = y
+      cell.alpha = removing ? 0 : 1
+      cell.scale.set(highlighted ? 1.035 : 1)
+      return
+    }
 
     entrance.current = Math.min(1, entrance.current + ticker.deltaTime / 8)
     const eased = 1 - Math.pow(1 - entrance.current, 3)
