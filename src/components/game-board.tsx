@@ -1,8 +1,10 @@
 import { Application, extend, useTick } from '@pixi/react'
 import { Container, Graphics, Text } from 'pixi.js'
 import { useEffect, useRef } from 'react'
+import type { FederatedPointerEvent } from 'pixi.js'
 import type { ReactNode } from 'react'
 import type { CollapseMotion } from '#/lib/game-logic'
+import { getPredictedNeighbor, isInsideDeepCommitZone } from '#/lib/gesture'
 
 extend({ Container, Graphics, Text })
 
@@ -31,6 +33,70 @@ export default function GameBoard({
   onPointerDown,
   onPointerEnter,
 }: GameBoardProps) {
+  const gestureActive = useRef(false)
+  const lockedAnchor = useRef<number | null>(null)
+  const lockedTarget = useRef<number | null>(null)
+  const committedAnchor = useRef<number | null>(null)
+
+  useEffect(() => {
+    lockedAnchor.current = null
+    lockedTarget.current = null
+    committedAnchor.current = null
+  }, [selected])
+
+  useEffect(() => {
+    const finishGesture = () => {
+      gestureActive.current = false
+      lockedAnchor.current = null
+      lockedTarget.current = null
+      committedAnchor.current = null
+    }
+    window.addEventListener('pointerup', finishGesture)
+    window.addEventListener('pointercancel', finishGesture)
+    return () => {
+      window.removeEventListener('pointerup', finishGesture)
+      window.removeEventListener('pointercancel', finishGesture)
+    }
+  }, [])
+
+  const startPointerGesture = (index: number) => {
+    gestureActive.current = true
+    lockedAnchor.current = null
+    lockedTarget.current = null
+    committedAnchor.current = null
+    onPointerDown(index)
+  }
+
+  const continuePointerGesture = (
+    index: number,
+    event: FederatedPointerEvent,
+  ) => {
+    if (!gestureActive.current || disabled) return
+    const anchor = selected.at(-1)
+    if (anchor === undefined) return
+    if (index === anchor) {
+      lockedAnchor.current = null
+      lockedTarget.current = null
+      committedAnchor.current = null
+      return
+    }
+    if (committedAnchor.current === anchor) return
+
+    const point = { x: event.global.x, y: event.global.y }
+    if (lockedAnchor.current !== anchor) {
+      lockedAnchor.current = anchor
+      lockedTarget.current = getPredictedNeighbor(anchor, point)
+    }
+
+    if (
+      index === lockedTarget.current ||
+      isInsideDeepCommitZone(index, point)
+    ) {
+      committedAnchor.current = anchor
+      onPointerEnter(index)
+    }
+  }
+
   const palette = {
     classic: {
       canvas: 0x121214,
@@ -138,8 +204,9 @@ export default function GameBoard({
               motion={motions[index] ?? { dropRows: 0, isNew: false }}
               reducedMotion={reducedMotion}
               disabled={disabled}
-              onPointerDown={() => onPointerDown(index)}
-              onPointerEnter={() => onPointerEnter(index)}
+              onPointerDown={() => startPointerGesture(index)}
+              onPointerEnter={(event) => continuePointerGesture(index, event)}
+              onPointerMove={(event) => continuePointerGesture(index, event)}
             >
               <pixiGraphics
                 draw={(graphics) => {
@@ -184,6 +251,7 @@ function AnimatedCell({
   disabled,
   onPointerDown,
   onPointerEnter,
+  onPointerMove,
   children,
 }: {
   x: number
@@ -194,7 +262,8 @@ function AnimatedCell({
   reducedMotion: boolean
   disabled: boolean
   onPointerDown: () => void
-  onPointerEnter: () => void
+  onPointerEnter: (event: FederatedPointerEvent) => void
+  onPointerMove: (event: FederatedPointerEvent) => void
   children: ReactNode
 }) {
   const container = useRef<Container>(null)
@@ -250,6 +319,7 @@ function AnimatedCell({
       cursor={disabled ? 'default' : 'pointer'}
       onPointerDown={onPointerDown}
       onPointerOver={onPointerEnter}
+      onPointerMove={onPointerMove}
     >
       {children}
     </pixiContainer>
