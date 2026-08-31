@@ -2,6 +2,7 @@ import { Application, extend, useTick } from '@pixi/react'
 import { Container, Graphics, Text } from 'pixi.js'
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
+import type { CollapseMotion } from '#/lib/game-logic'
 
 extend({ Container, Graphics, Text })
 
@@ -10,6 +11,7 @@ type GameBoardProps = {
   selected: Array<number>
   removing: Array<number>
   revision: number
+  motions: Array<CollapseMotion>
   reducedMotion: boolean
   disabled?: boolean
   theme: string
@@ -22,6 +24,7 @@ export default function GameBoard({
   selected,
   removing,
   revision,
+  motions,
   reducedMotion,
   disabled = false,
   theme,
@@ -132,6 +135,7 @@ export default function GameBoard({
               y={y}
               highlighted={highlighted}
               removing={removing.includes(index)}
+              motion={motions[index] ?? { dropRows: 0, isNew: false }}
               reducedMotion={reducedMotion}
               disabled={disabled}
               onPointerDown={() => onPointerDown(index)}
@@ -175,6 +179,7 @@ function AnimatedCell({
   y,
   highlighted,
   removing,
+  motion,
   reducedMotion,
   disabled,
   onPointerDown,
@@ -185,6 +190,7 @@ function AnimatedCell({
   y: number
   highlighted: boolean
   removing: boolean
+  motion: CollapseMotion
   reducedMotion: boolean
   disabled: boolean
   onPointerDown: () => void
@@ -192,7 +198,7 @@ function AnimatedCell({
   children: ReactNode
 }) {
   const container = useRef<Container>(null)
-  const entrance = useRef(0)
+  const entrance = useRef(motion.dropRows > 0 ? 0 : 1)
   const removal = useRef(0)
 
   useEffect(() => {
@@ -210,10 +216,19 @@ function AnimatedCell({
       return
     }
 
-    entrance.current = Math.min(1, entrance.current + ticker.deltaTime / 8)
-    const eased = 1 - Math.pow(1 - entrance.current, 3)
-    cell.y = y - (1 - eased) * 30
-    cell.alpha = eased
+    if (motion.dropRows === 0) {
+      cell.y = y
+      cell.alpha = 1
+    } else {
+      const duration = 5 + motion.dropRows * 2
+      entrance.current = Math.min(
+        1,
+        entrance.current + ticker.deltaTime / duration,
+      )
+      const eased = 1 - Math.pow(1 - entrance.current, 3)
+      cell.y = y - (1 - eased) * motion.dropRows * 70
+      cell.alpha = motion.isNew ? eased : 1
+    }
 
     if (removing) {
       removal.current = Math.min(1, removal.current + ticker.deltaTime / 7)
@@ -228,8 +243,8 @@ function AnimatedCell({
     <pixiContainer
       ref={container}
       x={x}
-      y={y - 30}
-      alpha={0}
+      y={y - motion.dropRows * 70}
+      alpha={motion.isNew ? 0 : 1}
       pivot={highlighted ? 1.1 : 0}
       eventMode={disabled ? 'none' : 'static'}
       cursor={disabled ? 'default' : 'pointer'}

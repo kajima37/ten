@@ -43,11 +43,13 @@ import {
   createDailyRandom,
   findCombination,
   getLocalDateKey,
+  getCollapseMotions,
   getNextStreak,
   isAdjacent,
   makeBoard,
   shuffleWithRandom,
 } from '#/lib/game-logic'
+import type { CollapseMotion } from '#/lib/game-logic'
 import { initialPlayerState, migratePlayerState } from '#/lib/player-state'
 import type { DailyRecord, PlayerState } from '#/lib/player-state'
 import '#/i18n'
@@ -187,6 +189,9 @@ export default function TenGame() {
   const [selected, setSelected] = useState<Array<number>>([])
   const [removing, setRemoving] = useState<Array<number>>([])
   const [boardRevision, setBoardRevision] = useState(0)
+  const [collapseMotions, setCollapseMotions] = useState<Array<CollapseMotion>>(
+    () => getCollapseMotions([]),
+  )
   const [score, setScore] = useState(0)
   const [combo, setCombo] = useState(0)
   const [maxCombo, setMaxCombo] = useState(0)
@@ -373,6 +378,7 @@ export default function TenGame() {
       )
       vibrate(18, preferences.vibration)
       window.setTimeout(() => {
+        setCollapseMotions(getCollapseMotions(removed))
         setBoard((current) =>
           collapseBoard(current, removed, boardRandomRef.current),
         )
@@ -409,6 +415,7 @@ export default function TenGame() {
     setSelected([])
     setRemoving([])
     setBoardRevision((current) => current + 1)
+    setCollapseMotions(getCollapseMotions([]))
     setScore(0)
     setCombo(0)
     setMaxCombo(0)
@@ -470,6 +477,7 @@ export default function TenGame() {
     setSelected([])
     setBoard((current) => shuffleWithRandom(current, boardRandomRef.current))
     setBoardRevision((current) => current + 1)
+    setCollapseMotions(getCollapseMotions([]))
     showToast(t('toast.shuffled'))
   }
 
@@ -569,6 +577,7 @@ export default function TenGame() {
             board={board}
             boardFeedback={boardFeedback}
             boardRevision={boardRevision}
+            collapseMotions={collapseMotions}
             bonusUsed={bonusUsed}
             combo={combo}
             feedbackId={feedbackId}
@@ -696,6 +705,7 @@ type GameScreenProps = {
   board: Array<number>
   boardFeedback: BoardFeedback
   boardRevision: number
+  collapseMotions: Array<CollapseMotion>
   feedbackId: number
   selected: Array<number>
   removing: Array<number>
@@ -773,6 +783,7 @@ function GameScreen(props: GameScreenProps) {
           removing={props.removing}
           reducedMotion={props.reducedMotion}
           revision={props.boardRevision}
+          motions={props.collapseMotions}
           disabled={props.paused || props.removing.length > 0}
           theme={props.theme}
           onPointerDown={props.onPointerDown}

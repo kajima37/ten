@@ -6,6 +6,7 @@ import {
   createDailyRandom,
   findCombination,
   getNextStreak,
+  getCollapseMotions,
   isAdjacent,
   makeBoard,
 } from '../src/lib/game-logic.ts'
@@ -21,6 +22,17 @@ test('daily boards and refill sequences are reproducible', () => {
     collapseBoard(firstBoard, [0, 1], firstRandom),
     collapseBoard(secondBoard, [0, 1], secondRandom),
   )
+})
+
+test('collapse motions only move cells above removed spaces', () => {
+  const motions = getCollapseMotions([11, 21])
+
+  assert.deepEqual(motions[21], { dropRows: 1, isNew: false })
+  assert.deepEqual(motions[16], { dropRows: 2, isNew: false })
+  assert.deepEqual(motions[11], { dropRows: 2, isNew: false })
+  assert.deepEqual(motions[6], { dropRows: 2, isNew: true })
+  assert.deepEqual(motions[1], { dropRows: 2, isNew: true })
+  assert.deepEqual(motions[0], { dropRows: 0, isNew: false })
 })
 
 test('combination search supports paths longer than two cells', () => {

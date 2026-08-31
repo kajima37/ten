@@ -129,3 +129,43 @@ export function collapseBoard(
 
   return ensurePlayableBoard(next, random)
 }
+
+export type CollapseMotion = {
+  dropRows: number
+  isNew: boolean
+}
+
+export function getCollapseMotions(removed: Array<number>) {
+  const removedSet = new Set(removed)
+  const motions = Array.from<unknown, CollapseMotion>(
+    { length: CELL_COUNT },
+    () => ({ dropRows: 0, isNew: false }),
+  )
+
+  for (let column = 0; column < GRID_SIZE; column += 1) {
+    const sourceRows: Array<number> = []
+    for (let row = GRID_SIZE - 1; row >= 0; row -= 1) {
+      if (!removedSet.has(row * GRID_SIZE + column)) sourceRows.push(row)
+    }
+
+    const refillCount = GRID_SIZE - sourceRows.length
+    for (
+      let destinationRow = GRID_SIZE - 1;
+      destinationRow >= 0;
+      destinationRow -= 1
+    ) {
+      const destinationIndex = destinationRow * GRID_SIZE + column
+      if (destinationRow < refillCount) {
+        motions[destinationIndex] = { dropRows: refillCount, isNew: true }
+      } else {
+        const sourceRow = sourceRows[GRID_SIZE - 1 - destinationRow]
+        motions[destinationIndex] = {
+          dropRows: destinationRow - sourceRow,
+          isNew: false,
+        }
+      }
+    }
+  }
+
+  return motions
+}
