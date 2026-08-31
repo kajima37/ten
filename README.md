@@ -62,6 +62,10 @@ AndroidとiOSにはCapacitor 8を使って配布します。モバイル用SPA�
 
 ローカル環境、GitHub Actionsの成果物、ストア署名については [`docs/deployment/mobile.md`](./docs/deployment/mobile.md) を参照してください。
 
+## Web公開
+
+GitHub Pagesへの公開方法は [`docs/deployment/github-pages.md`](./docs/deployment/github-pages.md) を参照してください。`main`へのプッシュ時に自動で公開され、手動実行にも対応しています。
+
 ## 主な場所
 
 - `src/routes` — TanStack Routerのファイルベースルート

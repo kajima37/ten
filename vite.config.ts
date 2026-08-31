@@ -8,14 +8,18 @@ import tailwindcss from '@tailwindcss/vite'
 
 const config = defineConfig(({ mode }) => {
   const isCapacitor = mode === 'capacitor'
+  const isGitHubPages = mode === 'github-pages'
+  const repositoryName =
+    process.env.GITHUB_REPOSITORY?.split('/').at(-1) ?? 'ten'
 
   return {
+    base: isGitHubPages ? `/${repositoryName}/` : '/',
     resolve: { tsconfigPaths: true },
     plugins: [
       devtools(),
       tailwindcss(),
       tanstackStart(
-        isCapacitor
+        isCapacitor || isGitHubPages
           ? {
               spa: {
                 enabled: true,

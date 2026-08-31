@@ -10,6 +10,7 @@
     "dev": "vite dev --port 3000",
     "generate-routes": "tsr generate",
     "build": "vite build",
+    "build:pages": "vite build --mode github-pages",
     "build:mobile": "vite build --mode capacitor",
     "mobile:sync": "pnpm build:mobile && cap sync",
     "mobile:copy": "pnpm build:mobile && cap copy",
