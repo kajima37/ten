@@ -64,9 +64,14 @@ jobs:
           printf '%s' "$VITE_API_URL" | grep -Eq '^https://[^/]+$'
         env:
           VITE_API_URL: ${{ vars.TEN_API_URL }}
+      - name: Verify AdMob App ID
+        run: test -n "$ADMOB_APP_ID"
+        env:
+          ADMOB_APP_ID: ${{ vars.ADMOB_APP_ID }}
       - run: pnpm mobile:sync
         env:
           VITE_API_URL: ${{ vars.TEN_API_URL }}
+          ADMOB_APP_ID: ${{ vars.ADMOB_APP_ID }}
       - name: Restore keystore
         run: |-
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"

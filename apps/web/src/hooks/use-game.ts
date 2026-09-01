@@ -18,6 +18,7 @@ import {
 import type { CollapseMotion, GameEvent } from '@ten/game-core'
 import { vibrate } from '#/lib/haptics'
 import { playSound } from '#/lib/sound'
+import { getAdsClient } from '#/lib/ads'
 import type { BoardFeedback } from '#/components/shared/screen'
 import type { GameResult } from '#/hooks/use-player'
 
@@ -283,8 +284,20 @@ export function useGame({
     playSound('bonus', sound, soundVolume)
   }
 
-  const addTime = () => {
+  const addTime = async () => {
     if (!running || paused || bonusUsed) return
+    onToast(t('ads.loading'))
+    const result = await getAdsClient().showRewarded()
+    if (!result.rewarded) {
+      const reasonKey =
+        result.reason === 'unavailable'
+          ? 'ads.unavailable'
+          : result.reason === 'dismissed' || result.reason === 'canceled'
+            ? 'ads.canceled'
+            : 'ads.failed'
+      onToast(t(reasonKey))
+      return
+    }
     setBonusUsed(true)
     setTimeLimit((current) => current + 10)
     setTimeLeft((current) => current + 10)

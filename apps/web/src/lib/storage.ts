@@ -7,6 +7,8 @@ export const STORAGE_KEYS = {
   deviceId: 'ten_device_id',
   token: 'ten_token',
   playerProfile: 'ten_player_profile',
+  adFrequency: 'ten_ad_frequency',
+  adsMode: 'ten_ads_mode',
 } as const
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS]

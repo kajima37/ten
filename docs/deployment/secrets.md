@@ -33,6 +33,8 @@ secrets/
 | `secrets.android-release.age.env` | 本番系鍵   | `Android Release` workflow（署名・Play提出）   |
 | `secrets.ios-release.age.env`     | 本番系鍵   | `iOS Release` workflow（署名・TestFlight提出） |
 
+AdMob の App ID / Unit ID は機密ではないため、SOPS で暗号化せず Environment Variable として登録します。テスト ID は公開されている公式値で、リポジトリのフォールバックとして `apps/web/src/lib/ads.ts` に直接記載しています。
+
 公開鍵は `secrets/.sops.yaml` に記載してコミットしています。秘密鍵はリポジトリに
 **コミットしません**。
 

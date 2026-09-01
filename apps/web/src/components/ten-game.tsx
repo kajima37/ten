@@ -18,8 +18,16 @@ import { usePlayerProgress } from '#/hooks/use-player'
 import type { GameResult } from '#/hooks/use-player'
 import { useSettings } from '#/hooks/use-settings'
 import { useDailyBoard, useLeaderboard } from '#/hooks/use-server-daily'
+import { MockAdOverlay } from '#/components/ads/mock-overlay'
+import { MockAdsToggle } from '#/components/ads/mock-toggle'
 import { createBackup, parseBackup } from '#/lib/backup'
 import { downloadBlob } from '#/lib/download'
+import {
+  markInterstitialShown,
+  recordGameFinished,
+  shouldShowInterstitial,
+} from '#/lib/ads-frequency'
+import { getAdsClient } from '#/lib/ads'
 import { getLocalDateKey } from '@ten/game-core'
 import { STORAGE_KEYS, readStorage } from '#/lib/storage'
 import '#/i18n'
@@ -58,6 +66,7 @@ export default function TenGame() {
       setPreviousBest(outcome.previousBest)
       setIsNewBest(outcome.isNewBest)
       setScreen('result')
+      recordGameFinished()
       if (outcome.hasNewAchievement) showToast(t('toast.achievementUnlocked'))
       if (result.daily) {
         void account
@@ -115,6 +124,25 @@ export default function TenGame() {
       void listener.then((handle) => handle.remove())
     }
   }, [game.paused, screen, settings.tutorialOpen])
+
+  useEffect(() => {
+    const client = getAdsClient()
+    if (!Capacitor.isNativePlatform()) return
+    void client.init()
+    const state = App.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) void client.init()
+    })
+    return () => {
+      void state.then((handle) => handle.remove())
+    }
+  }, [])
+
+  const goHomeFromResult = useCallback(async () => {
+    setScreen('home')
+    if (!shouldShowInterstitial(false)) return
+    markInterstitialShown()
+    await getAdsClient().showInterstitial()
+  }, [])
 
   const beginGame = useCallback(
     (daily: boolean) => {
@@ -224,7 +252,7 @@ export default function TenGame() {
             daily={game.dailyMode}
             serverRank={serverScore}
             onToast={showToast}
-            onHome={() => setScreen('home')}
+            onHome={() => void goHomeFromResult()}
             onRetry={() => beginGame(game.dailyMode)}
           />
         )}
@@ -304,6 +332,9 @@ export default function TenGame() {
           onComplete={settings.completeTutorial}
         />
       )}
+
+      <MockAdOverlay />
+      {!Capacitor.isNativePlatform() && <MockAdsToggle />}
     </div>
   )
 }

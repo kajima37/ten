@@ -68,6 +68,13 @@ jobs:
       - run: pnpm mobile:sync
         env:
           VITE_API_URL: ${{ vars.TEN_API_URL }}
+      - name: Inject AdMob App ID
+        run: >-
+          test -n "$ADMOB_APP_ID" &&
+          sed -i '' "s|ca-app-pub-3940256099942544~1458002511|$ADMOB_APP_ID|g"
+          apps/web/ios/App/App/Info.plist
+        env:
+          ADMOB_APP_ID: ${{ vars.ADMOB_APP_ID }}
       - name: Write App Store Connect API key
         run: |-
           mkdir -p "$HOME/private_keys"

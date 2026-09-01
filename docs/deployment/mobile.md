@@ -54,6 +54,12 @@ pnpm mobile:open:ios
 
 `pnpm mobile:sync` はモバイル用Webファイルを生成してネイティブプロジェクトへコピーし、Capacitorプラグインを同期します。Androidの端末向けビルドにはAndroid Studio、iOSの端末向けビルドにはmacOS上のXcodeが必要です。
 
+### 広告（AdMob）
+
+ローカルビルドでは広告ユニット ID の環境変数が未設定のため、AdMob 公式のテスト ID が使われます。`VITE_ADMOB_REWARDED_UNIT_ID` や `VITE_ADMOB_INTERSTITIAL_UNIT_ID` を設定すると実広告で確認できます（AdMob の実機テスト設定が必要）。本番 App ID はリリース workflow が `ADMOB_APP_ID` Environment Variable からネイティブ設定へ注入します。
+
+Web の開発プレビュー（`pnpm dev`）では、実機と同じ頻度でモック広告が表示されます。右下の `Ads: MOCK ⇄ OFF` トグルで切替え、`?ads=off`（非表示）/ `?ads=fail`（常に失敗）で挙動を上書きできます。
+
 ## 開発用ビルド
 
 - `CI`: push および pull request ごとに、フォーマット、lint、型、Web ビルド、
@@ -72,9 +78,11 @@ pnpm mobile:open:ios
 `v*` タグからのデプロイだけを許可します。Android / iOS の各 job はこの
 Environment を参照するため、job ごとに承認が発生します。
 
-| Environment | Variable                               | Secret                          |
-| ----------- | -------------------------------------- | ------------------------------- |
-| `release`   | `TEN_API_URL`（production Worker URL） | `SOPS_AGE_KEY`（本番系 age 鍵） |
+| Environment | Variable                                                                      | Secret                          |
+| ----------- | ----------------------------------------------------------------------------- | ------------------------------- |
+| `release`   | `TEN_API_URL`（production Worker URL）<br>`ADMOB_APP_ID`（本番 AdMob App ID） | `SOPS_AGE_KEY`（本番系 age 鍵） |
+
+広告ユニット ID（リワード／インタースティシャル）は Vite のビルド時に `VITE_ADMOB_REWARDED_UNIT_ID` / `VITE_ADMOB_INTERSTITIAL_UNIT_ID` から注入します。広告 ID は機密ではないため Environment Variable に直接登録して構いません。SOPS で暗号化する必要はありません。`VITE_ADMOB_APP_ID_IOS` / `VITE_ADMOB_APP_ID_ANDROID` を空にすると AdMob 公式のテスト ID にフォールバックするため、ローカル開発時に本番 ID を意識する必要はありません。
 
 秘密情報の本体（keystore、証明書、ストアのサービスアカウントなど）は
 [秘密情報の一元管理](./secrets.md) の暗号化ファイルへ入れます。
