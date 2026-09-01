@@ -118,7 +118,7 @@ export default function TenGame() {
 
   const beginGame = useCallback(
     (daily: boolean) => {
-      if (daily && !serverDaily) {
+      if (daily && !serverDaily.data) {
         showToast(t('daily.loading'))
         return
       }

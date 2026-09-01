@@ -1,8 +1,8 @@
-name: Deploy Worker
+name: Deploy Production Worker
 
 on:
   push:
-    branches: [main]
+    branches: [production]
     paths:
       - 'apps/worker/**'
       - 'packages/game-core/**'
@@ -10,15 +10,15 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: worker
-  cancel-in-progress: true
+  group: worker-production
+  cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
   deploy:
-    environment: staging
+    environment: production-worker
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -26,19 +26,21 @@ jobs:
         with:
           cache: true
       - run: pnpm install --frozen-lockfile
-      - name: Apply staging D1 migrations
+      - name: Verify production ref
+        run: test "$GITHUB_REF" = "refs/heads/production"
+      - name: Apply production D1 migrations
         working-directory: apps/worker
-        run: pnpm db:migrate:staging
+        run: pnpm db:migrate:production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      - name: Deploy staging Worker
+      - name: Deploy production Worker
         working-directory: apps/worker
-        run: pnpm deploy:staging
+        run: pnpm deploy:production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      - name: Check staging Worker
+      - name: Check production Worker
         run: curl --fail --retry 5 --retry-delay 2 "$TEN_API_URL/api/health"
         env:
           TEN_API_URL: ${{ vars.TEN_API_URL }}

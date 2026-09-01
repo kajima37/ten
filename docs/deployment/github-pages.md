@@ -1,14 +1,14 @@
 # GitHub Pagesへの公開
 
-Web版をGitHub Pagesへ公開します。デイリー盤面やランキングを使うには、先に [Cloudflare Worker](./cloudflare-worker.md) を公開してください。
+Web版をGitHub Pagesへ公開します。`main` は開発確認用なので、Pages は staging Worker に接続します。初回の Worker 設定は [Cloudflare Worker](./cloudflare-worker.md) を参照してください。
 
 ## 初回設定
 
 1. GitHubの **Settings → Pages → Build and deployment → Source** で **GitHub Actions** を選びます。
-2. **Settings → Secrets and variables → Actions → Variables** に、公開したWorkerのURLを `TEN_API_URL` として登録します。
+2. **Settings → Environments → staging → Variables** に、staging Worker の URL を `TEN_API_URL` として登録します。
 
 ```text
-TEN_API_URL=https://ten-api.<account>.workers.dev
+TEN_API_URL=https://ten-api-staging.<account>.workers.dev
 ```
 
 URLの末尾に `/` は付けません。
@@ -31,7 +31,7 @@ https://kajima37.github.io/ten/
 - デイリー画面に今日の盤面が表示される
 - デイリーの結果送信とランキング表示が動作する
 
-WorkerのURLを変更した場合は、`TEN_API_URL` を更新してからPagesを再実行します。Workerの処理だけを変更した場合は、Pagesの再公開は不要です。
+staging Worker の URL を変更した場合は、`staging` Environment の `TEN_API_URL` を更新してから Pages を再実行します。Worker の処理だけを変更した場合は、Pages の再公開は不要です。
 
 ## ローカル確認
 

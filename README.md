@@ -93,7 +93,7 @@ pnpm hooks:install
 - [GitHub Pages](./docs/deployment/github-pages.md): Web版の公開
 - [モバイル](./docs/deployment/mobile.md): Android / iOSのビルドと配布
 
-Workerを先に公開し、そのURLを `TEN_API_URL` としてPages・モバイルのビルドへ渡します。`AUTH_SECRET` と `ADMIN_SECRET` はWorker専用で、Webやモバイルへ渡しません。
+`main` は開発確認用で、GitHub Pages と staging Worker を自動更新します。`production` はレビュー済みコードを公開するブランチで、production Worker を更新します。公開済みアプリのビルドには production Worker URL を使います。初回設定は [Cloudflare Worker の公開手順](./docs/deployment/cloudflare-worker.md) を参照してください。`AUTH_SECRET` と `ADMIN_SECRET` は Worker 専用で、Web やモバイルへ渡しません。
 
 ## 仕様
 
