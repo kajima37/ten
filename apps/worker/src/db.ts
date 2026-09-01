@@ -1,5 +1,29 @@
 const ACTIVE = `p.banned = 0 OR (p.banned_until IS NOT NULL AND p.banned_until < strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`
 
+async function getPlayerStreak(
+  db: D1Database,
+  playerId: string,
+): Promise<number> {
+  const rows = await db
+    .prepare(
+      "SELECT date_key AS dateKey FROM scores WHERE player_id = ? AND mode = 'daily' ORDER BY date_key DESC",
+    )
+    .bind(playerId)
+    .all<{ dateKey: string }>()
+  if (!rows.results.length) return 0
+
+  let streak = 1
+  let previous = new Date(`${rows.results[0].dateKey}T00:00:00.000Z`)
+  for (const row of rows.results.slice(1)) {
+    const date = new Date(`${row.dateKey}T00:00:00.000Z`)
+    previous.setUTCDate(previous.getUTCDate() - 1)
+    if (date.getTime() !== previous.getTime()) break
+    streak += 1
+    previous = date
+  }
+  return streak
+}
+
 export type PlayerRow = {
   id: string
   name: string
@@ -30,6 +54,23 @@ export type LeaderboardEntry = {
   name: string
   score: number
   combo: number
+}
+
+export type WeeklyLeaderboardEntry = LeaderboardEntry & {
+  streak: number
+}
+
+export type FriendRow = {
+  id: string
+  name: string
+  streak: number
+}
+
+export type FriendRequestRow = {
+  id: number
+  playerId: string
+  name: string
+  direction: 'incoming' | 'outgoing'
 }
 
 export type RankInfo = {
@@ -77,6 +118,41 @@ export interface Store {
   getRank: (dateKey: string, score: number) => Promise<RankInfo>
   getDailyCount: (dateKey: string) => Promise<number>
   getDailyScore: (playerId: string, dateKey: string) => Promise<number | null>
+  getWeeklyLeaderboard: (
+    weekStart: string,
+    weekEnd: string,
+    limit: number,
+    playerIds?: Array<string>,
+  ) => Promise<Array<WeeklyLeaderboardEntry>>
+  getWeeklyRank: (
+    weekStart: string,
+    weekEnd: string,
+    score: number,
+  ) => Promise<RankInfo>
+  getWeeklyScore: (
+    playerId: string,
+    weekStart: string,
+    weekEnd: string,
+  ) => Promise<number | null>
+  getFriendCode: (playerId: string) => Promise<string | null>
+  setFriendCode: (
+    playerId: string,
+    code: string,
+    expiresAt: string,
+  ) => Promise<void>
+  findPlayerByFriendCode: (code: string) => Promise<PlayerRow | null>
+  createFriendRequest: (
+    requesterId: string,
+    targetId: string,
+  ) => Promise<'created' | 'exists'>
+  respondToFriendRequest: (
+    requestId: number,
+    playerId: string,
+    status: 'accepted' | 'declined',
+  ) => Promise<boolean>
+  removeFriend: (playerId: string, friendId: string) => Promise<boolean>
+  getFriends: (playerId: string) => Promise<Array<FriendRow>>
+  getFriendRequests: (playerId: string) => Promise<Array<FriendRequestRow>>
   countRecentSubmissions: (
     playerId: string,
     sinceIso: string,
@@ -285,6 +361,166 @@ export function createD1Store(db: D1Database): Store {
         .bind(playerId, dateKey)
         .first<{ score: number }>()
       return row?.score ?? null
+    },
+
+    async getWeeklyLeaderboard(weekStart, weekEnd, limit, playerIds) {
+      const idsClause = playerIds?.length
+        ? ` AND s.player_id IN (${playerIds.map(() => '?').join(', ')})`
+        : ''
+      const rows = await db
+        .prepare(
+          `SELECT p.id AS playerId, p.name AS name, SUM(s.score) AS score,
+                  MAX(s.combo) AS combo
+           FROM scores s JOIN players p ON p.id = s.player_id
+           WHERE s.mode = 'daily' AND s.date_key >= ? AND s.date_key < ? AND ${ACTIVE}${idsClause}
+           GROUP BY p.id, p.name
+           ORDER BY score DESC, MIN(s.created_at) ASC
+           LIMIT ?`,
+        )
+        .bind(weekStart, weekEnd, ...(playerIds ?? []), limit)
+        .all<Omit<WeeklyLeaderboardEntry, 'rank' | 'streak'>>()
+      return Promise.all(
+        rows.results.map(async (row, _index, entries) => ({
+          ...row,
+          rank: entries.findIndex((entry) => entry.score === row.score) + 1,
+          streak: await getPlayerStreak(db, row.playerId),
+        })),
+      )
+    },
+
+    async getWeeklyRank(weekStart, weekEnd, score) {
+      const count = await db
+        .prepare(
+          `WITH weekly AS (
+             SELECT s.player_id, SUM(s.score) AS score
+             FROM scores s JOIN players p ON p.id = s.player_id
+             WHERE s.mode = 'daily' AND s.date_key >= ? AND s.date_key < ? AND ${ACTIVE}
+             GROUP BY s.player_id
+           )
+           SELECT COUNT(*) AS total, SUM(CASE WHEN score > ? THEN 1 ELSE 0 END) AS above FROM weekly`,
+        )
+        .bind(weekStart, weekEnd, score)
+        .first<{ total: number; above: number | null }>()
+      const total = count?.total ?? 0
+      const rank = (count?.above ?? 0) + 1
+      return {
+        total,
+        rank,
+        topPercent:
+          total > 0
+            ? Math.min(100, Math.max(1, Math.round((rank / total) * 100)))
+            : 100,
+      }
+    },
+
+    async getWeeklyScore(playerId, weekStart, weekEnd) {
+      const row = await db
+        .prepare(
+          `SELECT SUM(s.score) AS score FROM scores s JOIN players p ON p.id = s.player_id
+           WHERE s.player_id = ? AND s.mode = 'daily' AND s.date_key >= ? AND s.date_key < ? AND ${ACTIVE}`,
+        )
+        .bind(playerId, weekStart, weekEnd)
+        .first<{ score: number | null }>()
+      return row?.score ?? null
+    },
+
+    async getFriendCode(playerId) {
+      const row = await db
+        .prepare(
+          "SELECT code FROM friend_codes WHERE player_id = ? AND expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')",
+        )
+        .bind(playerId)
+        .first<{ code: string }>()
+      return row?.code ?? null
+    },
+
+    async setFriendCode(playerId, code, expiresAt) {
+      await db
+        .prepare(
+          `INSERT INTO friend_codes (player_id, code, expires_at) VALUES (?, ?, ?)
+           ON CONFLICT(player_id) DO UPDATE SET code = excluded.code, expires_at = excluded.expires_at,
+             created_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
+        )
+        .bind(playerId, code, expiresAt)
+        .run()
+    },
+
+    async findPlayerByFriendCode(code) {
+      return db
+        .prepare(
+          `SELECT p.id, p.name, p.device_id AS deviceId, p.ip_hash AS ipHash, p.banned,
+                  p.banned_until AS bannedUntil, p.created_at AS createdAt
+           FROM friend_codes c JOIN players p ON p.id = c.player_id
+           WHERE c.code = ? AND c.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
+        )
+        .bind(code)
+        .first<PlayerRow>()
+    },
+
+    async createFriendRequest(requesterId, targetId) {
+      const [low, high] = [requesterId, targetId].sort()
+      const result = await db
+        .prepare(
+          `INSERT INTO friend_requests (player_low_id, player_high_id, requested_by_id, status)
+           VALUES (?, ?, ?, 'pending') ON CONFLICT(player_low_id, player_high_id) DO NOTHING`,
+        )
+        .bind(low, high, requesterId)
+        .run()
+      return result.meta.changes ? 'created' : 'exists'
+    },
+
+    async respondToFriendRequest(requestId, playerId, status) {
+      const result = await db
+        .prepare(
+          `UPDATE friend_requests SET status = ?, responded_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+           WHERE id = ? AND status = 'pending' AND requested_by_id != ?
+             AND (player_low_id = ? OR player_high_id = ?)`,
+        )
+        .bind(status, requestId, playerId, playerId, playerId)
+        .run()
+      return result.meta.changes > 0
+    },
+
+    async removeFriend(playerId, friendId) {
+      const [low, high] = [playerId, friendId].sort()
+      const result = await db
+        .prepare(
+          "DELETE FROM friend_requests WHERE player_low_id = ? AND player_high_id = ? AND status = 'accepted'",
+        )
+        .bind(low, high)
+        .run()
+      return result.meta.changes > 0
+    },
+
+    async getFriends(playerId) {
+      const rows = await db
+        .prepare(
+          `SELECT p.id, p.name FROM friend_requests f JOIN players p ON p.id =
+             CASE WHEN f.player_low_id = ? THEN f.player_high_id ELSE f.player_low_id END
+           WHERE f.status = 'accepted' AND (f.player_low_id = ? OR f.player_high_id = ?) AND ${ACTIVE}`,
+        )
+        .bind(playerId, playerId, playerId)
+        .all<{ id: string; name: string }>()
+      return Promise.all(
+        rows.results.map(async (friend) => ({
+          ...friend,
+          streak: await getPlayerStreak(db, friend.id),
+        })),
+      )
+    },
+
+    async getFriendRequests(playerId) {
+      const rows = await db
+        .prepare(
+          `SELECT f.id, p.id AS playerId, p.name AS name,
+                  CASE WHEN f.requested_by_id = ? THEN 'outgoing' ELSE 'incoming' END AS direction
+           FROM friend_requests f JOIN players p ON p.id =
+             CASE WHEN f.player_low_id = ? THEN f.player_high_id ELSE f.player_low_id END
+           WHERE f.status = 'pending' AND (f.player_low_id = ? OR f.player_high_id = ?) AND ${ACTIVE}`,
+        )
+        .bind(playerId, playerId, playerId, playerId)
+        .all<FriendRequestRow>()
+      return rows.results
     },
 
     async countRecentSubmissions(playerId, sinceIso) {

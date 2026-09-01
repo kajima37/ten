@@ -26,6 +26,8 @@ jobs:
         with:
           cache: true
       - run: pnpm install --frozen-lockfile
+      - name: Validate source and tests
+        run: pnpm check
       - name: Decrypt staging secrets
         run: |-
           sops -d secrets/secrets.staging.age.env > "$RUNNER_TEMP/staging.env"

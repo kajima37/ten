@@ -34,6 +34,7 @@ type GameScreenProps = {
   sum: number
   hints: number
   bonusUsed: boolean
+  dailyMode: boolean
   paused: boolean
   onPointerDown: (index: number) => void
   onPointerEnter: (index: number) => void
@@ -52,21 +53,23 @@ export function GameScreen(props: GameScreenProps) {
     <section>
       <div className="mb-3 flex items-center justify-between">
         <strong className="tracking-[0.15em]">TEN.</strong>
-        <Button
-          variant="secondary"
-          size="icon"
-          className="rounded-full"
-          onClick={props.onTogglePause}
-        >
-          {props.paused ? (
-            <Play className="size-4" weight="fill" />
-          ) : (
-            <Pause className="size-4" weight="fill" />
-          )}
-          <span className="sr-only">
-            {props.paused ? t('game.resume') : t('game.pause')}
-          </span>
-        </Button>
+        {!props.dailyMode && (
+          <Button
+            variant="secondary"
+            size="icon"
+            className="rounded-full"
+            onClick={props.onTogglePause}
+          >
+            {props.paused ? (
+              <Play className="size-4" weight="fill" />
+            ) : (
+              <Pause className="size-4" weight="fill" />
+            )}
+            <span className="sr-only">
+              {props.paused ? t('game.resume') : t('game.pause')}
+            </span>
+          </Button>
+        )}
       </div>
       <div className="grid grid-cols-3 gap-2 px-1">
         <Stat
@@ -178,7 +181,7 @@ export function GameScreen(props: GameScreenProps) {
           icon={Clock}
           label={t('game.secondsBonus')}
           detail={props.bonusUsed ? t('game.used') : t('game.once')}
-          disabled={props.bonusUsed}
+          disabled={props.bonusUsed || props.dailyMode}
           onClick={props.onAddTime}
         />
       </div>

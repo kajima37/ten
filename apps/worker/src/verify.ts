@@ -48,8 +48,11 @@ export function verifyGame(
 
   for (const event of events) {
     if (event.type === 'shuffle') {
+      if (score < SHUFFLE_COST) {
+        throw new Error('Insufficient score for shuffle')
+      }
       board = shuffleWithRandom(board, random)
-      score = Math.max(0, score - SHUFFLE_COST)
+      score -= SHUFFLE_COST
       continue
     }
 

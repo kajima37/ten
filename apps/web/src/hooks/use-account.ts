@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '#/lib/api'
 import type {
   PlayerProfile,
+  DailyStartPayload,
   RegisterResponse,
   ScoreResponse,
   ScoreSubmission,
@@ -109,5 +110,22 @@ export function useAccount() {
     }
   }, [])
 
-  return { token, player, submitScore, updateName }
+  const startDaily =
+    useCallback(async (): Promise<DailyStartPayload | null> => {
+      try {
+        const response = await authenticatedRequest({
+          getSession: ensureSession,
+          clearSession,
+          request: (value) => api.startDaily(value),
+        })
+        if (!response) return null
+        setToken(response.session.token)
+        setPlayer(response.session.player)
+        return response.result
+      } catch {
+        return null
+      }
+    }, [])
+
+  return { token, player, submitScore, updateName, startDaily }
 }

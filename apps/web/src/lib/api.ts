@@ -10,9 +10,14 @@ export type DailyPayload = {
 
 export type ScoreSubmission = {
   dateKey: string
+  startToken: string
   events: Array<GameEvent>
   score: number
   maxCombo: number
+}
+
+export type DailyStartPayload = DailyPayload & {
+  startToken: string
 }
 
 export type ScoreResponse = {
@@ -36,6 +41,39 @@ export type LeaderboardResponse = {
   total: number
   entries: Array<LeaderboardEntry>
   mine: { rank: number; topPercent: number; score: number } | null
+}
+
+export type WeeklyLeaderboardEntry = LeaderboardEntry & {
+  streak: number
+}
+
+export type WeeklyLeaderboardResponse = {
+  week: string
+  total: number
+  entries: Array<WeeklyLeaderboardEntry>
+  mine: { rank: number; topPercent: number; score: number } | null
+}
+
+export type Friend = {
+  id: string
+  name: string
+  streak: number
+}
+
+export type FriendRequest = {
+  id: number
+  playerId: string
+  name: string
+  direction: 'incoming' | 'outgoing'
+}
+
+export type FriendsResponse = {
+  friends: Array<Friend>
+  requests: Array<FriendRequest>
+}
+
+export type SocialProfile = PlayerProfile & {
+  friendCode: string | null
 }
 
 export type PlayerProfile = {
@@ -85,6 +123,14 @@ export const api = {
     return request<DailyPayload>('/api/daily')
   },
 
+  startDaily(token: string): Promise<DailyStartPayload> {
+    return request<DailyStartPayload>(
+      '/api/daily/start',
+      { method: 'POST' },
+      token,
+    )
+  },
+
   submitScore(
     token: string,
     submission: ScoreSubmission,
@@ -109,6 +155,65 @@ export const api = {
       undefined,
       token,
     )
+  },
+
+  weeklyLeaderboard(
+    token: string | null,
+    week: string,
+    scope: 'global' | 'friends',
+  ): Promise<WeeklyLeaderboardResponse> {
+    const query = new URLSearchParams({ week, scope })
+    return request<WeeklyLeaderboardResponse>(
+      `/api/leaderboard/weekly?${query.toString()}`,
+      undefined,
+      token,
+    )
+  },
+
+  friends(token: string): Promise<FriendsResponse> {
+    return request<FriendsResponse>('/api/friends', undefined, token)
+  },
+
+  sendFriendRequest(token: string, friendCode: string): Promise<void> {
+    return request<void>(
+      '/api/friend-requests',
+      { method: 'POST', body: JSON.stringify({ friendCode }) },
+      token,
+    )
+  },
+
+  respondToFriendRequest(
+    token: string,
+    requestId: number,
+    action: 'accept' | 'decline',
+  ): Promise<void> {
+    return request<void>(
+      `/api/friend-requests/${requestId}/${action}`,
+      { method: 'POST' },
+      token,
+    )
+  },
+
+  removeFriend(token: string, friendId: string): Promise<void> {
+    return request<void>(
+      `/api/friends/${friendId}`,
+      { method: 'DELETE' },
+      token,
+    )
+  },
+
+  rotateFriendCode(
+    token: string,
+  ): Promise<{ code: string; expiresAt: string }> {
+    return request<{ code: string; expiresAt: string }>(
+      '/api/me/friend-code',
+      { method: 'POST' },
+      token,
+    )
+  },
+
+  me(token: string): Promise<SocialProfile> {
+    return request<SocialProfile>('/api/me', undefined, token)
   },
 
   updateName(token: string, name: string): Promise<PlayerProfile> {

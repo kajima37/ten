@@ -17,7 +17,12 @@ import { useGame } from '#/hooks/use-game'
 import { usePlayerProgress } from '#/hooks/use-player'
 import type { GameResult } from '#/hooks/use-player'
 import { useSettings } from '#/hooks/use-settings'
-import { useDailyBoard, useLeaderboard } from '#/hooks/use-server-daily'
+import {
+  useDailyBoard,
+  useLeaderboard,
+  useWeeklyLeaderboard,
+} from '#/hooks/use-server-daily'
+import { useSocial } from '#/hooks/use-social'
 import { MockAdOverlay } from '#/components/ads/mock-overlay'
 import { MockAdsToggle } from '#/components/ads/mock-toggle'
 import { createBackup, parseBackup } from '#/lib/backup'
@@ -32,6 +37,13 @@ import { getLocalDateKey } from '@ten/game-core'
 import { STORAGE_KEYS, readStorage } from '#/lib/storage'
 import '#/i18n'
 
+function getJstWeekStart(): string {
+  const jst = new Date(Date.now() + 9 * 60 * 60 * 1000)
+  const offset = jst.getUTCDay() === 0 ? 6 : jst.getUTCDay() - 1
+  jst.setUTCDate(jst.getUTCDate() - offset)
+  return jst.toISOString().slice(0, 10)
+}
+
 export default function TenGame() {
   const { i18n, t } = useTranslation()
   const settings = useSettings()
@@ -41,6 +53,18 @@ export default function TenGame() {
   const serverDaily = useDailyBoard()
   const todayKey = serverDaily.data?.dateKey ?? getLocalDateKey()
   const leaderboard = useLeaderboard(todayKey, account.token)
+  const weekKey = getJstWeekStart()
+  const weeklyLeaderboard = useWeeklyLeaderboard(
+    weekKey,
+    'global',
+    account.token,
+  )
+  const friendLeaderboard = useWeeklyLeaderboard(
+    weekKey,
+    'friends',
+    account.token,
+  )
+  const social = useSocial(account.token)
   const [screen, setScreen] = useState<Screen>('home')
   const [toast, setToast] = useState('')
   const [previousBest, setPreviousBest] = useState(0)
@@ -69,9 +93,11 @@ export default function TenGame() {
       recordGameFinished()
       if (outcome.hasNewAchievement) showToast(t('toast.achievementUnlocked'))
       if (result.daily) {
+        if (!result.startToken) return
         void account
           .submitScore({
             dateKey: result.dailyKey,
+            startToken: result.startToken,
             events: result.events,
             score: result.score,
             maxCombo: result.maxCombo,
@@ -145,21 +171,30 @@ export default function TenGame() {
   }, [])
 
   const beginGame = useCallback(
-    (daily: boolean) => {
+    async (daily: boolean) => {
       if (daily && !serverDaily.data) {
         showToast(t('daily.loading'))
+        return
+      }
+      const started = daily ? await account.startDaily() : null
+      if (daily && !started) {
+        showToast(t('network.leaderboardError'))
         return
       }
       setServerScore(null)
       game.startGame(
         daily,
-        daily && serverDaily.data
-          ? { dateKey: serverDaily.data.dateKey }
+        daily && started
+          ? {
+              dateKey: started.dateKey,
+              board: started.board,
+              startToken: started.startToken,
+            }
           : undefined,
       )
       setScreen('game')
     },
-    [game.startGame, serverDaily.data, showToast, t],
+    [account, game.startGame, serverDaily.data, showToast, t],
   )
 
   const exportData = () => {
@@ -207,7 +242,7 @@ export default function TenGame() {
       <div key={screen} className="ten-screen-enter">
         {screen === 'home' && (
           <HomeScreen
-            onPlay={() => beginGame(false)}
+            onPlay={() => void beginGame(false)}
             onRank={() => setScreen('rank')}
           />
         )}
@@ -218,6 +253,7 @@ export default function TenGame() {
             boardRevision={game.boardRevision}
             collapseMotions={game.collapseMotions}
             bonusUsed={game.bonusUsed}
+            dailyMode={game.dailyMode}
             combo={game.combo}
             feedbackId={game.feedbackId}
             hints={game.hints}
@@ -253,7 +289,7 @@ export default function TenGame() {
             serverRank={serverScore}
             onToast={showToast}
             onHome={() => void goHomeFromResult()}
-            onRetry={() => beginGame(game.dailyMode)}
+            onRetry={() => void beginGame(game.dailyMode)}
           />
         )}
         {screen === 'daily' && (
@@ -264,7 +300,7 @@ export default function TenGame() {
             leaderboardStatus={leaderboard.status}
             record={todayDailyRecord}
             streak={playerState.streak}
-            onPlay={() => beginGame(true)}
+            onPlay={() => void beginGame(true)}
             onRetryDaily={serverDaily.refresh}
             onRetryLeaderboard={leaderboard.refresh}
           />
@@ -273,8 +309,19 @@ export default function TenGame() {
           <StatsScreen
             leaderboard={leaderboard.data}
             leaderboardStatus={leaderboard.status}
+            weeklyLeaderboard={weeklyLeaderboard.data}
+            weeklyLeaderboardStatus={weeklyLeaderboard.status}
+            friendLeaderboard={friendLeaderboard.data}
+            friendLeaderboardStatus={friendLeaderboard.status}
+            playerId={account.player?.id ?? null}
+            social={social}
             state={playerState}
-            onRetryLeaderboard={leaderboard.refresh}
+            onRetryLeaderboard={() => {
+              leaderboard.refresh()
+              weeklyLeaderboard.refresh()
+              friendLeaderboard.refresh()
+              void social.refresh()
+            }}
           />
         )}
         {screen === 'mypage' && (

@@ -26,6 +26,8 @@ jobs:
         with:
           cache: true
       - run: pnpm install --frozen-lockfile
+      - name: Validate source and tests
+        run: pnpm check
       - name: Verify production ref
         run: test "$GITHUB_REF" = "refs/heads/production"
       - name: Decrypt production secrets

@@ -1,10 +1,13 @@
 import type {
   LeaderboardEntry,
+  FriendRequestRow,
+  FriendRow,
   PlayerAdminRow,
   PlayerRow,
   RankInfo,
   Store,
   UpsertDailyScoreResult,
+  WeeklyLeaderboardEntry,
 } from '../src/db.ts'
 
 import {
@@ -92,6 +95,12 @@ export async function submitDaily(
   seed: number,
   steps: number,
 ) {
+  const start = await app.request(
+    'https://example.com/api/daily/start',
+    { method: 'POST', headers: { authorization: `Bearer ${token}` } },
+    env,
+  )
+  const startBody = await readJson<{ startToken: string }>(start)
   const events = simulateDailyGame(seed, steps)
   const { score, maxCombo } = computeOutcome(events)
   const response = await app.request(
@@ -102,11 +111,30 @@ export async function submitDaily(
         authorization: `Bearer ${token}`,
         'content-type': 'application/json',
       },
-      body: JSON.stringify({ mode: 'daily', dateKey, events, score, maxCombo }),
+      body: JSON.stringify({
+        mode: 'daily',
+        dateKey,
+        startToken: startBody.startToken,
+        events,
+        score,
+        maxCombo,
+      }),
     },
     env,
   )
   return { response, score }
+}
+
+export async function startDaily(app: TestApp, env: Env, token: string) {
+  const response = await app.request(
+    'https://example.com/api/daily/start',
+    { method: 'POST', headers: { authorization: `Bearer ${token}` } },
+    env,
+  )
+  return {
+    response,
+    body: await readJson<{ dateKey: string; startToken: string }>(response),
+  }
 }
 
 export type StoredScore = {
@@ -128,6 +156,7 @@ export function createMemoryStore(): Store & {
     score: number
     events: string
   }>
+  friendCodes: Map<string, { code: string; expiresAt: string }>
 } {
   const players = new Map<string, PlayerRow>()
   const scores: Array<StoredScore> = []
@@ -137,6 +166,14 @@ export function createMemoryStore(): Store & {
     dateKey: string
     score: number
     events: string
+  }> = []
+  const friendCodes = new Map<string, { code: string; expiresAt: string }>()
+  const friendRequests: Array<{
+    id: number
+    low: string
+    high: string
+    requestedBy: string
+    status: 'pending' | 'accepted' | 'declined'
   }> = []
 
   const isActive = (player: PlayerRow): boolean => {
@@ -156,11 +193,32 @@ export function createMemoryStore(): Store & {
       (entry) => entry.playerId === playerId && entry.mode === 'daily',
     )
 
+  const streakOf = (playerId: string) => {
+    const dates = scoresOf(playerId)
+      .map((entry) => entry.dateKey)
+      .sort((a, b) => b.localeCompare(a))
+    if (!dates.length) return 0
+    let streak = 1
+    let previous = new Date(`${dates[0]}T00:00:00.000Z`)
+    for (const dateKey of dates.slice(1)) {
+      previous.setUTCDate(previous.getUTCDate() - 1)
+      if (
+        new Date(`${dateKey}T00:00:00.000Z`).getTime() !== previous.getTime()
+      ) {
+        break
+      }
+      streak += 1
+      previous = new Date(`${dateKey}T00:00:00.000Z`)
+    }
+    return streak
+  }
+
   return {
     players,
     scores,
     logs,
     proofs,
+    friendCodes,
 
     async getPlayer(id) {
       return players.get(id) ?? null
@@ -297,6 +355,195 @@ export function createMemoryStore(): Store & {
         dailyOf(dateKey).find((entry) => entry.playerId === playerId)?.score ??
         null
       )
+    },
+
+    async getWeeklyLeaderboard(weekStart, weekEnd, limit, playerIds) {
+      const allowed = playerIds ? new Set(playerIds) : null
+      const weekly = new Map<
+        string,
+        { score: number; combo: number; createdAt: string }
+      >()
+      for (const entry of scores) {
+        if (
+          entry.mode !== 'daily' ||
+          entry.dateKey < weekStart ||
+          entry.dateKey >= weekEnd ||
+          (allowed && !allowed.has(entry.playerId)) ||
+          !isActive(players.get(entry.playerId)!)
+        ) {
+          continue
+        }
+        const current = weekly.get(entry.playerId)
+        weekly.set(entry.playerId, {
+          score: (current?.score ?? 0) + entry.score,
+          combo: Math.max(current?.combo ?? 0, entry.combo),
+          createdAt: current?.createdAt ?? entry.createdAt,
+        })
+      }
+      const ranked = [...weekly.entries()]
+        .sort(
+          ([, a], [, b]) =>
+            b.score - a.score || a.createdAt.localeCompare(b.createdAt),
+        )
+        .slice(0, limit)
+      return ranked.map<WeeklyLeaderboardEntry>(
+        ([playerId, value], _index, entries) => ({
+          playerId,
+          name: players.get(playerId)?.name ?? 'Player',
+          score: value.score,
+          combo: value.combo,
+          streak: streakOf(playerId),
+          rank:
+            entries.findIndex(
+              ([, candidate]) => candidate.score === value.score,
+            ) + 1,
+        }),
+      )
+    },
+
+    async getWeeklyRank(weekStart, weekEnd, score) {
+      const entries = await this.getWeeklyLeaderboard(
+        weekStart,
+        weekEnd,
+        Number.MAX_SAFE_INTEGER,
+      )
+      const above = entries.filter((entry) => entry.score > score).length
+      const total = entries.length
+      return {
+        total,
+        rank: above + 1,
+        topPercent: total
+          ? Math.min(100, Math.max(1, Math.round(((above + 1) / total) * 100)))
+          : 100,
+      }
+    },
+
+    async getWeeklyScore(playerId, weekStart, weekEnd) {
+      const player = players.get(playerId)
+      if (!player || !isActive(player)) return null
+      const total = scoresOf(playerId)
+        .filter(
+          (entry) => entry.dateKey >= weekStart && entry.dateKey < weekEnd,
+        )
+        .reduce((sum, entry) => sum + entry.score, 0)
+      return total || null
+    },
+
+    async getFriendCode(playerId) {
+      const value = friendCodes.get(playerId)
+      return value && value.expiresAt > new Date().toISOString()
+        ? value.code
+        : null
+    },
+
+    async setFriendCode(playerId, code, expiresAt) {
+      for (const [id, value] of friendCodes) {
+        if (
+          id !== playerId &&
+          value.code.toUpperCase() === code.toUpperCase()
+        ) {
+          throw new Error('duplicate friend code')
+        }
+      }
+      friendCodes.set(playerId, { code, expiresAt })
+    },
+
+    async findPlayerByFriendCode(code) {
+      for (const [playerId, value] of friendCodes) {
+        if (
+          value.code.toUpperCase() === code.toUpperCase() &&
+          value.expiresAt > new Date().toISOString()
+        ) {
+          return players.get(playerId) ?? null
+        }
+      }
+      return null
+    },
+
+    async createFriendRequest(requesterId, targetId) {
+      const [low, high] = [requesterId, targetId].sort()
+      if (
+        friendRequests.some(
+          (request) => request.low === low && request.high === high,
+        )
+      ) {
+        return 'exists'
+      }
+      friendRequests.push({
+        id: friendRequests.length + 1,
+        low,
+        high,
+        requestedBy: requesterId,
+        status: 'pending',
+      })
+      return 'created'
+    },
+
+    async respondToFriendRequest(requestId, playerId, status) {
+      const request = friendRequests.find((entry) => entry.id === requestId)
+      if (
+        !request ||
+        request.status !== 'pending' ||
+        request.requestedBy === playerId ||
+        (request.low !== playerId && request.high !== playerId)
+      ) {
+        return false
+      }
+      request.status = status
+      return true
+    },
+
+    async removeFriend(playerId, friendId) {
+      const [low, high] = [playerId, friendId].sort()
+      const index = friendRequests.findIndex(
+        (request) =>
+          request.low === low &&
+          request.high === high &&
+          request.status === 'accepted',
+      )
+      if (index < 0) return false
+      friendRequests.splice(index, 1)
+      return true
+    },
+
+    async getFriends(playerId) {
+      const ids = friendRequests
+        .filter(
+          (request) =>
+            request.status === 'accepted' &&
+            (request.low === playerId || request.high === playerId),
+        )
+        .map((request) =>
+          request.low === playerId ? request.high : request.low,
+        )
+      return ids.flatMap<FriendRow>((id) => {
+        const player = players.get(id)
+        return player && isActive(player)
+          ? [{ id, name: player.name, streak: streakOf(id) }]
+          : []
+      })
+    },
+
+    async getFriendRequests(playerId) {
+      return friendRequests.flatMap<FriendRequestRow>((request) => {
+        if (
+          request.status !== 'pending' ||
+          (request.low !== playerId && request.high !== playerId)
+        )
+          return []
+        const otherId = request.low === playerId ? request.high : request.low
+        const player = players.get(otherId)
+        if (!player || !isActive(player)) return []
+        return [
+          {
+            id: request.id,
+            playerId: otherId,
+            name: player.name,
+            direction:
+              request.requestedBy === playerId ? 'outgoing' : 'incoming',
+          },
+        ]
+      })
     },
 
     async countRecentSubmissions(playerId, sinceIso) {

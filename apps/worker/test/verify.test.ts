@@ -67,6 +67,10 @@ test('replay accounts for shuffles and their score cost', () => {
   assert.ok(simulated.events.some((event) => event.type === 'shuffle'))
 })
 
+test('replay rejects shuffles before their score cost is earned', () => {
+  assert.throws(() => verifyGame(20260101, [{ type: 'shuffle' }]))
+})
+
 test('a miss resets the combo before the next elimination', () => {
   const simulated = simulateGame(20260901, 2)
   assert.equal(simulated.events.length, 2)

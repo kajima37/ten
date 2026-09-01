@@ -19,6 +19,7 @@ export const gameEventSchema = z.discriminatedUnion('type', [
 export const scoreSubmissionSchema = z.object({
   mode: z.literal('daily'),
   dateKey: dateKeySchema,
+  startToken: z.string().min(20).max(2048),
   events: z.array(gameEventSchema).max(500),
   score: z.number().int().min(0),
   maxCombo: z.number().int().min(0),
@@ -31,6 +32,19 @@ export const nameSchema = z.object({
 export const leaderboardQuerySchema = z.object({
   date: dateKeySchema.optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
+})
+
+export const weeklyLeaderboardQuerySchema = z.object({
+  week: dateKeySchema.optional(),
+  scope: z.enum(['global', 'friends']).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+})
+
+export const friendCodeSchema = z.object({
+  friendCode: z
+    .string()
+    .trim()
+    .regex(/^[A-Z0-9]{8}$/i),
 })
 
 export const adminPlayersQuerySchema = z.object({

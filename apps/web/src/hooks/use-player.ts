@@ -15,6 +15,7 @@ export type GameResult = {
   durationSeconds: number
   seed: number
   events: Array<GameEvent>
+  startToken?: string
 }
 
 export type GameResultOutcome = {

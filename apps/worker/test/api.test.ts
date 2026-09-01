@@ -9,6 +9,7 @@ import {
   readJson,
   register,
   simulateDailyGame,
+  startDaily,
 } from './helpers.ts'
 
 function submitScoreInit(token: string, body: unknown): RequestInit {
@@ -72,6 +73,44 @@ test('daily returns a deterministic board and caches it', async () => {
   assert.deepEqual(secondBody.board, firstBody.board)
 })
 
+test('daily start requires authentication and issues a player-bound token', async () => {
+  const { app, env } = createTestContext()
+  const unauthorized = await app.request(
+    'https://example.com/api/daily/start',
+    { method: 'POST' },
+    env,
+  )
+  assert.equal(unauthorized.status, 401)
+
+  const { body: registered } = await register(app, env, 'device-alpha')
+  const started = await startDaily(app, env, registered.token)
+  assert.equal(started.response.status, 200)
+  assert.equal(started.body.dateKey, getJstDateKey())
+  assert.ok(started.body.startToken.length > 20)
+})
+
+test('daily score rejects a start token from another player', async () => {
+  const { app, env } = createTestContext()
+  const first = await register(app, env, 'device-alpha')
+  const second = await register(app, env, 'device-bravo')
+  const started = await startDaily(app, env, first.token)
+  const events = simulateDailyGame(getDailySeed(started.body.dateKey), 1)
+  const { score, maxCombo } = computeOutcome(events)
+  const response = await app.request(
+    'https://example.com/api/scores',
+    submitScoreInit(second.token, {
+      mode: 'daily',
+      dateKey: started.body.dateKey,
+      startToken: started.body.startToken,
+      events,
+      score,
+      maxCombo,
+    }),
+    env,
+  )
+  assert.equal(response.status, 400)
+})
+
 test('daily score submission is verified and ranked', async () => {
   const { app, env } = createTestContext()
   const { body: registerBody } = await register(app, env, 'device-alpha', {
@@ -79,6 +118,7 @@ test('daily score submission is verified and ranked', async () => {
   })
 
   const dateKey = getJstDateKey()
+  const start = await startDaily(app, env, registerBody.token)
   const seed = getDailySeed(dateKey)
   const events = simulateDailyGame(seed, 8)
   const { score, maxCombo } = computeOutcome(events)
@@ -88,6 +128,7 @@ test('daily score submission is verified and ranked', async () => {
     submitScoreInit(registerBody.token, {
       mode: 'daily',
       dateKey,
+      startToken: start.body.startToken,
       events,
       score,
       maxCombo,
@@ -137,6 +178,7 @@ test('tampered score is rejected by verification', async () => {
   const { body: registerBody } = await register(app, env, 'device-alpha')
 
   const dateKey = getJstDateKey()
+  const start = await startDaily(app, env, registerBody.token)
   const seed = getDailySeed(dateKey)
   const events = simulateDailyGame(seed, 5)
 
@@ -145,6 +187,7 @@ test('tampered score is rejected by verification', async () => {
     submitScoreInit(registerBody.token, {
       mode: 'daily',
       dateKey,
+      startToken: start.body.startToken,
       events,
       score: 999999,
       maxCombo: 999,
@@ -202,6 +245,7 @@ test('repeated submissions are rate limited', async () => {
 
   const dateKey = getJstDateKey()
   const seed = getDailySeed(dateKey)
+  const start = await startDaily(app, env, registerBody.token)
 
   let lastStatus = 0
   for (let attempt = 0; attempt < 11; attempt += 1) {
@@ -212,6 +256,7 @@ test('repeated submissions are rate limited', async () => {
       submitScoreInit(registerBody.token, {
         mode: 'daily',
         dateKey,
+        startToken: start.body.startToken,
         events,
         score,
         maxCombo,
@@ -264,6 +309,7 @@ test('submissions store a verifiable proof', async () => {
 
   const dateKey = getJstDateKey()
   const seed = getDailySeed(dateKey)
+  const start = await startDaily(app, env, registerBody.token)
   const events = simulateDailyGame(seed, 4)
   const { score, maxCombo } = computeOutcome(events)
 
@@ -272,6 +318,7 @@ test('submissions store a verifiable proof', async () => {
     submitScoreInit(registerBody.token, {
       mode: 'daily',
       dateKey,
+      startToken: start.body.startToken,
       events,
       score,
       maxCombo,

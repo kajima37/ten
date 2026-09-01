@@ -27,6 +27,8 @@ const BASE_TIME = 60
 type StartGameOptions = {
   dateKey?: string
   seed?: number
+  board?: Array<number>
+  startToken?: string
 }
 
 type UseGameOptions = {
@@ -71,6 +73,7 @@ export function useGame({
   const boardRandomRef = useRef<() => number>(Math.random)
   const seedRef = useRef(0)
   const eventsRef = useRef<Array<GameEvent>>([])
+  const startTokenRef = useRef<string | undefined>(undefined)
   const onFinishRef = useRef(onFinish)
 
   useEffect(() => {
@@ -85,13 +88,21 @@ export function useGame({
     )
 
     const listener = App.addListener('appStateChange', ({ isActive }) => {
-      if (!isActive) setPaused(true)
+      if (!isActive) {
+        if (dailyMode) {
+          setRunning(false)
+          setDragging(false)
+          setSelected([])
+        } else {
+          setPaused(true)
+        }
+      }
     })
 
     return () => {
       void listener.then((handle) => handle.remove())
     }
-  }, [])
+  }, [dailyMode])
 
   const sum = useMemo(
     () => selected.reduce((total, index) => total + board[index], 0),
@@ -175,6 +186,7 @@ export function useGame({
       durationSeconds: Math.round(timeLimit),
       seed: seedRef.current,
       events: eventsRef.current,
+      startToken: startTokenRef.current,
     })
   }, [dailyKey, dailyMode, maxCombo, score, timeLimit])
 
@@ -205,11 +217,12 @@ export function useGame({
         : crypto.getRandomValues(new Uint32Array(1))[0] >>> 0
       seedRef.current = seed
       eventsRef.current = []
+      startTokenRef.current = options.startToken
       const random = mulberry32(seed)
       boardRandomRef.current = random
       setDailyMode(daily)
       setDailyKey(nextDailyKey)
-      setBoard(makeBoard(random))
+      setBoard(options.board ? [...options.board] : makeBoard(random))
       setSelected([])
       setRemoving([])
       setBoardRevision((current) => current + 1)
@@ -285,7 +298,7 @@ export function useGame({
   }
 
   const addTime = async () => {
-    if (!running || paused || bonusUsed) return
+    if (!running || paused || bonusUsed || dailyMode) return
     onToast(t('ads.loading'))
     const result = await getAdsClient().showRewarded()
     if (!result.rewarded) {
@@ -340,6 +353,8 @@ export function useGame({
     shuffleBoard,
     addTime,
     abandonGame,
-    togglePause: () => setPaused((current) => !current),
+    togglePause: () => {
+      if (!dailyMode) setPaused((current) => !current)
+    },
   }
 }

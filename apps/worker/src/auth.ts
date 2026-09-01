@@ -71,6 +71,70 @@ export async function verifyToken(
   return valid ? playerId : null
 }
 
+export type DailyStart = {
+  playerId: string
+  dateKey: string
+  expiresAt: number
+}
+
+function encodeDailyStart(start: DailyStart): string {
+  return bytesToBase64Url(new TextEncoder().encode(JSON.stringify(start)))
+}
+
+export async function signDailyStartToken(
+  playerId: string,
+  dateKey: string,
+  secret: string,
+  expiresAt: number,
+): Promise<string> {
+  const payload = encodeDailyStart({ playerId, dateKey, expiresAt })
+  const signature = await crypto.subtle.sign(
+    'HMAC',
+    await hmacKey(secret),
+    new TextEncoder().encode(`daily-start.${payload}`),
+  )
+  return `daily-start.${payload}.${bytesToBase64Url(new Uint8Array(signature))}`
+}
+
+export async function verifyDailyStartToken(
+  token: string,
+  secret: string,
+  now = Date.now(),
+): Promise<DailyStart | null> {
+  const parts = token.split('.')
+  if (parts.length !== 3 || parts[0] !== 'daily-start') return null
+  const [, payload, signature] = parts
+  if (!payload || !signature) return null
+
+  let signatureBytes: Uint8Array
+  let start: DailyStart
+  try {
+    signatureBytes = base64UrlToBytes(signature)
+    if (bytesToBase64Url(signatureBytes) !== signature) return null
+    start = JSON.parse(
+      new TextDecoder().decode(base64UrlToBytes(payload)),
+    ) as DailyStart
+  } catch {
+    return null
+  }
+  if (
+    typeof start.playerId !== 'string' ||
+    typeof start.dateKey !== 'string' ||
+    !Number.isFinite(start.expiresAt) ||
+    start.expiresAt < now
+  ) {
+    return null
+  }
+
+  const valid = await crypto.subtle.verify(
+    'HMAC',
+    await hmacKey(secret),
+    signatureBytes,
+    new TextEncoder().encode(`daily-start.${payload}`),
+  )
+  return valid ? start : null
+}
+
 export async function hashIp(ip: string, secret: string): Promise<string> {
   const signature = await crypto.subtle.sign(
     'HMAC',
