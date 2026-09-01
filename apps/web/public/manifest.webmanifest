@@ -1,0 +1,19 @@
+{
+  "name": "TEN. — Make 10. Beat Your Best.",
+  "short_name": "TEN.",
+  "description": "数字をなぞって合計10を作る、ミニマル数字パズル。",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#09090a",
+  "theme_color": "#09090a",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

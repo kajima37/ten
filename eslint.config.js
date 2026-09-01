@@ -20,6 +20,7 @@ export default [
       'prettier.config.js',
       'apps/web/android/**',
       'apps/web/ios/**',
+      'apps/web/public/sw.js',
       '**/.wrangler/**',
       '**/dist/**',
     ],

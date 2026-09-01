@@ -24,11 +24,32 @@ export const Route = createRootRoute({
         name: 'description',
         content: '数字をなぞって合計10を作る、60秒のミニマル数字パズル。',
       },
+      {
+        name: 'theme-color',
+        content: '#09090a',
+      },
+      {
+        name: 'apple-mobile-web-app-capable',
+        content: 'yes',
+      },
+      {
+        name: 'apple-mobile-web-app-status-bar-style',
+        content: 'black-translucent',
+      },
     ],
     links: [
       {
         rel: 'stylesheet',
         href: appCss,
+      },
+      {
+        rel: 'manifest',
+        href: `${import.meta.env.BASE_URL}manifest.webmanifest`,
+      },
+      {
+        rel: 'icon',
+        href: `${import.meta.env.BASE_URL}icon.svg`,
+        type: 'image/svg+xml',
       },
     ],
   }),
