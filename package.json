@@ -18,6 +18,8 @@
     "lint": "eslint .",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
+    "prepare": "lefthook install",
+    "hooks:install": "lefthook install",
     "format": "eslint --fix . && prettier --write .",
     "format:check": "prettier --check .",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test"
@@ -26,6 +28,7 @@
     "@tanstack/eslint-config": "latest",
     "@types/node": "^22.10.2",
     "eslint": "^10.9.1",
+    "lefthook": "^2.0.0",
     "prettier": "^3.8.1",
     "typescript": "^6.0.2"
   }

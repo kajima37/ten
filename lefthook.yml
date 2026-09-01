@@ -1,0 +1,21 @@
+pre-commit:
+  jobs:
+    - name: eslint
+      glob: '*.{js,jsx,ts,tsx}'
+      run: node node_modules/eslint/bin/eslint.js --fix --no-warn-ignored {staged_files}
+      stage_fixed: true
+
+    - name: prettier
+      glob:
+        - '*.{js,jsx,ts,tsx,css,json,jsonc,md,yaml,yml,html}'
+      run: node node_modules/prettier/bin/prettier.cjs --write {staged_files}
+      stage_fixed: true
+
+pre-push:
+  parallel: true
+  jobs:
+    - name: typecheck
+      run: node node_modules/typescript/bin/tsc --noEmit -p packages/game-core/tsconfig.json && node node_modules/typescript/bin/tsc --noEmit -p apps/web/tsconfig.json && node node_modules/typescript/bin/tsc --noEmit -p apps/worker/tsconfig.json
+
+    - name: test
+      run: node --test packages/game-core/test/*.test.ts && node --test apps/web/tests/*.test.ts && node --test apps/worker/test/*.test.ts

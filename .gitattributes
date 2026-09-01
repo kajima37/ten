@@ -1,0 +1,18 @@
+# Keep text files identical across Windows, Linux, and macOS.
+* text=auto eol=lf
+
+# Windows command scripts require CRLF for maximum compatibility.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Never apply line-ending conversion to binary assets.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.jar binary
+*.apk binary
+*.p12 binary
+*.keystore binary
+*.mobileprovision binary

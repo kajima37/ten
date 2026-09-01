@@ -54,10 +54,18 @@ export async function verifyToken(
   const expiresAt = Number(expiresAtRaw)
   if (!Number.isFinite(expiresAt) || expiresAt < now) return null
 
+  let signatureBytes: Uint8Array
+  try {
+    signatureBytes = base64UrlToBytes(signature)
+  } catch {
+    return null
+  }
+  if (bytesToBase64Url(signatureBytes) !== signature) return null
+
   const valid = await crypto.subtle.verify(
     'HMAC',
     await hmacKey(secret),
-    base64UrlToBytes(signature),
+    signatureBytes,
     new TextEncoder().encode(encodePayload(playerId, expiresAt)),
   )
   return valid ? playerId : null
