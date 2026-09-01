@@ -1,19 +1,18 @@
 import assert from 'node:assert/strict'
-import test from 'node:test'
+import { describe, it } from 'vitest'
 
-import {
-  initialPreferences,
-  normalizePreferences,
-} from '../src/lib/preferences.ts'
+import { initialPreferences, normalizePreferences } from '#/lib/preferences'
 
-test('legacy preferences receive sound defaults', () => {
-  assert.deepEqual(normalizePreferences({ vibration: false }), {
-    ...initialPreferences,
-    vibration: false,
+describe('normalizePreferences', () => {
+  it('applies sound defaults to legacy preferences', () => {
+    assert.deepEqual(normalizePreferences({ vibration: false }), {
+      ...initialPreferences,
+      vibration: false,
+    })
   })
-})
 
-test('sound volume is clamped to the supported range', () => {
-  assert.equal(normalizePreferences({ soundVolume: 4 }).soundVolume, 1)
-  assert.equal(normalizePreferences({ soundVolume: -2 }).soundVolume, 0)
+  it('clamps sound volume to the supported range', () => {
+    assert.equal(normalizePreferences({ soundVolume: 4 }).soundVolume, 1)
+    assert.equal(normalizePreferences({ soundVolume: -2 }).soundVolume, 0)
+  })
 })

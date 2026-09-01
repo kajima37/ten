@@ -1,22 +1,21 @@
 import assert from 'node:assert/strict'
-import test from 'node:test'
+import { describe, it } from 'vitest'
 
-import {
-  getPredictedNeighbor,
-  isInsideDeepCommitZone,
-} from '../src/lib/gesture.ts'
+import { getPredictedNeighbor, isInsideDeepCommitZone } from '#/lib/gesture'
 
-test('gesture direction favors a diagonal near a cell corner', () => {
-  assert.equal(getPredictedNeighbor(12, { x: 182, y: 178 }), 8)
-  assert.equal(getPredictedNeighbor(12, { x: 178, y: 178 }), 6)
-})
+describe('gesture detection', () => {
+  it('favors a diagonal near a cell corner', () => {
+    assert.equal(getPredictedNeighbor(12, { x: 182, y: 178 }), 8)
+    assert.equal(getPredictedNeighbor(12, { x: 178, y: 178 }), 6)
+  })
 
-test('a deliberate cardinal direction remains cardinal', () => {
-  assert.equal(getPredictedNeighbor(12, { x: 184, y: 179 }), 13)
-  assert.equal(getPredictedNeighbor(12, { x: 179, y: 174 }), 7)
-})
+  it('keeps a deliberate cardinal direction cardinal', () => {
+    assert.equal(getPredictedNeighbor(12, { x: 184, y: 179 }), 13)
+    assert.equal(getPredictedNeighbor(12, { x: 179, y: 174 }), 7)
+  })
 
-test('non-predicted cells only commit within their center zone', () => {
-  assert.equal(isInsideDeepCommitZone(7, { x: 180, y: 142 }), false)
-  assert.equal(isInsideDeepCommitZone(7, { x: 180, y: 117 }), true)
+  it('only commits non-predicted cells within their center zone', () => {
+    assert.equal(isInsideDeepCommitZone(7, { x: 180, y: 142 }), false)
+    assert.equal(isInsideDeepCommitZone(7, { x: 180, y: 117 }), true)
+  })
 })

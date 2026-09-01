@@ -18,4 +18,4 @@ pre-push:
       run: node node_modules/typescript/bin/tsc --noEmit -p packages/game-core/tsconfig.json && node node_modules/typescript/bin/tsc --noEmit -p apps/web/tsconfig.json && node node_modules/typescript/bin/tsc --noEmit -p apps/worker/tsconfig.json
 
     - name: test
-      run: node --test packages/game-core/test/*.test.ts && node --test apps/web/tests/*.test.ts && node --test apps/worker/test/*.test.ts
+      run: pnpm -r --if-present test
