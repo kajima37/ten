@@ -5,35 +5,45 @@ import type { DailyPayload, LeaderboardResponse } from '#/lib/api'
 
 export function useDailyBoard() {
   const [daily, setDaily] = useState<DailyPayload | null>(null)
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
 
-  useEffect(() => {
-    let cancelled = false
-    void api
+  const refresh = useCallback(() => {
+    setStatus('loading')
+    return api
       .daily()
       .then((payload) => {
-        if (!cancelled) setDaily(payload)
+        setDaily(payload)
+        setStatus('ready')
       })
-      .catch(() => undefined)
-    return () => {
-      cancelled = true
-    }
+      .catch(() => setStatus('error'))
   }, [])
 
-  return daily
+  useEffect(() => {
+    void refresh()
+  }, [refresh])
+
+  return { data: daily, status, refresh }
 }
 
 export function useLeaderboard(dateKey: string | null, token: string | null) {
   const [data, setData] = useState<LeaderboardResponse | null>(null)
+  const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>(
+    'idle',
+  )
 
   const refresh = useCallback(() => {
     if (!dateKey) return
+    setStatus('loading')
     void api
       .leaderboard(token, dateKey)
-      .then((payload) => setData(payload))
-      .catch(() => setData(null))
+      .then((payload) => {
+        setData(payload)
+        setStatus('ready')
+      })
+      .catch(() => setStatus('error'))
   }, [dateKey, token])
 
   useEffect(refresh, [refresh])
 
-  return { data, refresh }
+  return { data, status, refresh }
 }

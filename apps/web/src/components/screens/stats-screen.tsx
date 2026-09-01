@@ -8,10 +8,14 @@ import type { PlayerState } from '#/lib/player-state'
 
 export function StatsScreen({
   leaderboard,
+  leaderboardStatus,
   state,
+  onRetryLeaderboard,
 }: {
   leaderboard: LeaderboardResponse | null
+  leaderboardStatus: 'idle' | 'loading' | 'ready' | 'error'
   state: PlayerState
+  onRetryLeaderboard: () => void
 }) {
   const { i18n, t } = useTranslation()
   const average = state.plays ? Math.round(state.total / state.plays) : 0
@@ -56,7 +60,24 @@ export function StatsScreen({
         {t('ranking.leaderboardTitle')}
       </h2>
       <div className="rounded-3xl border bg-card px-4">
-        {leaderboard?.entries.length ? (
+        {leaderboardStatus === 'loading' && !leaderboard ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            {t('network.loading')}
+          </p>
+        ) : leaderboardStatus === 'error' && !leaderboard ? (
+          <div className="py-7 text-center">
+            <p className="text-sm text-muted-foreground">
+              {t('network.leaderboardError')}
+            </p>
+            <button
+              type="button"
+              className="mt-2 text-xs font-bold text-accent underline-offset-4 hover:underline"
+              onClick={onRetryLeaderboard}
+            >
+              {t('network.retry')}
+            </button>
+          </div>
+        ) : leaderboard?.entries.length ? (
           leaderboard.entries.map((entry) => {
             const isMine =
               leaderboard.mine !== null && entry.rank === leaderboard.mine.rank

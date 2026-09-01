@@ -12,6 +12,13 @@ const resources = {
         play: 'プレイ',
         ranking: 'プレイ統計',
       },
+      network: {
+        loading: '読み込み中…',
+        retry: '再試行',
+        retryDaily: '今日の問題を再読み込み',
+        retryLeaderboard: 'ランキングを再読み込み',
+        leaderboardError: 'ランキングを読み込めませんでした',
+      },
       game: {
         resume: '再開',
         pause: '一時停止',
@@ -193,6 +200,13 @@ const resources = {
         tagline: 'MAKE 10. BEAT YOUR BEST.',
         play: 'PLAY',
         ranking: 'STATS',
+      },
+      network: {
+        loading: 'Loading…',
+        retry: 'Retry',
+        retryDaily: "Reload today's challenge",
+        retryLeaderboard: 'Reload leaderboard',
+        leaderboardError: 'Could not load the leaderboard',
       },
       game: {
         resume: 'Resume',

@@ -31,7 +31,7 @@ export default function TenGame() {
     usePlayerProgress()
   const account = useAccount()
   const serverDaily = useDailyBoard()
-  const todayKey = serverDaily?.dateKey ?? getLocalDateKey()
+  const todayKey = serverDaily.data?.dateKey ?? getLocalDateKey()
   const leaderboard = useLeaderboard(todayKey, account.token)
   const [screen, setScreen] = useState<Screen>('home')
   const [toast, setToast] = useState('')
@@ -123,11 +123,13 @@ export default function TenGame() {
       setServerScore(null)
       game.startGame(
         daily,
-        daily && serverDaily ? { dateKey: serverDaily.dateKey } : undefined,
+        daily && serverDaily.data
+          ? { dateKey: serverDaily.data.dateKey }
+          : undefined,
       )
       setScreen('game')
     },
-    [game.startGame, serverDaily, showToast, t],
+    [game.startGame, serverDaily.data, showToast, t],
   )
 
   const exportData = () => {
@@ -227,14 +229,23 @@ export default function TenGame() {
         {screen === 'daily' && (
           <DailyScreen
             dateKey={todayKey}
+            dailyStatus={serverDaily.status}
             leaderboard={leaderboard.data}
+            leaderboardStatus={leaderboard.status}
             record={todayDailyRecord}
             streak={playerState.streak}
             onPlay={() => beginGame(true)}
+            onRetryDaily={serverDaily.refresh}
+            onRetryLeaderboard={leaderboard.refresh}
           />
         )}
         {screen === 'rank' && (
-          <StatsScreen leaderboard={leaderboard.data} state={playerState} />
+          <StatsScreen
+            leaderboard={leaderboard.data}
+            leaderboardStatus={leaderboard.status}
+            state={playerState}
+            onRetryLeaderboard={leaderboard.refresh}
+          />
         )}
         {screen === 'mypage' && (
           <MyPage

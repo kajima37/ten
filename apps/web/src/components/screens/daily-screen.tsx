@@ -10,16 +10,24 @@ import type { DailyRecord } from '#/lib/player-state'
 
 export function DailyScreen({
   dateKey,
+  dailyStatus,
   leaderboard,
+  leaderboardStatus,
   record,
   streak,
   onPlay,
+  onRetryDaily,
+  onRetryLeaderboard,
 }: {
   dateKey: string
+  dailyStatus: 'loading' | 'ready' | 'error'
   leaderboard: LeaderboardResponse | null
+  leaderboardStatus: 'idle' | 'loading' | 'ready' | 'error'
   record: DailyRecord
   streak: number
   onPlay: () => void
+  onRetryDaily: () => void
+  onRetryLeaderboard: () => void
 }) {
   const { i18n, t } = useTranslation()
   const today = new Date(`${dateKey}T12:00:00`)
@@ -67,10 +75,24 @@ export function DailyScreen({
       </div>
       <Button
         className="h-13 w-full rounded-full text-base font-black"
-        onClick={onPlay}
+        disabled={dailyStatus === 'loading'}
+        onClick={dailyStatus === 'error' ? onRetryDaily : onPlay}
       >
-        {t('daily.play')}
+        {dailyStatus === 'loading'
+          ? t('network.loading')
+          : dailyStatus === 'error'
+            ? t('network.retryDaily')
+            : t('daily.play')}
       </Button>
+      {leaderboardStatus === 'error' && (
+        <button
+          type="button"
+          className="mt-3 w-full text-center text-xs font-bold text-accent underline-offset-4 hover:underline"
+          onClick={onRetryLeaderboard}
+        >
+          {t('network.retryLeaderboard')}
+        </button>
+      )}
     </section>
   )
 }
