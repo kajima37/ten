@@ -125,6 +125,8 @@ const resources = {
         decline: '辞退',
         pending: '承認待ち',
         removeFriend: '削除',
+        socialError:
+          'フレンド機能を更新できませんでした。接続を確認して再試行してください。',
         previousWeek: '前の週',
         nextWeek: '次の週',
         leaderboardEmpty: 'まだプレイヤーがいません',
@@ -358,6 +360,8 @@ const resources = {
         decline: 'Decline',
         pending: 'Pending',
         removeFriend: 'Remove',
+        socialError:
+          'Could not update friends. Check your connection and try again.',
         previousWeek: 'Previous',
         nextWeek: 'Next',
         leaderboardEmpty: 'No players yet',

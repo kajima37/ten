@@ -44,6 +44,7 @@ export function StatsScreen({
   const { i18n, t } = useTranslation()
   const [scope, setScope] = useState<'daily' | 'weekly' | 'friends'>('daily')
   const [friendCode, setFriendCode] = useState('')
+  const [socialError, setSocialError] = useState('')
   const average = state.plays ? Math.round(state.total / state.plays) : 0
   const historyMaxCombo = state.history.reduce(
     (maximum, record) => Math.max(maximum, record.maxCombo),
@@ -223,7 +224,13 @@ export function StatsScreen({
           <button
             type="button"
             className="mt-2 text-xs font-bold text-accent underline-offset-4 hover:underline"
-            onClick={() => void social.rotateCode()}
+            onClick={() =>
+              void social
+                .rotateCode()
+                .then((success) =>
+                  setSocialError(success ? '' : t('ranking.socialError')),
+                )
+            }
           >
             {t('ranking.rotateCode')}
           </button>
@@ -232,7 +239,12 @@ export function StatsScreen({
             onSubmit={(event) => {
               event.preventDefault()
               void social.sendRequest(friendCode).then((sent) => {
-                if (sent) setFriendCode('')
+                if (sent) {
+                  setFriendCode('')
+                  setSocialError('')
+                } else {
+                  setSocialError(t('ranking.socialError'))
+                }
               })
             }}
           >
@@ -252,6 +264,11 @@ export function StatsScreen({
               {t('ranking.addFriend')}
             </button>
           </form>
+          {socialError && (
+            <p className="mt-2 text-xs text-destructive" role="alert">
+              {socialError}
+            </p>
+          )}
           {social.requests.map((request) => (
             <div
               key={request.id}
@@ -263,14 +280,30 @@ export function StatsScreen({
                   <button
                     type="button"
                     className="font-bold text-accent"
-                    onClick={() => void social.respond(request.id, 'accept')}
+                    onClick={() =>
+                      void social
+                        .respond(request.id, 'accept')
+                        .then((success) =>
+                          setSocialError(
+                            success ? '' : t('ranking.socialError'),
+                          ),
+                        )
+                    }
                   >
                     {t('ranking.accept')}
                   </button>
                   <button
                     type="button"
                     className="text-muted-foreground"
-                    onClick={() => void social.respond(request.id, 'decline')}
+                    onClick={() =>
+                      void social
+                        .respond(request.id, 'decline')
+                        .then((success) =>
+                          setSocialError(
+                            success ? '' : t('ranking.socialError'),
+                          ),
+                        )
+                    }
                   >
                     {t('ranking.decline')}
                   </button>
@@ -293,7 +326,13 @@ export function StatsScreen({
               <button
                 type="button"
                 className="text-muted-foreground underline"
-                onClick={() => void social.remove(friend.id)}
+                onClick={() =>
+                  void social
+                    .remove(friend.id)
+                    .then((success) =>
+                      setSocialError(success ? '' : t('ranking.socialError')),
+                    )
+                }
               >
                 {t('ranking.removeFriend')}
               </button>
