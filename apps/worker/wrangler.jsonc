@@ -8,7 +8,7 @@
         {
           "binding": "DB",
           "database_name": "ten-db-staging",
-          "database_id": "00000000-0000-0000-0000-000000000000",
+          "database_id": "740c178f-4913-4908-860d-2e2311bd5603",
           "migrations_dir": "migrations",
           "remote": true,
         },
@@ -16,7 +16,7 @@
       "kv_namespaces": [
         {
           "binding": "DAILY_CACHE",
-          "id": "00000000000000000000000000000000",
+          "id": "329ebe7dcb964426a23683d9b71979e2",
           "remote": true,
         },
       ],
@@ -27,7 +27,7 @@
         {
           "binding": "DB",
           "database_name": "ten-db-production",
-          "database_id": "00000000-0000-0000-0000-000000000000",
+          "database_id": "c49b527b-33d1-430b-8707-7cd0de1e4af5",
           "migrations_dir": "migrations",
           "remote": true,
         },
@@ -35,7 +35,7 @@
       "kv_namespaces": [
         {
           "binding": "DAILY_CACHE",
-          "id": "00000000000000000000000000000000",
+          "id": "782332ca2e4c48b982bb6b15cf1c4e85",
           "remote": true,
         },
       ],
