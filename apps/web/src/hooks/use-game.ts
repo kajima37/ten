@@ -267,6 +267,13 @@ export function useGame({ vibration, onToast, onFinish }: UseGameOptions) {
     onToast(t('toast.timeAdded'))
   }
 
+  const abandonGame = () => {
+    setRunning(false)
+    setPaused(false)
+    setDragging(false)
+    setSelected([])
+  }
+
   return {
     board,
     selected,
@@ -294,6 +301,7 @@ export function useGame({ vibration, onToast, onFinish }: UseGameOptions) {
     useHint,
     shuffleBoard,
     addTime,
+    abandonGame,
     togglePause: () => setPaused((current) => !current),
   }
 }

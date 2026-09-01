@@ -15,6 +15,7 @@ const resources = {
       game: {
         resume: '再開',
         pause: '一時停止',
+        exit: 'ゲームを終了',
         score: 'スコア',
         combo: 'コンボ',
         time: '残り時間',
@@ -196,6 +197,7 @@ const resources = {
       game: {
         resume: 'Resume',
         pause: 'Pause',
+        exit: 'End game',
         score: 'Score',
         combo: 'Combo',
         time: 'Time',

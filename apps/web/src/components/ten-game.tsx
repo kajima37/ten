@@ -101,6 +101,7 @@ export default function TenGame() {
         if (!game.paused) {
           game.togglePause()
         } else {
+          game.abandonGame()
           setScreen('home')
         }
         return
@@ -203,6 +204,10 @@ export default function TenGame() {
             onPointerEnter={game.extendSelection}
             onShuffle={game.shuffleBoard}
             onTogglePause={game.togglePause}
+            onExit={() => {
+              game.abandonGame()
+              setScreen('home')
+            }}
           />
         )}
         {screen === 'result' && (

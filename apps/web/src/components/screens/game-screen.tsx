@@ -1,4 +1,11 @@
-import { Clock, Lightbulb, Pause, Play, Shuffle } from '@phosphor-icons/react'
+import {
+  Clock,
+  Lightbulb,
+  Pause,
+  Play,
+  Shuffle,
+  X,
+} from '@phosphor-icons/react'
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react'
 import { useTranslation } from 'react-i18next'
 
@@ -30,6 +37,7 @@ type GameScreenProps = {
   onPointerDown: (index: number) => void
   onPointerEnter: (index: number) => void
   onTogglePause: () => void
+  onExit: () => void
   onShuffle: () => void
   onHint: () => void
   onAddTime: () => void
@@ -113,14 +121,22 @@ export function GameScreen(props: GameScreenProps) {
           </div>
         )}
         {props.paused && (
-          <button
-            className="absolute inset-3 grid place-items-center rounded-2xl bg-black/75 backdrop-blur-sm"
-            onClick={props.onTogglePause}
-          >
-            <span className="flex items-center gap-2 font-black tracking-[0.18em]">
-              <Play className="size-5" weight="fill" /> {t('game.paused')}
-            </span>
-          </button>
+          <div className="absolute inset-3 grid place-items-center rounded-2xl bg-black/75 p-5 backdrop-blur-sm">
+            <div className="w-full max-w-48 space-y-3 text-center">
+              <p className="font-black tracking-[0.18em]">{t('game.paused')}</p>
+              <Button className="w-full" onClick={props.onTogglePause}>
+                <Play className="mr-2 size-4" weight="fill" />{' '}
+                {t('game.resume')}
+              </Button>
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={props.onExit}
+              >
+                <X className="mr-2 size-4" weight="bold" /> {t('game.exit')}
+              </Button>
+            </div>
+          </div>
         )}
       </div>
       <div className="mt-3 rounded-2xl border bg-card px-5 py-3 text-center text-sm">
