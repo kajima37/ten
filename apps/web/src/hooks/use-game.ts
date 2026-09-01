@@ -7,20 +7,25 @@ import { ScreenOrientation } from '@capacitor/screen-orientation'
 import {
   TARGET,
   collapseBoard,
-  createDailyRandom,
   findCombination,
   getLocalDateKey,
   getCollapseMotions,
   isAdjacent,
   makeBoard,
+  mulberry32,
   shuffleWithRandom,
 } from '@ten/game-core'
-import type { CollapseMotion } from '@ten/game-core'
+import type { CollapseMotion, GameEvent } from '@ten/game-core'
 import { vibrate } from '#/lib/haptics'
 import type { BoardFeedback } from '#/components/shared/screen'
 import type { GameResult } from '#/hooks/use-player'
 
 const BASE_TIME = 60
+
+type StartGameOptions = {
+  dateKey?: string
+  seed?: number
+}
 
 type UseGameOptions = {
   vibration: boolean
@@ -54,6 +59,8 @@ export function useGame({ vibration, onToast, onFinish }: UseGameOptions) {
   const finishedRef = useRef(false)
   const lastTickRef = useRef(0)
   const boardRandomRef = useRef<() => number>(Math.random)
+  const seedRef = useRef(0)
+  const eventsRef = useRef<Array<GameEvent>>([])
   const onFinishRef = useRef(onFinish)
 
   useEffect(() => {
@@ -92,6 +99,7 @@ export function useGame({ vibration, onToast, onFinish }: UseGameOptions) {
       setCombo(nextCombo)
       setMaxCombo((current) => Math.max(current, nextCombo))
       const removed = [...selected]
+      eventsRef.current.push({ type: 'eliminate', cells: removed })
       setRemoving(removed)
       setSelected([])
       setBoardFeedback('success')
@@ -142,6 +150,8 @@ export function useGame({ vibration, onToast, onFinish }: UseGameOptions) {
       daily: dailyMode,
       dailyKey,
       durationSeconds: Math.round(timeLimit),
+      seed: seedRef.current,
+      events: eventsRef.current,
     })
   }, [dailyKey, dailyMode, maxCombo, score, timeLimit])
 
@@ -162,30 +172,40 @@ export function useGame({ vibration, onToast, onFinish }: UseGameOptions) {
     if (running && timeLeft <= 0) finishGame()
   }, [finishGame, running, timeLeft])
 
-  const startGame = useCallback((daily: boolean) => {
-    const nextDailyKey = getLocalDateKey()
-    const random = daily ? createDailyRandom(nextDailyKey) : Math.random
-    boardRandomRef.current = random
-    setDailyMode(daily)
-    setDailyKey(nextDailyKey)
-    setBoard(makeBoard(random))
-    setSelected([])
-    setRemoving([])
-    setBoardRevision((current) => current + 1)
-    setCollapseMotions(getCollapseMotions([]))
-    setScore(0)
-    setCombo(0)
-    setMaxCombo(0)
-    setTimeLeft(BASE_TIME)
-    setTimeLimit(BASE_TIME)
-    setHints(3)
-    setBonusUsed(false)
-    setPaused(false)
-    setDragging(false)
-    setBoardFeedback(null)
-    finishedRef.current = false
-    setRunning(true)
-  }, [])
+  const startGame = useCallback(
+    (daily: boolean, options: StartGameOptions = {}) => {
+      const nextDailyKey = daily
+        ? (options.dateKey ?? getLocalDateKey())
+        : getLocalDateKey()
+      const seed = daily
+        ? (options.seed ?? Number(nextDailyKey.replaceAll('-', '')))
+        : crypto.getRandomValues(new Uint32Array(1))[0] >>> 0
+      seedRef.current = seed
+      eventsRef.current = []
+      const random = mulberry32(seed)
+      boardRandomRef.current = random
+      setDailyMode(daily)
+      setDailyKey(nextDailyKey)
+      setBoard(makeBoard(random))
+      setSelected([])
+      setRemoving([])
+      setBoardRevision((current) => current + 1)
+      setCollapseMotions(getCollapseMotions([]))
+      setScore(0)
+      setCombo(0)
+      setMaxCombo(0)
+      setTimeLeft(BASE_TIME)
+      setTimeLimit(BASE_TIME)
+      setHints(3)
+      setBonusUsed(false)
+      setPaused(false)
+      setDragging(false)
+      setBoardFeedback(null)
+      finishedRef.current = false
+      setRunning(true)
+    },
+    [],
+  )
 
   const selectFirst = (index: number) => {
     if (!running || paused || removing.length) return
@@ -231,6 +251,7 @@ export function useGame({ vibration, onToast, onFinish }: UseGameOptions) {
     if (score < 50) return onToast(t('toast.shuffleLocked'))
     setScore((current) => current - 50)
     setSelected([])
+    eventsRef.current.push({ type: 'shuffle' })
     setBoard((current) => shuffleWithRandom(current, boardRandomRef.current))
     setBoardRevision((current) => current + 1)
     setCollapseMotions(getCollapseMotions([]))

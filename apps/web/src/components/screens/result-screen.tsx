@@ -21,6 +21,7 @@ export function ResultScreen({
   maxCombo,
   isNewBest,
   daily,
+  serverRank,
   onRetry,
   onHome,
   onToast,
@@ -31,6 +32,7 @@ export function ResultScreen({
   maxCombo: number
   isNewBest: boolean
   daily: boolean
+  serverRank: { rank: number; topPercent: number } | null
   onRetry: () => void
   onHome: () => void
   onToast: (message: string) => void
@@ -38,7 +40,7 @@ export function ResultScreen({
   const { t } = useTranslation()
   const [sharing, setSharing] = useState(false)
   const delta = score - previousBest
-  const percent = topPercent(score)
+  const percent = serverRank?.topPercent ?? topPercent(score)
 
   const shareResult = async () => {
     if (sharing) return
@@ -121,7 +123,14 @@ export function ResultScreen({
         />
         <Metric
           label={t('result.nationalRank')}
-          value={t('result.topPercent', { percent })}
+          value={
+            serverRank
+              ? t('result.rankAndPercent', {
+                  rank: serverRank.rank,
+                  percent,
+                })
+              : t('result.topPercent', { percent })
+          }
         />
         <Metric label={t('result.maxCombo')} value={`×${maxCombo}`} />
       </div>

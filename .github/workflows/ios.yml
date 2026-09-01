@@ -20,6 +20,8 @@ jobs:
           cache: true
       - run: pnpm install --frozen-lockfile
       - run: pnpm mobile:sync
+        env:
+          VITE_API_URL: ${{ vars.TEN_API_URL }}
       - name: Build for iOS Simulator
         run: >-
           xcodebuild

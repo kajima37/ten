@@ -21,7 +21,10 @@ jobs:
         with:
           cache: true
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build:pages
+      - name: Build SPA for GitHub Pages
+        run: pnpm build:pages
+        env:
+          VITE_API_URL: ${{ vars.TEN_API_URL }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:

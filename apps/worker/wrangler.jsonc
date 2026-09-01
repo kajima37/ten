@@ -2,4 +2,22 @@
   "name": "ten-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ten-db",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "DAILY_CACHE",
+      "id": "00000000000000000000000000000000",
+    },
+  ],
+  "vars": {
+    "AUTH_SECRET": "dev-only-secret-change-before-deploy",
+    "ADMIN_SECRET": "dev-only-admin-secret-change-before-deploy",
+  },
 }

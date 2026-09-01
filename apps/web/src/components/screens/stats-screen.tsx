@@ -3,9 +3,16 @@ import { useTranslation } from 'react-i18next'
 
 import { ScreenTitle } from '#/components/shared/screen-title'
 import { formatPlayedAt } from '#/lib/format'
+import type { LeaderboardResponse } from '#/lib/api'
 import type { PlayerState } from '#/lib/player-state'
 
-export function StatsScreen({ state }: { state: PlayerState }) {
+export function StatsScreen({
+  leaderboard,
+  state,
+}: {
+  leaderboard: LeaderboardResponse | null
+  state: PlayerState
+}) {
   const { i18n, t } = useTranslation()
   const average = state.plays ? Math.round(state.total / state.plays) : 0
   const historyMaxCombo = state.history.reduce(
@@ -43,6 +50,46 @@ export function StatsScreen({ state }: { state: PlayerState }) {
           label={t('daily.streak')}
           value={t('daily.days', { count: state.streak })}
         />
+      </div>
+
+      <h2 className="mb-2 mt-6 text-sm font-bold tracking-wide">
+        {t('ranking.leaderboardTitle')}
+      </h2>
+      <div className="rounded-3xl border bg-card px-4">
+        {leaderboard?.entries.length ? (
+          leaderboard.entries.map((entry) => {
+            const isMine =
+              leaderboard.mine !== null && entry.rank === leaderboard.mine.rank
+            return (
+              <div
+                key={entry.playerId}
+                className={`flex items-center justify-between border-b py-3 last:border-0 ${isMine ? 'text-accent' : ''}`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-6 text-center text-xs font-bold tabular-nums">
+                    {entry.rank}
+                  </span>
+                  <span className="block text-xs font-bold">
+                    {entry.name}
+                    {isMine ? ` (${t('ranking.you')})` : ''}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <strong className="block text-lg tabular-nums">
+                    {entry.score.toLocaleString()}
+                  </strong>
+                  <span className="text-[10px] text-muted-foreground">
+                    ×{entry.combo}
+                  </span>
+                </div>
+              </div>
+            )
+          })
+        ) : (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            {t('ranking.leaderboardEmpty')}
+          </p>
+        )}
       </div>
 
       <h2 className="mb-2 mt-6 text-sm font-bold tracking-wide">

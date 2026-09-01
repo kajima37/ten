@@ -6,8 +6,16 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply ten-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply ten-db --remote",
     "typecheck": "tsc --noEmit",
     "test": "node --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.9.0",
+    "@ten/game-core": "workspace:*",
+    "hono": "^4.13.5",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.0.0",

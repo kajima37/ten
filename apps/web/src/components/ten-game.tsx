@@ -10,10 +10,12 @@ import { StatsScreen } from '#/components/screens/stats-screen'
 import { Tutorial } from '#/components/screens/tutorial'
 import { BottomNavigation } from '#/components/shared/bottom-navigation'
 import type { Screen } from '#/components/shared/screen'
+import { useAccount } from '#/hooks/use-account'
 import { useGame } from '#/hooks/use-game'
 import { usePlayerProgress } from '#/hooks/use-player'
 import type { GameResult } from '#/hooks/use-player'
 import { useSettings } from '#/hooks/use-settings'
+import { useDailyBoard, useLeaderboard } from '#/hooks/use-server-daily'
 import { createBackup, parseBackup } from '#/lib/backup'
 import { downloadBlob } from '#/lib/download'
 import { getLocalDateKey } from '@ten/game-core'
@@ -25,10 +27,18 @@ export default function TenGame() {
   const settings = useSettings()
   const { playerState, saveState, recordResult, resetRecords } =
     usePlayerProgress()
+  const account = useAccount()
+  const serverDaily = useDailyBoard()
+  const todayKey = serverDaily?.dateKey ?? getLocalDateKey()
+  const leaderboard = useLeaderboard(todayKey, account.token)
   const [screen, setScreen] = useState<Screen>('home')
   const [toast, setToast] = useState('')
   const [previousBest, setPreviousBest] = useState(0)
   const [isNewBest, setIsNewBest] = useState(false)
+  const [serverScore, setServerScore] = useState<{
+    rank: number
+    topPercent: number
+  } | null>(null)
 
   useEffect(() => {
     document.documentElement.lang = i18n.resolvedLanguage ?? 'ja'
@@ -47,8 +57,28 @@ export default function TenGame() {
       setIsNewBest(outcome.isNewBest)
       setScreen('result')
       if (outcome.hasNewAchievement) showToast(t('toast.achievementUnlocked'))
+      if (result.daily) {
+        void account
+          .submitScore({
+            dateKey: result.dailyKey,
+            events: result.events,
+            score: result.score,
+            maxCombo: result.maxCombo,
+          })
+          .then((response) => {
+            if (response?.accepted) {
+              setServerScore({
+                rank: response.rank,
+                topPercent: response.topPercent,
+              })
+              leaderboard.refresh()
+            } else {
+              setServerScore(null)
+            }
+          })
+      }
     },
-    [recordResult, showToast, t],
+    [account, leaderboard, recordResult, showToast, t],
   )
 
   const game = useGame({
@@ -59,10 +89,14 @@ export default function TenGame() {
 
   const beginGame = useCallback(
     (daily: boolean) => {
-      game.startGame(daily)
+      setServerScore(null)
+      game.startGame(
+        daily,
+        daily && serverDaily ? { dateKey: serverDaily.dateKey } : undefined,
+      )
       setScreen('game')
     },
-    [game.startGame],
+    [game.startGame, serverDaily],
   )
 
   const exportData = () => {
@@ -100,7 +134,6 @@ export default function TenGame() {
   const average = playerState.plays
     ? Math.round(playerState.total / playerState.plays)
     : 0
-  const todayKey = getLocalDateKey()
   const todayDailyRecord = playerState.dailyRecords[todayKey] ?? {
     best: 0,
     plays: 0,
@@ -150,6 +183,7 @@ export default function TenGame() {
             previousBest={previousBest}
             score={game.score}
             daily={game.dailyMode}
+            serverRank={serverScore}
             onToast={showToast}
             onHome={() => setScreen('home')}
             onRetry={() => beginGame(game.dailyMode)}
@@ -157,21 +191,27 @@ export default function TenGame() {
         )}
         {screen === 'daily' && (
           <DailyScreen
+            dateKey={todayKey}
+            leaderboard={leaderboard.data}
             record={todayDailyRecord}
             streak={playerState.streak}
             onPlay={() => beginGame(true)}
           />
         )}
-        {screen === 'rank' && <StatsScreen state={playerState} />}
+        {screen === 'rank' && (
+          <StatsScreen leaderboard={leaderboard.data} state={playerState} />
+        )}
         {screen === 'mypage' && (
           <MyPage
             average={average}
+            player={account.player}
             state={playerState}
             theme={settings.theme}
             preferences={settings.preferences}
             onPreferencesChange={settings.setPreferences}
             onThemeChange={settings.setTheme}
             onLanguageChange={settings.setLanguage}
+            onUpdateName={account.updateName}
             onExport={exportData}
             onImport={importData}
             onResetRecords={() => {

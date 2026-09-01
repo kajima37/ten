@@ -32,6 +32,8 @@ jobs:
           "build-tools;36.0.0"
       - run: pnpm install --frozen-lockfile
       - run: pnpm mobile:sync
+        env:
+          VITE_API_URL: ${{ vars.TEN_API_URL }}
       - name: Make Gradle wrapper executable
         run: chmod +x apps/web/android/gradlew
       - name: Build debug APK

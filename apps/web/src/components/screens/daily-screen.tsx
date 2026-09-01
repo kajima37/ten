@@ -5,20 +5,28 @@ import { Button } from '#/components/ui/button'
 import { Metric } from '#/components/shared/metric'
 import { ScreenTitle } from '#/components/shared/screen-title'
 import { formatShortDate, topPercent } from '#/lib/format'
+import type { LeaderboardResponse } from '#/lib/api'
 import type { DailyRecord } from '#/lib/player-state'
 
 export function DailyScreen({
+  dateKey,
+  leaderboard,
   record,
   streak,
   onPlay,
 }: {
+  dateKey: string
+  leaderboard: LeaderboardResponse | null
   record: DailyRecord
   streak: number
   onPlay: () => void
 }) {
   const { i18n, t } = useTranslation()
-  const today = new Date()
+  const today = new Date(`${dateKey}T12:00:00`)
   const date = formatShortDate(today, i18n.resolvedLanguage)
+  const mine = leaderboard?.mine ?? null
+  const rankPercent =
+    mine?.topPercent ?? (record.best ? topPercent(record.best) : null)
   return (
     <section>
       <ScreenTitle title={t('daily.title')} icon={Question} />
@@ -40,8 +48,13 @@ export function DailyScreen({
         <Metric
           label={t('daily.nationalRank')}
           value={
-            record.best
-              ? t('result.topPercent', { percent: topPercent(record.best) })
+            rankPercent
+              ? mine
+                ? t('daily.rankAndPercent', {
+                    rank: mine.rank,
+                    percent: mine.topPercent,
+                  })
+                : t('result.topPercent', { percent: rankPercent })
               : t('daily.notPlayed')
           }
         />

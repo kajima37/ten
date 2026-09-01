@@ -10,13 +10,14 @@ import {
   UploadSimple,
   UserCircle,
 } from '@phosphor-icons/react'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '#/components/ui/button'
 import { Metric } from '#/components/shared/metric'
 import { ScreenTitle } from '#/components/shared/screen-title'
 import { ACHIEVEMENT_IDS } from '#/lib/achievements'
+import type { PlayerProfile } from '#/lib/api'
 import type { Preferences } from '#/lib/preferences'
 import { THEMES } from '#/lib/themes'
 import type { ThemeId } from '#/lib/themes'
@@ -24,12 +25,14 @@ import type { PlayerState } from '#/lib/player-state'
 
 export function MyPage({
   average,
+  player,
   state,
   theme,
   preferences,
   onPreferencesChange,
   onThemeChange,
   onLanguageChange,
+  onUpdateName,
   onExport,
   onImport,
   onResetRecords,
@@ -38,12 +41,14 @@ export function MyPage({
   onToast,
 }: {
   average: number
+  player: PlayerProfile | null
   state: PlayerState
   theme: ThemeId
   preferences: Preferences
   onPreferencesChange: (preferences: Preferences) => void
   onThemeChange: (theme: ThemeId) => void
   onLanguageChange: (language: 'ja' | 'en') => void
+  onUpdateName: (name: string) => Promise<boolean>
   onExport: () => void
   onImport: (file: File) => Promise<void>
   onResetRecords: () => void
@@ -53,11 +58,21 @@ export function MyPage({
 }) {
   const { i18n, t } = useTranslation()
   const importInputRef = useRef<HTMLInputElement>(null)
+  const [name, setName] = useState(player?.name ?? t('profile.player'))
   const themes = THEMES.map((definition) => ({
     id: definition.id,
     label: t(`profile.themes.${definition.id}`),
     color: definition.swatch,
   }))
+
+  const saveName = () => {
+    const trimmed = name.trim()
+    if (!trimmed || trimmed.length > 20) return
+    void onUpdateName(trimmed).then((saved) => {
+      onToast(saved ? t('toast.nameSaved') : t('toast.nameSaveFailed'))
+    })
+  }
+
   return (
     <section>
       <ScreenTitle title={t('profile.title')} icon={UserCircle} />
@@ -65,7 +80,23 @@ export function MyPage({
         <div className="mx-auto grid size-16 place-items-center rounded-full bg-gradient-to-b from-zinc-500 to-zinc-900">
           <UserCircle className="size-8" weight="duotone" />
         </div>
-        <h2 className="mt-3 font-bold">{t('profile.player')}</h2>
+        <div className="mt-3 flex justify-center gap-2">
+          <input
+            className="w-40 rounded-full bg-secondary px-4 py-2 text-center text-sm font-bold outline-none focus:ring-2 focus:ring-accent"
+            value={name}
+            maxLength={20}
+            onChange={(event) => setName(event.currentTarget.value)}
+            onBlur={saveName}
+            aria-label={t('profile.namePlaceholder')}
+          />
+          <Button
+            variant="secondary"
+            className="rounded-full text-xs"
+            onClick={saveName}
+          >
+            {t('profile.saveName')}
+          </Button>
+        </div>
       </div>
       <div className="my-3 rounded-3xl border bg-card px-5">
         <Metric

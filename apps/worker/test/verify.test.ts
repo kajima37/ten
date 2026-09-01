@@ -1,0 +1,113 @@
+import assert from 'node:assert/strict'
+import test from 'node:test'
+
+import {
+  makeBoard,
+  collapseBoard,
+  shuffleWithRandom,
+  mulberry32,
+  findCombination,
+} from '@ten/game-core'
+
+import { verifyGame, isValidElimination, SHUFFLE_COST } from '../src/verify.ts'
+import type { GameEvent } from '@ten/game-core'
+
+function simulateGame(
+  seed: number,
+  steps: number,
+  shuffleAt?: number,
+): {
+  score: number
+  combo: number
+  maxCombo: number
+  events: Array<GameEvent>
+} {
+  const random = mulberry32(seed)
+  let board = makeBoard(random)
+  let combo = 0
+  let maxCombo = 0
+  let score = 0
+  const events: Array<GameEvent> = []
+
+  for (let index = 0; index < steps; index += 1) {
+    if (shuffleAt === index) {
+      board = shuffleWithRandom(board, random)
+      score = Math.max(0, score - SHUFFLE_COST)
+      events.push({ type: 'shuffle' })
+      continue
+    }
+    const path = findCombination(board)
+    if (!path) break
+    combo += 1
+    maxCombo = Math.max(maxCombo, combo)
+    score += path.length * 100 + (combo - 1) * 50
+    events.push({ type: 'eliminate', cells: path })
+    board = collapseBoard(board, path, random)
+  }
+
+  return { score, combo, maxCombo, events }
+}
+
+test('replay reproduces score and max combo for a simulated game', () => {
+  for (const seed of [1, 20260901, 42, 999999]) {
+    const simulated = simulateGame(seed, 12)
+    const verified = verifyGame(seed, simulated.events)
+    assert.equal(verified.score, simulated.score)
+    assert.equal(verified.maxCombo, simulated.maxCombo)
+    assert.equal(verified.combo, simulated.combo)
+  }
+})
+
+test('replay accounts for shuffles and their score cost', () => {
+  const seed = 20260901
+  const simulated = simulateGame(seed, 10, 3)
+  const verified = verifyGame(seed, simulated.events)
+  assert.equal(verified.score, simulated.score)
+  assert.equal(verified.maxCombo, simulated.maxCombo)
+  assert.ok(simulated.events.some((event) => event.type === 'shuffle'))
+})
+
+test('empty event list yields zero score', () => {
+  const verified = verifyGame(123, [])
+  assert.deepEqual(verified, { score: 0, combo: 0, maxCombo: 0 })
+})
+
+test('non-adjacent cells are rejected', () => {
+  assert.equal(
+    isValidElimination(
+      [
+        1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9,
+        1,
+      ],
+      [0, 2],
+    ),
+    false,
+  )
+})
+
+test('cells whose sum is not ten are rejected', () => {
+  const board = [
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  ]
+  assert.equal(isValidElimination(board, [0, 1]), false)
+})
+
+test('duplicate cells are rejected', () => {
+  assert.equal(
+    isValidElimination(
+      [
+        5, 5, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9,
+        1,
+      ],
+      [0, 0],
+    ),
+    false,
+  )
+})
+
+test('a valid elimination is accepted', () => {
+  const board = [
+    5, 5, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1,
+  ]
+  assert.equal(isValidElimination(board, [0, 1]), true)
+})

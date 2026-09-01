@@ -4,6 +4,9 @@ export const STORAGE_KEYS = {
   theme: 'ten_theme',
   tutorialComplete: 'ten_tutorial_complete',
   preferences: 'ten_preferences',
+  deviceId: 'ten_device_id',
+  token: 'ten_token',
+  playerProfile: 'ten_player_profile',
 } as const
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS]
