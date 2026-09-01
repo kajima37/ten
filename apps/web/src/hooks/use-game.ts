@@ -71,7 +71,6 @@ export function useGame({
   const finishedRef = useRef(false)
   const lastTickRef = useRef(0)
   const boardRandomRef = useRef<() => number>(Math.random)
-  const seedRef = useRef(0)
   const eventsRef = useRef<Array<GameEvent>>([])
   const startTokenRef = useRef<string | undefined>(undefined)
   const onFinishRef = useRef(onFinish)
@@ -184,7 +183,6 @@ export function useGame({
       daily: dailyMode,
       dailyKey,
       durationSeconds: Math.round(timeLimit),
-      seed: seedRef.current,
       events: eventsRef.current,
       startToken: startTokenRef.current,
     })
@@ -215,7 +213,6 @@ export function useGame({
       const seed = daily
         ? (options.seed ?? Number(nextDailyKey.replaceAll('-', '')))
         : crypto.getRandomValues(new Uint32Array(1))[0] >>> 0
-      seedRef.current = seed
       eventsRef.current = []
       startTokenRef.current = options.startToken
       const random = mulberry32(seed)

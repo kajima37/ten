@@ -81,7 +81,3 @@ export function shouldShowInterstitial(
   if (!Number.isFinite(lastShown)) return true
   return now.getTime() - lastShown >= MIN_INTERVAL_MS
 }
-
-export function resetAdFrequency() {
-  writeAdFrequency(initialAdFrequency)
-}

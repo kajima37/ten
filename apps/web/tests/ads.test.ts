@@ -50,8 +50,8 @@ describe('ads client (web mock)', () => {
     await expect(client.showInterstitial()).resolves.toBeUndefined()
   })
 
-  it('emits mock state when a rewarded ad is shown', async () => {
-    const { getAdsClient } = await loadAdsModule()
+  it('requires the completed mock UI to claim a rewarded ad', async () => {
+    const { completeMockAd, getAdsClient } = await loadAdsModule()
     const client = getAdsClient()
     expect(client.getMockState().kind).toBe('idle')
 
@@ -63,6 +63,8 @@ describe('ads client (web mock)', () => {
     expect(state.variant).toBe('rewarded')
 
     await vi.runAllTimersAsync()
+    expect(client.getMockState().kind).toBe('showing')
+    completeMockAd({ rewarded: true })
     await expect(promise).resolves.toEqual({ rewarded: true })
     expect(client.getMockState().kind).toBe('idle')
   })
@@ -83,8 +85,8 @@ describe('ads client (web mock)', () => {
     expect(client.getMockState().kind).toBe('idle')
   })
 
-  it('resolves an interstitial mock after the countdown', async () => {
-    const { getAdsClient } = await loadAdsModule()
+  it('requires the completed mock UI to close an interstitial', async () => {
+    const { completeMockAd, getAdsClient } = await loadAdsModule()
     const client = getAdsClient()
 
     vi.useFakeTimers()
@@ -92,6 +94,8 @@ describe('ads client (web mock)', () => {
     expect(client.getMockState().kind).toBe('showing')
 
     await vi.runAllTimersAsync()
+    expect(client.getMockState().kind).toBe('showing')
+    completeMockAd({ rewarded: false, reason: 'dismissed' })
     await expect(promise).resolves.toBeUndefined()
     expect(client.getMockState().kind).toBe('idle')
   })

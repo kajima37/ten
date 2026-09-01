@@ -13,7 +13,6 @@ export type GameResult = {
   daily: boolean
   dailyKey: string
   durationSeconds: number
-  seed: number
   events: Array<GameEvent>
   startToken?: string
 }

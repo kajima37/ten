@@ -44,15 +44,6 @@ function MockAdCard({
     return () => window.clearInterval(id)
   }, [state.durationMs, state.startedAt])
 
-  useEffect(() => {
-    if (remainingMs > 0) return
-    if (state.variant === 'rewarded') {
-      completeMockAd({ rewarded: true })
-    } else {
-      completeMockAd({ rewarded: false, reason: 'dismissed' })
-    }
-  }, [remainingMs, state.variant])
-
   const remainingSeconds = Math.ceil(remainingMs / 1000)
   const isRewarded = state.variant === 'rewarded'
 

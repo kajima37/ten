@@ -18,7 +18,6 @@ export type MockState =
   | {
       kind: 'showing'
       variant: MockVariant
-      forceFail: boolean
       startedAt: number
       durationMs: number
       resolve: (result: AdsResult) => void
@@ -83,33 +82,23 @@ function createMockClient(): AdsClient {
         return
       }
       let settled = false
-      let timerId = 0
       const settle = (result: AdsResult) => {
         if (settled) return
         settled = true
         if (state.kind === 'showing') {
           state = { kind: 'idle' }
         }
-        window.clearTimeout(timerId)
         notify()
         resolve(result)
       }
       state = {
         kind: 'showing',
         variant,
-        forceFail: false,
         startedAt: Date.now(),
         durationMs,
         resolve: settle,
       }
       notify()
-      timerId = window.setTimeout(() => {
-        settle(
-          variant === 'rewarded'
-            ? { rewarded: true }
-            : { rewarded: false, reason: 'dismissed' },
-        )
-      }, durationMs)
     })
 
   return {
