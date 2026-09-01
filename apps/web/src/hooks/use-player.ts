@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 
 import { getUnlockedAchievements } from '#/lib/achievements'
-import { getLocalDateKey, getNextStreak } from '#/lib/game-logic'
+import { getLocalDateKey, getNextStreak } from '@ten/game-core'
 import { initialPlayerState, migratePlayerState } from '#/lib/player-state'
 import type { PlayerState } from '#/lib/player-state'
 import { STORAGE_KEYS, readJson, writeJson } from '#/lib/storage'

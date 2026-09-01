@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next'
 
 import GameBoard from '#/components/game-board'
 import { Button } from '#/components/ui/button'
-import { TARGET } from '#/lib/game-logic'
-import type { CollapseMotion } from '#/lib/game-logic'
+import { TARGET } from '@ten/game-core'
+import type { CollapseMotion } from '@ten/game-core'
 import type { ThemeId } from '#/lib/themes'
 import type { BoardFeedback } from '#/components/shared/screen'
 

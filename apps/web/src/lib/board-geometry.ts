@@ -1,4 +1,4 @@
-import { GRID_SIZE } from './game-logic.ts'
+import { GRID_SIZE } from '@ten/game-core'
 
 export type BoardPoint = { x: number; y: number }
 

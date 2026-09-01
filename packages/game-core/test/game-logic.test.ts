@@ -9,7 +9,7 @@ import {
   getCollapseMotions,
   isAdjacent,
   makeBoard,
-} from '../src/lib/game-logic.ts'
+} from '../src/index.ts'
 
 test('daily boards and refill sequences are reproducible', () => {
   const firstRandom = createDailyRandom('2026-08-31')

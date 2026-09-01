@@ -102,21 +102,27 @@ NixOS / Linux：Android SDK（java + android-sdk）は現時点で未セット�
 
 GitHub Pagesへの公開方法は [`docs/deployment/github-pages.md`](./docs/deployment/github-pages.md) を参照してください。`main`へのプッシュ時に自動で公開され、手動実行にも対応しています。
 
+## リポジトリ構成
+
+pnpm workspace モノレポです。Web アプリを `apps/web`、ゲームルールの共有ロジックを `packages/game-core` に置き、`apps/worker`（Cloudflare Worker）を追加予定です。
+
 ## 主な場所
 
-- `src/routes` — TanStack Routerのファイルベースルート
-- `src/components/ten-game.tsx` — ゲーム全体の状態（フック群）と画面遷移を束ねるオーケストレータ
-- `src/components/screens` — 各画面（ホーム / ゲーム / 結果 / デイリー / 統計 / マイページ / チュートリアル）
-- `src/components/shared` — 画面横断で使う共通UI（Metric / ScreenTitle / BottomNavigation 等）
-- `src/components/game-board.tsx` — PixiJSゲーム盤面の描画
-- `src/components/ui` — shadcn/uiコンポーネント
-- `src/hooks` — `use-game` / `use-player` / `use-settings`（盤面・記録・設定の状態管理）
-- `src/lib` — 純粋ロジック（`game-logic` / `player-state` / `backup` / `themes` / `storage` / `gesture` 等）
-- `src/styles.css` — TailwindとTEN.のデザイントークン（テーマ変数は `src/lib/themes.ts` から注入）
+- `apps/web/src/routes` — TanStack Routerのファイルベースルート
+- `apps/web/src/components/ten-game.tsx` — ゲーム全体の状態（フック群）と画面遷移を束ねるオーケストレータ
+- `apps/web/src/components/screens` — 各画面（ホーム / ゲーム / 結果 / デイリー / 統計 / マイページ / チュートリアル）
+- `apps/web/src/components/shared` — 画面横断で使う共通UI（Metric / ScreenTitle / BottomNavigation 等）
+- `apps/web/src/components/game-board.tsx` — PixiJSゲーム盤面の描画
+- `apps/web/src/components/ui` — shadcn/uiコンポーネント
+- `apps/web/src/hooks` — `use-game` / `use-player` / `use-settings`（盤面・記録・設定の状態管理）
+- `apps/web/src/lib` — 純粋ロジック（`player-state` / `backup` / `themes` / `storage` / `gesture` 等）
+- `apps/web/src/styles.css` — TailwindとTEN.のデザイントークン（テーマ変数は `src/lib/themes.ts` から注入）
+- `packages/game-core` — 盤面生成・消去・スコア等の純粋ゲームロジック（Web / Worker で共有）
+- `apps/worker` — Cloudflare Worker（API バックエンド）
 - `flake.nix` / `.envrc` — NixOS / Linux の開発環境（nixpkgs で node / pnpm を提供）
 - `mise.toml` — Windows 等他環境向けのバージョン目安
 - `docs/product` — 企画・仕様・生成画像
-- `android` / `ios` — Capacitorネイティブプロジェクト
+- `apps/web/android` / `apps/web/ios` — Capacitorネイティブプロジェクト
 - `.github/workflows` — Web・Android・iOSの継続的インテグレーション
 
 ## 参照した公式ドキュメント

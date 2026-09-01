@@ -14,8 +14,8 @@ import {
   isAdjacent,
   makeBoard,
   shuffleWithRandom,
-} from '#/lib/game-logic'
-import type { CollapseMotion } from '#/lib/game-logic'
+} from '@ten/game-core'
+import type { CollapseMotion } from '@ten/game-core'
 import { vibrate } from '#/lib/haptics'
 import type { BoardFeedback } from '#/components/shared/screen'
 import type { GameResult } from '#/hooks/use-player'

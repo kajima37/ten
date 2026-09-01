@@ -1,4 +1,4 @@
-import { GRID_SIZE } from './game-logic.ts'
+import { GRID_SIZE } from '@ten/game-core'
 import { getCellCenter } from './board-geometry.ts'
 import type { BoardPoint } from './board-geometry.ts'
 

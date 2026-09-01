@@ -16,7 +16,7 @@ import type { GameResult } from '#/hooks/use-player'
 import { useSettings } from '#/hooks/use-settings'
 import { createBackup, parseBackup } from '#/lib/backup'
 import { downloadBlob } from '#/lib/download'
-import { getLocalDateKey } from '#/lib/game-logic'
+import { getLocalDateKey } from '@ten/game-core'
 import { STORAGE_KEYS, readStorage } from '#/lib/storage'
 import '#/i18n'
 

@@ -27,4 +27,4 @@ jobs:
       - run: pnpm build
       - run: pnpm build:mobile
       - name: Verify Capacitor web bundle
-        run: test -f dist/client/index.html
+        run: test -f apps/web/dist/client/index.html

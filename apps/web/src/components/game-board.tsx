@@ -3,8 +3,8 @@ import { Container, Graphics, Text } from 'pixi.js'
 import { useEffect, useRef } from 'react'
 import type { FederatedPointerEvent } from 'pixi.js'
 import type { ReactNode } from 'react'
-import { GRID_SIZE } from '#/lib/game-logic'
-import type { CollapseMotion } from '#/lib/game-logic'
+import { GRID_SIZE } from '@ten/game-core'
+import type { CollapseMotion } from '@ten/game-core'
 import {
   CELL_PADDING,
   CELL_PITCH,
