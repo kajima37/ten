@@ -576,10 +576,6 @@ export function createMemoryStore(): Store & {
       logs.push(`${playerId}:${new Date().toISOString()}`)
     },
 
-    async saveScoreProof(playerId, dateKey, score, events) {
-      proofs.push({ playerId, dateKey, score, events })
-    },
-
     async banPlayer(playerId, untilIso) {
       const player = players.get(playerId)
       if (player)

@@ -168,12 +168,6 @@ export interface Store {
     sinceIso: string,
   ) => Promise<number>
   logSubmission: (playerId: string, ipHash: string) => Promise<void>
-  saveScoreProof: (
-    playerId: string,
-    dateKey: string,
-    score: number,
-    eventsJson: string,
-  ) => Promise<void>
   banPlayer: (playerId: string, untilIso: string | null) => Promise<void>
   unbanPlayer: (playerId: string) => Promise<void>
   banPlayersByIp: (ipHash: string, untilIso: string | null) => Promise<number>
@@ -573,15 +567,6 @@ export function createD1Store(db: D1Database): Store {
           'INSERT INTO submission_log (player_id, ip_hash) VALUES (?, ?)',
         )
         .bind(playerId, ipHash)
-        .run()
-    },
-
-    async saveScoreProof(playerId, dateKey, score, eventsJson) {
-      await db
-        .prepare(
-          'INSERT INTO score_proofs (player_id, date_key, score, events) VALUES (?, ?, ?, ?)',
-        )
-        .bind(playerId, dateKey, score, eventsJson)
         .run()
     },
 

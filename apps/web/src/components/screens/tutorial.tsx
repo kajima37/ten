@@ -1,4 +1,5 @@
 import { Clock, Lightbulb, Shuffle } from '@phosphor-icons/react'
+import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '#/components/ui/button'
@@ -15,6 +16,7 @@ export function Tutorial({
   onComplete: () => void
 }) {
   const { t } = useTranslation()
+  const dialogRef = useRef<HTMLDivElement>(null)
   const content = [
     { title: t('tutorial.connectTitle'), body: t('tutorial.connectBody') },
     { title: t('tutorial.comboTitle'), body: t('tutorial.comboBody') },
@@ -23,10 +25,27 @@ export function Tutorial({
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-[70] grid place-items-center bg-black/80 px-5 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="tutorial-title"
+      onKeyDown={(event) => {
+        if (event.key !== 'Tab') return
+        const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+          'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
+        )
+        if (!focusable?.length) return
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault()
+          last.focus()
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault()
+          first.focus()
+        }
+      }}
     >
       <div className="w-full max-w-sm rounded-[2rem] border bg-card p-6 shadow-2xl">
         <div className="mb-5 flex items-center justify-between">

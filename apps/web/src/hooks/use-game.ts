@@ -217,9 +217,10 @@ export function useGame({
       startTokenRef.current = options.startToken
       const random = mulberry32(seed)
       boardRandomRef.current = random
+      const generatedBoard = makeBoard(random)
       setDailyMode(daily)
       setDailyKey(nextDailyKey)
-      setBoard(options.board ? [...options.board] : makeBoard(random))
+      setBoard(options.board ? [...options.board] : generatedBoard)
       setSelected([])
       setRemoving([])
       setBoardRevision((current) => current + 1)

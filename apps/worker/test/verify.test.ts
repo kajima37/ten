@@ -58,6 +58,30 @@ test('replay reproduces score and max combo for a simulated game', () => {
   }
 })
 
+test('replay stays synchronized after a client uses the server board payload', () => {
+  const seed = 20260901
+  const random = mulberry32(seed)
+  // The API has already generated this board from the shared random stream.
+  let board = makeBoard(random)
+  const events: Array<GameEvent> = []
+  let score = 0
+  let combo = 0
+  let maxCombo = 0
+
+  for (let index = 0; index < 4; index += 1) {
+    const path = findCombination(board)
+    if (!path) break
+    combo += 1
+    maxCombo = Math.max(maxCombo, combo)
+    score += path.length * 100 + (combo - 1) * 50
+    events.push({ type: 'eliminate', cells: path })
+    board = collapseBoard(board, path, random)
+  }
+
+  const verified = verifyGame(seed, events)
+  assert.deepEqual(verified, { score, combo, maxCombo })
+})
+
 test('replay accounts for shuffles and their score cost', () => {
   const seed = 20260901
   const simulated = simulateGame(seed, 10, 3)

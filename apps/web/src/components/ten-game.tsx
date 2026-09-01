@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { App } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
@@ -80,6 +80,7 @@ export default function TenGame() {
     rank: number
     topPercent: number
   } | null>(null)
+  const runIdRef = useRef(0)
 
   useEffect(() => {
     document.documentElement.lang = i18n.resolvedLanguage ?? 'ja'
@@ -93,6 +94,7 @@ export default function TenGame() {
 
   const onFinish = useCallback(
     (result: GameResult) => {
+      const runId = ++runIdRef.current
       const outcome = recordResult(result)
       setPreviousBest(outcome.previousBest)
       setIsNewBest(outcome.isNewBest)
@@ -110,6 +112,7 @@ export default function TenGame() {
             maxCombo: result.maxCombo,
           })
           .then((response) => {
+            if (runId !== runIdRef.current) return
             if (response?.accepted) {
               setServerScore({
                 rank: response.rank,
@@ -188,6 +191,7 @@ export default function TenGame() {
         showToast(t('daily.loading'))
         return
       }
+      runIdRef.current += 1
       const started = daily ? await account.startDaily() : null
       if (daily && !started) {
         showToast(t('network.leaderboardError'))

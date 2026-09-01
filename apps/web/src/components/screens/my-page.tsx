@@ -10,7 +10,7 @@ import {
   UploadSimple,
   UserCircle,
 } from '@phosphor-icons/react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '#/components/ui/button'
@@ -58,7 +58,14 @@ export function MyPage({
 }) {
   const { i18n, t } = useTranslation()
   const importInputRef = useRef<HTMLInputElement>(null)
+  const playerIdRef = useRef(player?.id)
   const [name, setName] = useState(player?.name ?? t('profile.player'))
+
+  useEffect(() => {
+    if (!player || player.id === playerIdRef.current) return
+    playerIdRef.current = player.id
+    setName(player.name)
+  }, [player])
   const themes = THEMES.map((definition) => ({
     id: definition.id,
     label: t(`profile.themes.${definition.id}`),
