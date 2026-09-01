@@ -16,7 +16,7 @@ Application ID を変更してください。公開後に変更すると、ス�
 WorkerのURLを `VITE_API_URL` に指定します。ローカルWorkerを使う場合は `http://localhost:8787` に置き換えます。
 
 ```sh
-export VITE_API_URL=https://ten-api.<account>.workers.dev
+export VITE_API_URL=https://ten-api-production.<account>.workers.dev
 pnpm build:mobile
 pnpm mobile:sync
 ```

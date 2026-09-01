@@ -10,29 +10,33 @@
           "database_name": "ten-db-staging",
           "database_id": "00000000-0000-0000-0000-000000000000",
           "migrations_dir": "migrations",
+          "remote": true,
         },
       ],
       "kv_namespaces": [
         {
           "binding": "DAILY_CACHE",
           "id": "00000000000000000000000000000000",
+          "remote": true,
         },
       ],
     },
     "production": {
-      "name": "ten-api",
+      "name": "ten-api-production",
       "d1_databases": [
         {
           "binding": "DB",
-          "database_name": "ten-db",
+          "database_name": "ten-db-production",
           "database_id": "00000000-0000-0000-0000-000000000000",
           "migrations_dir": "migrations",
+          "remote": true,
         },
       ],
       "kv_namespaces": [
         {
           "binding": "DAILY_CACHE",
           "id": "00000000000000000000000000000000",
+          "remote": true,
         },
       ],
     },

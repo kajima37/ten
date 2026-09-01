@@ -20,10 +20,10 @@ pnpm install
 
 `main` は開発用、`production` は本番昇格用です。GitHub Pages は staging Worker を使い、公開済みアプリは production Worker を使います。
 
-| 環境       | Worker            | D1               | KV            | デプロイ元   |
-| ---------- | ----------------- | ---------------- | ------------- | ------------ |
-| staging    | `ten-api-staging` | `ten-db-staging` | staging 用    | `main`       |
-| production | `ten-api`         | `ten-db`         | production 用 | `production` |
+| 環境       | Worker               | D1                  | KV            | デプロイ元   |
+| ---------- | -------------------- | ------------------- | ------------- | ------------ |
+| staging    | `ten-api-staging`    | `ten-db-staging`    | staging 用    | `main`       |
+| production | `ten-api-production` | `ten-db-production` | production 用 | `production` |
 
 staging と production は Worker、D1、KV、`AUTH_SECRET`、`ADMIN_SECRET` を共有しません。
 
@@ -58,7 +58,7 @@ pnpm --filter @ten/worker exec wrangler login
 
 ```bash
 pnpm --filter @ten/worker exec wrangler d1 create ten-db-staging
-pnpm --filter @ten/worker exec wrangler d1 create ten-db
+pnpm --filter @ten/worker exec wrangler d1 create ten-db-production
 ```
 
 表示された ID を `apps/worker/wrangler.jsonc` の `env.staging` と `env.production` の D1 設定へ、それぞれ設定します。
@@ -66,8 +66,8 @@ pnpm --filter @ten/worker exec wrangler d1 create ten-db
 ### 3. staging と production の KV namespace を作成する
 
 ```bash
-pnpm --filter @ten/worker exec wrangler kv namespace create DAILY_CACHE
-pnpm --filter @ten/worker exec wrangler kv namespace create DAILY_CACHE
+pnpm --filter @ten/worker exec wrangler kv namespace create DAILY_CACHE_STAGING
+pnpm --filter @ten/worker exec wrangler kv namespace create DAILY_CACHE_PRODUCTION
 ```
 
 1回目の ID を staging、2回目の ID を production の `kv_namespaces[0].id` に設定します。同じ ID を設定しないでください。
@@ -115,14 +115,14 @@ production を手元から公開する場合は、必ず次を使います。
 pnpm --filter @ten/worker deploy:production
 ```
 
-staging は `https://ten-api-staging.<account>.workers.dev`、production は `https://ten-api.<account>.workers.dev` のような URL になります。末尾に `/` は付けません。
+staging は `https://ten-api-staging.<account>.workers.dev`、production は `https://ten-api-production.<account>.workers.dev` のような URL になります。末尾に `/` は付けません。
 
 ## 公開後の確認
 
 表示されたURLを `API_URL` に置き、次を実行します。
 
 ```bash
-API_URL="https://ten-api.<account>.workers.dev"
+API_URL="https://ten-api-production.<account>.workers.dev"
 curl "$API_URL/api/health"
 ```
 
@@ -182,7 +182,7 @@ GitHub Actions には各 Environment の secrets として、次を登録しま�
 
 staging と production で API Token を分け、対象 Worker と D1 に必要な最小権限だけを付与します。
 
-staging の `TEN_API_URL` は `https://ten-api-staging.<account>.workers.dev`、production-worker の `TEN_API_URL` は `https://ten-api.<account>.workers.dev` です。これは公開情報なので Secret にはしません。
+staging の `TEN_API_URL` は `https://ten-api-staging.<account>.workers.dev`、production-worker の `TEN_API_URL` は `https://ten-api-production.<account>.workers.dev` です。これは公開情報なので Secret にはしません。
 
 手動実行時も、staging は `Deploy Worker`、production は `Deploy Production Worker` を選び、実行 ref を確認します。
 
@@ -216,7 +216,7 @@ staging で作成したプレイヤーやスコアが production に存在しな
 
 ```bash
 ADMIN_SECRET='本番のADMIN_SECRET'
-API_URL='https://ten-api.<account>.workers.dev'
+API_URL='https://ten-api-production.<account>.workers.dev'
 
 curl "$API_URL/api/admin/players?ipHash=<ip_hash>" \
   -H "Authorization: Bearer $ADMIN_SECRET"
@@ -242,7 +242,7 @@ curl -X DELETE "$API_URL/api/admin/players/<player_id>/scores?date=YYYY-MM-DD" \
 Workerのログは次で確認できます。
 
 ```bash
-pnpm --filter @ten/worker exec wrangler tail ten-api
+pnpm --filter @ten/worker exec wrangler tail ten-api-production
 ```
 
 本番DBのデータを直接削除したり、`AUTH_SECRET` を変更したりする前に影響を確認してください。`AUTH_SECRET` を変更すると既存のログイン用トークンが使えなくなります。
