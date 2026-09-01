@@ -37,7 +37,7 @@ pnpm mobile:open:ios
 - `Android`: 手動実行時にデバッグ APK を生成します。
 - `iOS`: 手動実行時に署名なしの Simulator アプリを生成します。
 
-Android と iOS の開発用 Actions は `staging` Worker URL を使います。リリース用 workflow を追加する場合は、production Worker URL を `production-worker` Environment から渡します。API URL を変更した場合は、Actions を再実行してアプリを作り直してください。
+Android と iOS の開発用 Actions は、GitHub の `staging` Environment の `TEN_API_URL`（staging Worker URL）を使います。リリース用 workflow を追加する場合は、production Worker URL を `production-worker` Environment から渡します。API URL を変更した場合は、Actions を再実行してアプリを作り直してください。
 
 Android と iOS のネイティブビルドは実行時間とコストを抑えるため、push や
 pull request では自動実行されません。GitHub のリポジトリで

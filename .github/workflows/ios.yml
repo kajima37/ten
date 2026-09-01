@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   simulator:
+    environment: staging
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v6
@@ -19,6 +20,12 @@ jobs:
         with:
           cache: true
       - run: pnpm install --frozen-lockfile
+      - name: Verify API URL
+        run: >-
+          test -n "$VITE_API_URL" &&
+          printf '%s' "$VITE_API_URL" | grep -Eq '^https://[^/]+$'
+        env:
+          VITE_API_URL: ${{ vars.TEN_API_URL }}
       - run: pnpm mobile:sync
         env:
           VITE_API_URL: ${{ vars.TEN_API_URL }}

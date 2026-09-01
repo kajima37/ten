@@ -19,6 +19,8 @@ dist-ssr
 *.ipa
 *.xcarchive
 android/keystore.properties
+secrets/.private/
+secrets/.decrypted/
 .nitro
 .tanstack
 .wrangler

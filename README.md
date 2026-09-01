@@ -92,8 +92,9 @@ pnpm hooks:install
 - [Cloudflare Worker](./docs/deployment/cloudflare-worker.md): API、D1、KVの初回設定と公開
 - [GitHub Pages](./docs/deployment/github-pages.md): Web版の公開
 - [モバイル](./docs/deployment/mobile.md): Android / iOSのビルドと配布
+- [秘密情報の管理](./docs/deployment/secrets.md): SOPS + age による秘密情報の一元管理
 
-`main` は開発確認用で、GitHub Pages と staging Worker を自動更新します。`production` はレビュー済みコードを公開するブランチで、production Worker を更新します。公開済みアプリのビルドには production Worker URL を使います。初回設定は [Cloudflare Worker の公開手順](./docs/deployment/cloudflare-worker.md) を参照してください。`AUTH_SECRET` と `ADMIN_SECRET` は Worker 専用で、Web やモバイルへ渡しません。
+`main` は開発確認用で、GitHub Pages と staging Worker を自動更新します。`production` はレビュー済みコードを公開するブランチで、production Worker を更新します。公開済みアプリのビルドには production Worker URL を使います。初回設定は [Cloudflare Worker の公開手順](./docs/deployment/cloudflare-worker.md) を参照してください。`AUTH_SECRET` と `ADMIN_SECRET` は Worker 専用で、Web やモバイルへ渡しません。デプロイ用の秘密情報は [秘密情報の管理](./docs/deployment/secrets.md) の暗号化ファイルで一元管理します。
 
 ## 仕様
 

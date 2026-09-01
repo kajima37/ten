@@ -1,8 +1,10 @@
 [tools]
+age = "1.2.1"
 android-sdk = "latest"
 java = "21"
 node = "26.8.1"
 pnpm = "11.21.0"
+sops = "3.12.1"
 
 [env]
 _.path = ["{{config_root}}/node_modules/.bin"]

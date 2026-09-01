@@ -24,6 +24,10 @@
                 nodejs_26
                 pnpm
 
+                # secret management
+                age
+                sops
+
                 # fundamental tools
                 git
                 curl

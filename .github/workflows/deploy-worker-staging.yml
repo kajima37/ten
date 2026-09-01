@@ -1,4 +1,4 @@
-name: Deploy Worker
+name: Deploy Staging Worker
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: worker
+  group: worker-staging
   cancel-in-progress: true
 
 permissions:
@@ -26,18 +26,18 @@ jobs:
         with:
           cache: true
       - run: pnpm install --frozen-lockfile
+      - name: Decrypt staging secrets
+        run: |-
+          sops -d secrets/secrets.staging.age.env > "$RUNNER_TEMP/staging.env"
+          sed -E '/^[[:space:]]*(#|$)/d' "$RUNNER_TEMP/staging.env" >> "$GITHUB_ENV"
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
       - name: Apply staging D1 migrations
         working-directory: apps/worker
         run: pnpm db:migrate:staging
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - name: Deploy staging Worker
         working-directory: apps/worker
         run: pnpm deploy:staging
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - name: Check staging Worker
         run: curl --fail --retry 5 --retry-delay 2 "$TEN_API_URL/api/health"
         env:

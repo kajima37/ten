@@ -74,13 +74,22 @@ pnpm --filter @ten/worker exec wrangler kv namespace create DAILY_CACHE_PRODUCTI
 
 ### 4. Worker の秘密情報を登録する
 
-秘密情報はリポジトリや `wrangler.jsonc` に書かず、Cloudflareへ登録します。2つは別々の長いランダム文字列にしてください。
+秘密情報はリポジトリや `wrangler.jsonc` に書かず、Cloudflareへ登録します。2つは別々の長いランダム文字列にしてください。値の情報源は [秘密情報の一元管理](./secrets.md) の `secrets.staging.age.env` / `secrets.production.age.env` にし、`wrangler secret put` は `sops exec-env` で注入して実行します。
 
 ```bash
-pnpm --filter @ten/worker exec wrangler secret put AUTH_SECRET --env staging
-pnpm --filter @ten/worker exec wrangler secret put ADMIN_SECRET --env staging
-pnpm --filter @ten/worker exec wrangler secret put AUTH_SECRET --env production
-pnpm --filter @ten/worker exec wrangler secret put ADMIN_SECRET --env production
+export SOPS_AGE_KEY="$(cat secrets/.private/staging.agekey)"
+
+sops exec-env secrets/secrets.staging.age.env \
+  'pnpm --filter @ten/worker exec wrangler secret put AUTH_SECRET --env staging'
+sops exec-env secrets/secrets.staging.age.env \
+  'pnpm --filter @ten/worker exec wrangler secret put ADMIN_SECRET --env staging'
+
+export SOPS_AGE_KEY="$(cat secrets/.private/production.agekey)"
+
+sops exec-env secrets/secrets.production.age.env \
+  'pnpm --filter @ten/worker exec wrangler secret put AUTH_SECRET --env production'
+sops exec-env secrets/secrets.production.age.env \
+  'pnpm --filter @ten/worker exec wrangler secret put ADMIN_SECRET --env production'
 ```
 
 入力した文字列は表示されません。`ADMIN_SECRET` は管理APIを操作できる鍵です。関係者以外に共有しないでください。
@@ -160,31 +169,33 @@ GitHub の `Settings → Environments` で、`staging` と `production-worker` �
 
 `staging` Environment には `main`、`production-worker` Environment には `production` を deployment branch として設定します。Pages の `github-pages` Environment は既存の設定を使います。
 
-| 名前                    | 種類     | 内容                                     |
-| ----------------------- | -------- | ---------------------------------------- |
-| `CLOUDFLARE_API_TOKEN`  | Secret   | Workerを公開できるCloudflare APIトークン |
-| `CLOUDFLARE_ACCOUNT_ID` | Secret   | CloudflareのアカウントID                 |
-| `TEN_API_URL`           | Variable | その環境の Worker URL（末尾 `/` なし）   |
+| 名前           | 種類     | 内容                                           |
+| -------------- | -------- | ---------------------------------------------- |
+| `TEN_API_URL`  | Variable | その環境の Worker URL（末尾 `/` なし）         |
+| `SOPS_AGE_KEY` | Secret   | 復号用の age 秘密鍵（`secrets/` の対応する鍵） |
 
 Cloudflare APIトークンには、対象アカウントのWorkersデプロイ権限とD1マイグレーションに必要な権限を付けます。
 
-`main` ブランチへ Worker 関連の変更を反映すると、`.github/workflows/deploy-worker.yml` が staging に対して次を自動実行します。
+`main` ブランチへ Worker 関連の変更を反映すると、`.github/workflows/deploy-worker-staging.yml` が staging に対して次を自動実行します。
 
-1. staging D1へマイグレーションを適用
-2. staging Workerを公開
+1. `secrets/secrets.staging.age.env` を復号
+2. staging D1へマイグレーションを適用
+3. staging Workerを公開
 
 `production` ブランチへ Worker 関連の変更を反映すると、`.github/workflows/deploy-worker-production.yml` が production に対して同じ処理を実行します。production Environment の承認後に実行されます。
 
-GitHub Actions には各 Environment の secrets として、次を登録します。
+`CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` は Environment secret には登録せず、
+[秘密情報の一元管理](./secrets.md) の暗号化ファイルへ入れます。各 Environment には復号用の
+`SOPS_AGE_KEY` だけを登録します。
 
-- `CLOUDFLARE_API_TOKEN`
-- `CLOUDFLARE_ACCOUNT_ID`
+- `staging` Environment → `secrets/.private/staging.agekey`
+- `production-worker` Environment → `secrets/.private/production.agekey`
 
 staging と production で API Token を分け、対象 Worker と D1 に必要な最小権限だけを付与します。
 
 staging の `TEN_API_URL` は `https://ten-api-staging.<account>.workers.dev`、production-worker の `TEN_API_URL` は `https://ten-api-production.<account>.workers.dev` です。これは公開情報なので Secret にはしません。
 
-手動実行時も、staging は `Deploy Worker`、production は `Deploy Production Worker` を選び、実行 ref を確認します。
+手動実行時も、staging は `Deploy Staging Worker`、production は `Deploy Production Worker` を選び、実行 ref を確認します。
 
 ### production ブランチの初回設定
 
@@ -200,7 +211,7 @@ GitHub 上で `production` ブランチを作成し、branch protection を設�
 
 ### 初回設定の確認
 
-1. `main` に Worker の変更を push し、`Deploy Worker` が staging に成功する
+1. `main` に Worker の変更を push し、`Deploy Staging Worker` が staging に成功する
 2. staging URL の `/api/health` と `/api/daily` が応答する
 3. GitHub Pages が staging URL を使って表示される
 4. `main` から `production` への PR を作成する
