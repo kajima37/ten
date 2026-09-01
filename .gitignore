@@ -1,4 +1,6 @@
 node_modules
+.direnv
+result
 .scaffold
 .x/
 .scaffold-node_modules

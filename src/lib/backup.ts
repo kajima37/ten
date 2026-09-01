@@ -1,19 +1,12 @@
 import { migratePlayerState } from './player-state.ts'
 import type { PlayerState } from './player-state.ts'
+import { normalizePreferences } from './preferences.ts'
+import type { Preferences } from './preferences.ts'
+import { THEME_IDS } from './themes.ts'
+import type { ThemeId } from './themes.ts'
 
 export const BACKUP_FORMAT = 'ten-backup'
 export const BACKUP_VERSION = 1 as const
-export const THEME_IDS = [
-  'classic',
-  'midnight',
-  'cafe',
-  'sakura',
-  'zen',
-  'neon',
-] as const
-
-export type ThemeId = (typeof THEME_IDS)[number]
-export type Preferences = { vibration: boolean; reducedMotion: boolean }
 
 export type BackupData = {
   format: typeof BACKUP_FORMAT
@@ -24,15 +17,6 @@ export type BackupData = {
   theme: ThemeId
   preferences: Preferences
   tutorialComplete: boolean
-}
-
-export function normalizePreferences(value: unknown): Preferences {
-  const source =
-    value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
-  return {
-    vibration: source.vibration !== false,
-    reducedMotion: source.reducedMotion === true,
-  }
 }
 
 export function createBackup(

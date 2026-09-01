@@ -1,19 +1,12 @@
 import { GRID_SIZE } from './game-logic.ts'
+import { getCellCenter } from './board-geometry.ts'
+import type { BoardPoint } from './board-geometry.ts'
 
-export type BoardPoint = { x: number; y: number }
-
-const CELL_PITCH = 70
-const CELL_CENTER_OFFSET = 40
 const DEEP_COMMIT_RADIUS = 22
 const DIAGONAL_MIN_RATIO = 0.4
 const DIAGONAL_MAX_RATIO = 2.5
 
-export function getCellCenter(index: number): BoardPoint {
-  return {
-    x: CELL_CENTER_OFFSET + (index % GRID_SIZE) * CELL_PITCH,
-    y: CELL_CENTER_OFFSET + Math.floor(index / GRID_SIZE) * CELL_PITCH,
-  }
-}
+export type { BoardPoint }
 
 export function getPredictedNeighbor(anchor: number, point: BoardPoint) {
   const center = getCellCenter(anchor)

@@ -2,7 +2,7 @@
   "name": "ten",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@12.0.0",
+  "packageManager": "pnpm@11.21.0",
   "imports": {
     "#/*": "./src/*"
   },

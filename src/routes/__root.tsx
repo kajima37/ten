@@ -2,7 +2,10 @@ import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
+import { injectThemeStyles } from '#/lib/themes'
 import appCss from '../styles.css?url'
+
+injectThemeStyles()
 
 export const Route = createRootRoute({
   head: () => ({
