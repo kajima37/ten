@@ -200,6 +200,35 @@ export function MyPage({
         <strong>{t('settings.title')}</strong>
         <div className="mt-3 space-y-2">
           <SettingToggle
+            label={t('settings.sound')}
+            description={t('settings.soundDescription')}
+            enabled={preferences.sound}
+            onChange={(sound) => onPreferencesChange({ ...preferences, sound })}
+          />
+          <label className="block rounded-2xl bg-secondary px-4 py-3">
+            <span className="flex items-center justify-between">
+              <strong className="text-sm">{t('settings.soundVolume')}</strong>
+              <span className="text-[10px] font-bold text-muted-foreground">
+                {Math.round(preferences.soundVolume * 100)}%
+              </span>
+            </span>
+            <input
+              className="mt-3 w-full accent-[var(--accent)]"
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={preferences.soundVolume}
+              disabled={!preferences.sound}
+              onChange={(event) =>
+                onPreferencesChange({
+                  ...preferences,
+                  soundVolume: event.currentTarget.valueAsNumber,
+                })
+              }
+            />
+          </label>
+          <SettingToggle
             label={t('settings.vibration')}
             description={t('settings.vibrationDescription')}
             enabled={preferences.vibration}

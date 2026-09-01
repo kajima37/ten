@@ -10,7 +10,12 @@ test('backup data round-trips through JSON', () => {
       playerState: { ...initialPlayerState, best: 1200 },
       language: 'en',
       theme: 'neon',
-      preferences: { vibration: false, reducedMotion: true },
+      preferences: {
+        vibration: false,
+        reducedMotion: true,
+        sound: false,
+        soundVolume: 0.25,
+      },
       tutorialComplete: true,
     },
     '2026-08-31T00:00:00.000Z',
@@ -22,6 +27,8 @@ test('backup data round-trips through JSON', () => {
   assert.deepEqual(restored.preferences, {
     vibration: false,
     reducedMotion: true,
+    sound: false,
+    soundVolume: 0.25,
   })
   assert.equal(restored.tutorialComplete, true)
 })

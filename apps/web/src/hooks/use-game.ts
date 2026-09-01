@@ -17,6 +17,7 @@ import {
 } from '@ten/game-core'
 import type { CollapseMotion, GameEvent } from '@ten/game-core'
 import { vibrate } from '#/lib/haptics'
+import { playSound } from '#/lib/sound'
 import type { BoardFeedback } from '#/components/shared/screen'
 import type { GameResult } from '#/hooks/use-player'
 
@@ -29,11 +30,19 @@ type StartGameOptions = {
 
 type UseGameOptions = {
   vibration: boolean
+  sound: boolean
+  soundVolume: number
   onToast: (message: string) => void
   onFinish: (result: GameResult) => void
 }
 
-export function useGame({ vibration, onToast, onFinish }: UseGameOptions) {
+export function useGame({
+  vibration,
+  sound,
+  soundVolume,
+  onToast,
+  onFinish,
+}: UseGameOptions) {
   const { t } = useTranslation()
   const [board, setBoard] = useState(() => makeBoard())
   const [selected, setSelected] = useState<Array<number>>([])
@@ -110,6 +119,7 @@ export function useGame({ vibration, onToast, onFinish }: UseGameOptions) {
           : `+${gain}`,
       )
       vibrate(18, vibration)
+      playSound('success', sound, soundVolume)
       window.setTimeout(() => {
         setCollapseMotions(getCollapseMotions(removed))
         setBoard((current) =>
@@ -126,9 +136,20 @@ export function useGame({ vibration, onToast, onFinish }: UseGameOptions) {
     if (selected.length > 1) {
       setBoardFeedback('miss')
       setFeedbackId((current) => current + 1)
+      playSound('miss', sound, soundVolume)
     }
     setSelected([])
-  }, [combo, dragging, onToast, selected, sum, t, vibration])
+  }, [
+    combo,
+    dragging,
+    onToast,
+    selected,
+    sound,
+    soundVolume,
+    sum,
+    t,
+    vibration,
+  ])
 
   useEffect(() => {
     window.addEventListener('pointerup', resolveSelection)
@@ -213,6 +234,7 @@ export function useGame({ vibration, onToast, onFinish }: UseGameOptions) {
     setDragging(true)
     setSelected([index])
     vibrate(5, vibration)
+    playSound('select', sound, soundVolume)
   }
 
   const extendSelection = (index: number) => {
@@ -228,6 +250,7 @@ export function useGame({ vibration, onToast, onFinish }: UseGameOptions) {
         isAdjacent(last, index)
       ) {
         vibrate(5, vibration)
+        playSound('select', sound, soundVolume)
         return [...current, index]
       }
       return current
@@ -257,6 +280,7 @@ export function useGame({ vibration, onToast, onFinish }: UseGameOptions) {
     setBoardRevision((current) => current + 1)
     setCollapseMotions(getCollapseMotions([]))
     onToast(t('toast.shuffled'))
+    playSound('bonus', sound, soundVolume)
   }
 
   const addTime = () => {
@@ -265,6 +289,7 @@ export function useGame({ vibration, onToast, onFinish }: UseGameOptions) {
     setTimeLimit((current) => current + 10)
     setTimeLeft((current) => current + 10)
     onToast(t('toast.timeAdded'))
+    playSound('bonus', sound, soundVolume)
   }
 
   const abandonGame = () => {

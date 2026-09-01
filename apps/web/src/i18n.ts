@@ -170,6 +170,9 @@ const resources = {
       },
       settings: {
         title: 'プレイ設定',
+        sound: '効果音',
+        soundDescription: '選択・成功・失敗を短い音で知らせます',
+        soundVolume: '音量',
         vibration: '振動',
         vibrationDescription: '選択・成功時に端末を振動させます',
         reducedMotion: 'アニメーションを減らす',
@@ -357,6 +360,9 @@ const resources = {
       },
       settings: {
         title: 'Play settings',
+        sound: 'Sound effects',
+        soundDescription: 'Use short sounds for selections and results',
+        soundVolume: 'Volume',
         vibration: 'Vibration',
         vibrationDescription: 'Vibrate when selecting cells and making 10',
         reducedMotion: 'Reduce motion',
