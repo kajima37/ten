@@ -68,10 +68,20 @@
   html {
     color-scheme: dark;
     background: var(--background);
+    overscroll-behavior: none;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
     @apply m-0 min-h-screen bg-background text-foreground antialiased;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overscroll-behavior: none;
+    touch-action: pan-y;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
     background-image: radial-gradient(
       circle at 50% -20%,
       var(--ambient) 0,
@@ -81,6 +91,21 @@
 
   button {
     @apply cursor-pointer;
+    touch-action: manipulation;
+  }
+
+  input,
+  textarea,
+  [contenteditable='true'] {
+    -webkit-touch-callout: default;
+    user-select: text;
+  }
+
+  img,
+  svg,
+  canvas {
+    -webkit-user-drag: none;
+    user-select: none;
   }
 }
 
