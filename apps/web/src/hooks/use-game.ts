@@ -89,7 +89,7 @@ export function useGame({
     const listener = App.addListener('appStateChange', ({ isActive }) => {
       if (!isActive) {
         if (dailyMode) {
-          setRunning(false)
+          setTimeLeft(0)
           setDragging(false)
           setSelected([])
         } else {

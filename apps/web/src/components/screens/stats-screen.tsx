@@ -15,6 +15,11 @@ export function StatsScreen({
   weeklyLeaderboardStatus,
   friendLeaderboard,
   friendLeaderboardStatus,
+  weekKey,
+  canShowPreviousWeek,
+  canShowNewerWeek,
+  onPreviousWeek,
+  onNextWeek,
   playerId,
   social,
   state,
@@ -26,6 +31,11 @@ export function StatsScreen({
   weeklyLeaderboardStatus: 'idle' | 'loading' | 'ready' | 'error'
   friendLeaderboard: WeeklyLeaderboardResponse | null
   friendLeaderboardStatus: 'idle' | 'loading' | 'ready' | 'error'
+  weekKey: string
+  canShowPreviousWeek: boolean
+  canShowNewerWeek: boolean
+  onPreviousWeek: () => void
+  onNextWeek: () => void
   playerId: string | null
   social: ReturnType<typeof useSocial>
   state: PlayerState
@@ -89,6 +99,27 @@ export function StatsScreen({
       <h2 className="mb-2 text-sm font-bold tracking-wide">
         {t(`ranking.${scope}Title`)}
       </h2>
+      {scope !== 'daily' && (
+        <div className="mb-2 flex items-center justify-between text-xs">
+          <button
+            type="button"
+            className="rounded-full px-2 py-1 font-bold text-accent disabled:text-muted-foreground"
+            disabled={!canShowPreviousWeek}
+            onClick={onPreviousWeek}
+          >
+            {t('ranking.previousWeek')}
+          </button>
+          <time className="font-bold tabular-nums">{weekKey}</time>
+          <button
+            type="button"
+            className="rounded-full px-2 py-1 font-bold text-accent disabled:text-muted-foreground"
+            disabled={!canShowNewerWeek}
+            onClick={onNextWeek}
+          >
+            {t('ranking.nextWeek')}
+          </button>
+        </div>
+      )}
       <div className="rounded-3xl border bg-card px-4">
         {currentStatus(
           scope,

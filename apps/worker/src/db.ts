@@ -1,4 +1,4 @@
-const ACTIVE = `p.banned = 0 OR (p.banned_until IS NOT NULL AND p.banned_until < strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`
+const ACTIVE = `(p.banned = 0 OR (p.banned_until IS NOT NULL AND p.banned_until < strftime('%Y-%m-%dT%H:%M:%fZ', 'now')))`
 
 async function getPlayerStreak(
   db: D1Database,
@@ -128,7 +128,13 @@ export interface Store {
     weekStart: string,
     weekEnd: string,
     score: number,
+    playerIds?: Array<string>,
   ) => Promise<RankInfo>
+  getWeeklyCount: (
+    weekStart: string,
+    weekEnd: string,
+    playerIds?: Array<string>,
+  ) => Promise<number>
   getWeeklyScore: (
     playerId: string,
     weekStart: string,
@@ -388,18 +394,21 @@ export function createD1Store(db: D1Database): Store {
       )
     },
 
-    async getWeeklyRank(weekStart, weekEnd, score) {
+    async getWeeklyRank(weekStart, weekEnd, score, playerIds) {
+      const idsClause = playerIds?.length
+        ? ` AND s.player_id IN (${playerIds.map(() => '?').join(', ')})`
+        : ''
       const count = await db
         .prepare(
           `WITH weekly AS (
              SELECT s.player_id, SUM(s.score) AS score
              FROM scores s JOIN players p ON p.id = s.player_id
-             WHERE s.mode = 'daily' AND s.date_key >= ? AND s.date_key < ? AND ${ACTIVE}
+             WHERE s.mode = 'daily' AND s.date_key >= ? AND s.date_key < ? AND ${ACTIVE}${idsClause}
              GROUP BY s.player_id
            )
            SELECT COUNT(*) AS total, SUM(CASE WHEN score > ? THEN 1 ELSE 0 END) AS above FROM weekly`,
         )
-        .bind(weekStart, weekEnd, score)
+        .bind(weekStart, weekEnd, ...(playerIds ?? []), score)
         .first<{ total: number; above: number | null }>()
       const total = count?.total ?? 0
       const rank = (count?.above ?? 0) + 1
@@ -411,6 +420,21 @@ export function createD1Store(db: D1Database): Store {
             ? Math.min(100, Math.max(1, Math.round((rank / total) * 100)))
             : 100,
       }
+    },
+
+    async getWeeklyCount(weekStart, weekEnd, playerIds) {
+      const idsClause = playerIds?.length
+        ? ` AND s.player_id IN (${playerIds.map(() => '?').join(', ')})`
+        : ''
+      const row = await db
+        .prepare(
+          `SELECT COUNT(DISTINCT s.player_id) AS count FROM scores s
+           JOIN players p ON p.id = s.player_id
+           WHERE s.mode = 'daily' AND s.date_key >= ? AND s.date_key < ? AND ${ACTIVE}${idsClause}`,
+        )
+        .bind(weekStart, weekEnd, ...(playerIds ?? []))
+        .first<{ count: number }>()
+      return row?.count ?? 0
     },
 
     async getWeeklyScore(playerId, weekStart, weekEnd) {

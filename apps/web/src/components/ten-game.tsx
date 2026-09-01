@@ -25,6 +25,7 @@ import {
 import { useSocial } from '#/hooks/use-social'
 import { MockAdOverlay } from '#/components/ads/mock-overlay'
 import { MockAdsToggle } from '#/components/ads/mock-toggle'
+import { PwaInstallPrompt } from '#/components/pwa-install-prompt'
 import { createBackup, parseBackup } from '#/lib/backup'
 import { downloadBlob } from '#/lib/download'
 import {
@@ -44,6 +45,12 @@ function getJstWeekStart(): string {
   return jst.toISOString().slice(0, 10)
 }
 
+function addDays(dateKey: string, days: number): string {
+  const date = new Date(`${dateKey}T00:00:00.000Z`)
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
 export default function TenGame() {
   const { i18n, t } = useTranslation()
   const settings = useSettings()
@@ -53,7 +60,7 @@ export default function TenGame() {
   const serverDaily = useDailyBoard()
   const todayKey = serverDaily.data?.dateKey ?? getLocalDateKey()
   const leaderboard = useLeaderboard(todayKey, account.token)
-  const weekKey = getJstWeekStart()
+  const [weekKey, setWeekKey] = useState(getJstWeekStart)
   const weeklyLeaderboard = useWeeklyLeaderboard(
     weekKey,
     'global',
@@ -135,6 +142,11 @@ export default function TenGame() {
         return
       }
       if (screen === 'game') {
+        if (game.dailyMode) {
+          game.abandonGame()
+          setScreen('home')
+          return
+        }
         if (!game.paused) {
           game.togglePause()
         } else {
@@ -149,7 +161,7 @@ export default function TenGame() {
     return () => {
       void listener.then((handle) => handle.remove())
     }
-  }, [game.paused, screen, settings.tutorialOpen])
+  }, [game.dailyMode, game.paused, screen, settings.tutorialOpen])
 
   useEffect(() => {
     const client = getAdsClient()
@@ -313,6 +325,11 @@ export default function TenGame() {
             weeklyLeaderboardStatus={weeklyLeaderboard.status}
             friendLeaderboard={friendLeaderboard.data}
             friendLeaderboardStatus={friendLeaderboard.status}
+            weekKey={weekKey}
+            canShowPreviousWeek={weekKey > addDays(getJstWeekStart(), -77)}
+            canShowNewerWeek={weekKey < getJstWeekStart()}
+            onPreviousWeek={() => setWeekKey((current) => addDays(current, -7))}
+            onNextWeek={() => setWeekKey((current) => addDays(current, 7))}
             playerId={account.player?.id ?? null}
             social={social}
             state={playerState}
@@ -381,6 +398,7 @@ export default function TenGame() {
       )}
 
       <MockAdOverlay />
+      <PwaInstallPrompt />
       {!Capacitor.isNativePlatform() && <MockAdsToggle />}
     </div>
   )

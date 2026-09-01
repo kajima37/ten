@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
   playerProfile: 'ten_player_profile',
   adFrequency: 'ten_ad_frequency',
   adsMode: 'ten_ads_mode',
+  installPromptDismissed: 'ten_install_prompt_dismissed',
 } as const
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS]

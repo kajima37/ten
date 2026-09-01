@@ -28,3 +28,7 @@ jobs:
       - run: pnpm build:mobile
       - name: Verify Capacitor web bundle
         run: test -f apps/web/dist/client/index.html
+      - name: Install Chromium for browser tests
+        run: pnpm --filter @ten/web exec playwright install --with-deps chromium
+      - name: Run browser smoke tests
+        run: pnpm test:e2e

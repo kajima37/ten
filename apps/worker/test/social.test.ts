@@ -115,3 +115,47 @@ test('friend code can be rotated and old codes no longer resolve', async () => {
   const { code } = await readJson<{ code: string }>(rotate)
   assert.notEqual(code, oldCode)
 })
+
+test('banned players cannot mutate or read social data', async () => {
+  const { app, env } = createTestContext()
+  const alice = await register(app, env, 'device-alice')
+  await app.request(
+    `https://example.com/api/admin/players/${alice.playerId}/ban`,
+    { method: 'POST', headers: { authorization: 'Bearer admin-secret' } },
+    env,
+  )
+
+  for (const [path, init] of [
+    ['/api/me', {}],
+    ['/api/friends', {}],
+    ['/api/me/friend-code', { method: 'POST' }],
+  ] as const) {
+    const response = await app.request(
+      `https://example.com${path}`,
+      auth(alice.token, init),
+      env,
+    )
+    assert.equal(response.status, 403)
+  }
+})
+
+test('weekly total is not limited to visible entries', async () => {
+  const { app, env, store } = createTestContext()
+  const week = getJstWeekStartDateKey()
+  for (let index = 0; index < 101; index += 1) {
+    const playerId = `player-${index}`
+    await store.createPlayer(playerId, `device-${index}`, `Player ${index}`, '')
+    await store.upsertDailyScore(playerId, week, index + 1, 1)
+  }
+  const response = await app.request(
+    `https://example.com/api/leaderboard/weekly?week=${week}`,
+    {},
+    env,
+  )
+  const body = await readJson<{
+    total: number
+    entries: Array<{ playerId: string }>
+  }>(response)
+  assert.equal(body.total, 101)
+  assert.equal(body.entries.length, 100)
+})

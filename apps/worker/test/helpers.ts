@@ -401,11 +401,12 @@ export function createMemoryStore(): Store & {
       )
     },
 
-    async getWeeklyRank(weekStart, weekEnd, score) {
+    async getWeeklyRank(weekStart, weekEnd, score, playerIds) {
       const entries = await this.getWeeklyLeaderboard(
         weekStart,
         weekEnd,
         Number.MAX_SAFE_INTEGER,
+        playerIds,
       )
       const above = entries.filter((entry) => entry.score > score).length
       const total = entries.length
@@ -416,6 +417,16 @@ export function createMemoryStore(): Store & {
           ? Math.min(100, Math.max(1, Math.round(((above + 1) / total) * 100)))
           : 100,
       }
+    },
+
+    async getWeeklyCount(weekStart, weekEnd, playerIds) {
+      const entries = await this.getWeeklyLeaderboard(
+        weekStart,
+        weekEnd,
+        Number.MAX_SAFE_INTEGER,
+        playerIds,
+      )
+      return entries.length
     },
 
     async getWeeklyScore(playerId, weekStart, weekEnd) {

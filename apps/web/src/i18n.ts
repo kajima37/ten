@@ -19,6 +19,11 @@ const resources = {
         retryLeaderboard: 'ランキングを再読み込み',
         leaderboardError: 'ランキングを読み込めませんでした',
       },
+      pwa: {
+        installMessage: 'TEN. をホーム画面に追加して、すぐに遊べます。',
+        install: '追加',
+        dismiss: '閉じる',
+      },
       game: {
         resume: '再開',
         pause: '一時停止',
@@ -120,6 +125,8 @@ const resources = {
         decline: '辞退',
         pending: '承認待ち',
         removeFriend: '削除',
+        previousWeek: '前の週',
+        nextWeek: '次の週',
         leaderboardEmpty: 'まだプレイヤーがいません',
         you: 'あなた',
         games: 'プレイ回数',
@@ -245,6 +252,11 @@ const resources = {
         retryLeaderboard: 'Reload leaderboard',
         leaderboardError: 'Could not load the leaderboard',
       },
+      pwa: {
+        installMessage: 'Add TEN. to your home screen for quick play.',
+        install: 'Install',
+        dismiss: 'Dismiss',
+      },
       game: {
         resume: 'Resume',
         pause: 'Pause',
@@ -346,6 +358,8 @@ const resources = {
         decline: 'Decline',
         pending: 'Pending',
         removeFriend: 'Remove',
+        previousWeek: 'Previous',
+        nextWeek: 'Next',
         leaderboardEmpty: 'No players yet',
         you: 'you',
         games: 'Games',

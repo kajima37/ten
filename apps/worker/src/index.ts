@@ -350,6 +350,12 @@ export function createApp(storeFactory: (env: Env) => Store): Hono<AppContext> {
       if (query.scope === 'friends' && !playerId) {
         return c.json({ error: 'unauthorized' }, 401)
       }
+      if (query.scope === 'friends' && playerId) {
+        const player = await store.getPlayer(playerId)
+        if (!player || isPlayerBanned(player)) {
+          return c.json({ error: 'forbidden' }, 403)
+        }
+      }
       const friendIds =
         query.scope === 'friends' && playerId
           ? [
@@ -368,11 +374,21 @@ export function createApp(storeFactory: (env: Env) => Store): Hono<AppContext> {
       if (playerId) {
         const score = await store.getWeeklyScore(playerId, week, weekEnd)
         if (score !== null) {
-          const rank = await store.getWeeklyRank(week, weekEnd, score)
+          const rank = await store.getWeeklyRank(
+            week,
+            weekEnd,
+            score,
+            friendIds,
+          )
           mine = { rank: rank.rank, topPercent: rank.topPercent, score }
         }
       }
-      return c.json({ week, total: entries.length, entries, mine })
+      return c.json({
+        week,
+        total: await store.getWeeklyCount(week, weekEnd, friendIds),
+        entries,
+        mine,
+      })
     },
   )
 
@@ -408,7 +424,7 @@ export function createApp(storeFactory: (env: Env) => Store): Hono<AppContext> {
     },
   )
 
-  app.get('/api/me', authPlayer, async (c) => {
+  app.get('/api/me', authPlayer, activePlayer, async (c) => {
     const store = c.get('store')
     const player = await store.getPlayer(c.get('playerId'))
     if (!player) return c.json({ error: 'unknown player' }, 404)
@@ -419,15 +435,21 @@ export function createApp(storeFactory: (env: Env) => Store): Hono<AppContext> {
     })
   })
 
-  app.patch('/api/me', authPlayer, jsonValidator(nameSchema), async (c) => {
-    const body = c.req.valid('json')
-    const store = c.get('store')
-    const playerId = c.get('playerId')
-    await store.updatePlayerName(playerId, body.name)
-    return c.json({ id: playerId, name: body.name })
-  })
+  app.patch(
+    '/api/me',
+    authPlayer,
+    activePlayer,
+    jsonValidator(nameSchema),
+    async (c) => {
+      const body = c.req.valid('json')
+      const store = c.get('store')
+      const playerId = c.get('playerId')
+      await store.updatePlayerName(playerId, body.name)
+      return c.json({ id: playerId, name: body.name })
+    },
+  )
 
-  app.post('/api/me/friend-code', authPlayer, async (c) => {
+  app.post('/api/me/friend-code', authPlayer, activePlayer, async (c) => {
     const store = c.get('store')
     const playerId = c.get('playerId')
     const code = await issueFriendCode(store, playerId)
@@ -438,6 +460,7 @@ export function createApp(storeFactory: (env: Env) => Store): Hono<AppContext> {
   app.post(
     '/api/friend-requests',
     authPlayer,
+    activePlayer,
     jsonValidator(friendCodeSchema),
     async (c) => {
       const store = c.get('store')
@@ -454,27 +477,32 @@ export function createApp(storeFactory: (env: Env) => Store): Hono<AppContext> {
     },
   )
 
-  app.post('/api/friend-requests/:id/:action', authPlayer, async (c) => {
-    const action = c.req.param('action')
-    if (action !== 'accept' && action !== 'decline') {
-      return c.json({ error: 'not found' }, 404)
-    }
-    const requestId = Number(c.req.param('id'))
-    if (!Number.isSafeInteger(requestId) || requestId < 1) {
-      return c.json({ error: 'invalid request' }, 400)
-    }
-    const updated = await c
-      .get('store')
-      .respondToFriendRequest(
-        requestId,
-        c.get('playerId'),
-        action === 'accept' ? 'accepted' : 'declined',
-      )
-    if (!updated) return c.json({ error: 'request not found' }, 404)
-    return c.json({ status: action === 'accept' ? 'accepted' : 'declined' })
-  })
+  app.post(
+    '/api/friend-requests/:id/:action',
+    authPlayer,
+    activePlayer,
+    async (c) => {
+      const action = c.req.param('action')
+      if (action !== 'accept' && action !== 'decline') {
+        return c.json({ error: 'not found' }, 404)
+      }
+      const requestId = Number(c.req.param('id'))
+      if (!Number.isSafeInteger(requestId) || requestId < 1) {
+        return c.json({ error: 'invalid request' }, 400)
+      }
+      const updated = await c
+        .get('store')
+        .respondToFriendRequest(
+          requestId,
+          c.get('playerId'),
+          action === 'accept' ? 'accepted' : 'declined',
+        )
+      if (!updated) return c.json({ error: 'request not found' }, 404)
+      return c.json({ status: action === 'accept' ? 'accepted' : 'declined' })
+    },
+  )
 
-  app.delete('/api/friends/:id', authPlayer, async (c) => {
+  app.delete('/api/friends/:id', authPlayer, activePlayer, async (c) => {
     const removed = await c
       .get('store')
       .removeFriend(c.get('playerId'), c.req.param('id'))
@@ -482,7 +510,7 @@ export function createApp(storeFactory: (env: Env) => Store): Hono<AppContext> {
     return c.json({ removed: true })
   })
 
-  app.get('/api/friends', authPlayer, async (c) => {
+  app.get('/api/friends', authPlayer, activePlayer, async (c) => {
     const store = c.get('store')
     const playerId = c.get('playerId')
     return c.json({
