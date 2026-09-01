@@ -1,14 +1,23 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { api } from '#/lib/api'
-import type { PlayerProfile, ScoreResponse, ScoreSubmission } from '#/lib/api'
+import type {
+  PlayerProfile,
+  RegisterResponse,
+  ScoreResponse,
+  ScoreSubmission,
+} from '#/lib/api'
+import { authenticatedRequest } from '#/lib/authenticated-request'
 import {
   STORAGE_KEYS,
   readJson,
   readStorage,
+  removeStorage,
   writeJson,
   writeStorage,
 } from '#/lib/storage'
+
+let registrationPromise: Promise<RegisterResponse | null> | null = null
 
 function getDeviceId(): string {
   const existing = readStorage(STORAGE_KEYS.deviceId)
@@ -18,17 +27,29 @@ function getDeviceId(): string {
   return generated
 }
 
-async function ensureToken(): Promise<string | null> {
-  const existing = readStorage(STORAGE_KEYS.token)
-  if (existing) return existing
-  try {
-    const response = await api.register(getDeviceId())
-    writeStorage(STORAGE_KEYS.token, response.token)
-    writeJson(STORAGE_KEYS.playerProfile, response.player)
-    return response.token
-  } catch {
-    return null
-  }
+async function ensureSession(): Promise<RegisterResponse | null> {
+  const token = readStorage(STORAGE_KEYS.token)
+  const player = readJson<PlayerProfile>(STORAGE_KEYS.playerProfile)
+  if (token && player) return { token, player }
+
+  registrationPromise ??= api
+    .register(getDeviceId())
+    .then((response) => {
+      writeStorage(STORAGE_KEYS.token, response.token)
+      writeJson(STORAGE_KEYS.playerProfile, response.player)
+      return response
+    })
+    .catch(() => null)
+    .finally(() => {
+      registrationPromise = null
+    })
+
+  return registrationPromise
+}
+
+function clearSession() {
+  removeStorage(STORAGE_KEYS.token)
+  removeStorage(STORAGE_KEYS.playerProfile)
 }
 
 export function useAccount() {
@@ -41,13 +62,10 @@ export function useAccount() {
 
   useEffect(() => {
     let cancelled = false
-    void ensureToken().then((value) => {
-      if (cancelled || !value) return
-      setToken(value)
-      setPlayer(
-        (current) =>
-          current ?? readJson<PlayerProfile>(STORAGE_KEYS.playerProfile),
-      )
+    void ensureSession().then((session) => {
+      if (cancelled || !session) return
+      setToken(session.token)
+      setPlayer(session.player)
     })
     return () => {
       cancelled = true
@@ -56,10 +74,16 @@ export function useAccount() {
 
   const submitScore = useCallback(
     async (submission: ScoreSubmission): Promise<ScoreResponse | null> => {
-      const value = await ensureToken()
-      if (!value) return null
       try {
-        return await api.submitScore(value, submission)
+        const response = await authenticatedRequest({
+          getSession: ensureSession,
+          clearSession,
+          request: (value) => api.submitScore(value, submission),
+        })
+        if (!response) return null
+        setToken(response.session.token)
+        setPlayer(response.session.player)
+        return response.result
       } catch {
         return null
       }
@@ -68,11 +92,16 @@ export function useAccount() {
   )
 
   const updateName = useCallback(async (name: string): Promise<boolean> => {
-    const value = await ensureToken()
-    if (!value) return false
     try {
-      const profile = await api.updateName(value, name)
+      const response = await authenticatedRequest({
+        getSession: ensureSession,
+        clearSession,
+        request: (value) => api.updateName(value, name),
+      })
+      if (!response) return false
+      const profile = response.result
       writeJson(STORAGE_KEYS.playerProfile, profile)
+      setToken(response.session.token)
       setPlayer(profile)
       return true
     } catch {
