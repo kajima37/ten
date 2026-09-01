@@ -23,17 +23,17 @@ jobs:
       - name: Build for iOS Simulator
         run: >-
           xcodebuild
-          -project ios/App/App.xcodeproj
+          -project apps/web/ios/App/App.xcodeproj
           -scheme App
           -configuration Debug
           -sdk iphonesimulator
           -destination 'generic/platform=iOS Simulator'
-          -derivedDataPath ios/DerivedData
+          -derivedDataPath apps/web/ios/DerivedData
           CODE_SIGNING_ALLOWED=NO
           build
       - uses: actions/upload-artifact@v6
         with:
           name: ten-ios-simulator-${{ github.sha }}
-          path: ios/DerivedData/Build/Products/Debug-iphonesimulator/App.app
+          path: apps/web/ios/DerivedData/Build/Products/Debug-iphonesimulator/App.app
           if-no-files-found: error
           retention-days: 14
