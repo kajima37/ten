@@ -204,7 +204,7 @@ test('repeated submissions are rate limited', async () => {
   const seed = getDailySeed(dateKey)
 
   let lastStatus = 0
-  for (let attempt = 0; attempt < 6; attempt += 1) {
+  for (let attempt = 0; attempt < 11; attempt += 1) {
     const events = simulateDailyGame(seed, 3)
     const { score, maxCombo } = computeOutcome(events)
     const response = await app.request(

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { App } from '@capacitor/app'
+import { Capacitor } from '@capacitor/core'
 
 import { DailyScreen } from '#/components/screens/daily-screen'
 import { GameScreen } from '#/components/screens/game-screen'
@@ -86,6 +88,30 @@ export default function TenGame() {
     onToast: showToast,
     onFinish,
   })
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+
+    const listener = App.addListener('backButton', () => {
+      if (settings.tutorialOpen) {
+        settings.setTutorialOpen(false)
+        return
+      }
+      if (screen === 'game') {
+        if (!game.paused) {
+          game.togglePause()
+        } else {
+          setScreen('home')
+        }
+        return
+      }
+      if (screen !== 'home') setScreen('home')
+    })
+
+    return () => {
+      void listener.then((handle) => handle.remove())
+    }
+  }, [game.paused, screen, settings.tutorialOpen])
 
   const beginGame = useCallback(
     (daily: boolean) => {
