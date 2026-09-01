@@ -72,6 +72,19 @@ pnpm typecheck
 pnpm format:check
 ```
 
+## Gitフック
+
+`pnpm install` の最後にGitフックが登録されます。登録されていない場合は次を実行します。
+
+```bash
+pnpm hooks:install
+```
+
+- commit前: 変更したJavaScript / TypeScriptなどをESLintとPrettierで確認・修正
+- push前: 型チェックとテストを実行
+
+フックで変更されたファイルは、内容を確認してからコミットしてください。
+
 ## 公開
 
 公開手順は目的ごとに分かれています。
