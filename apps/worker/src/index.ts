@@ -157,11 +157,19 @@ export function createApp(storeFactory: (env: Env) => Store): Hono<AppContext> {
 
     const existing = await store.getPlayerByDevice(deviceId)
     const playerId = existing?.id ?? crypto.randomUUID()
-    if (!existing) await store.createPlayer(playerId, deviceId, name, ipHash)
+    if (!existing) {
+      await store.createPlayer(playerId, deviceId, name, ipHash)
+      const registered = await store.getPlayerByDevice(deviceId)
+      if (!registered) return c.json({ error: 'registration failed' }, 500)
+      return c.json({
+        token: await signToken(registered.id, c.env.AUTH_SECRET),
+        player: { id: registered.id, name: registered.name },
+      })
+    }
     const token = await signToken(playerId, c.env.AUTH_SECRET)
     return c.json({
       token,
-      player: { id: playerId, name: existing?.name ?? name },
+      player: { id: playerId, name: existing.name },
     })
   })
 
@@ -224,16 +232,11 @@ export function createApp(storeFactory: (env: Env) => Store): Hono<AppContext> {
         return c.json({ error: 'verification failed' }, 400)
       }
 
-      const result = await store.upsertDailyScore(
+      const result = await store.saveDailyScoreAndProof(
         playerId,
         body.dateKey,
         verified.score,
         verified.maxCombo,
-      )
-      await store.saveScoreProof(
-        playerId,
-        body.dateKey,
-        verified.score,
         JSON.stringify(body.events),
       )
       const rank = await store.getRank(body.dateKey, result.best)

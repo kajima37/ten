@@ -89,6 +89,10 @@ export default function TenGame() {
 
   const beginGame = useCallback(
     (daily: boolean) => {
+      if (daily && !serverDaily) {
+        showToast(t('daily.loading'))
+        return
+      }
       setServerScore(null)
       game.startGame(
         daily,
@@ -96,7 +100,7 @@ export default function TenGame() {
       )
       setScreen('game')
     },
-    [game.startGame, serverDaily],
+    [game.startGame, serverDaily, showToast, t],
   )
 
   const exportData = () => {

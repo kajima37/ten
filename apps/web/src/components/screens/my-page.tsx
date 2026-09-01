@@ -127,6 +127,7 @@ export function MyPage({
             <button
               key={id}
               className={`aspect-[3/4] rounded-xl border ${id === theme ? 'ring-2 ring-accent' : ''}`}
+              aria-pressed={id === theme}
               style={{ background: color }}
               onClick={() => {
                 onThemeChange(id)

@@ -122,6 +122,7 @@ export function useGame({ vibration, onToast, onFinish }: UseGameOptions) {
     }
 
     setCombo(0)
+    eventsRef.current.push({ type: 'miss' })
     if (selected.length > 1) {
       setBoardFeedback('miss')
       setFeedbackId((current) => current + 1)

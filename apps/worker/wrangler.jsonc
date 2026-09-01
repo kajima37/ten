@@ -16,8 +16,4 @@
       "id": "00000000000000000000000000000000",
     },
   ],
-  "vars": {
-    "AUTH_SECRET": "dev-only-secret-change-before-deploy",
-    "ADMIN_SECRET": "dev-only-admin-secret-change-before-deploy",
-  },
 }

@@ -63,6 +63,13 @@ export interface Store {
     score: number,
     combo: number,
   ) => Promise<UpsertDailyScoreResult>
+  saveDailyScoreAndProof: (
+    playerId: string,
+    dateKey: string,
+    score: number,
+    combo: number,
+    eventsJson: string,
+  ) => Promise<UpsertDailyScoreResult>
   getLeaderboard: (
     dateKey: string,
     limit: number,
@@ -98,7 +105,7 @@ export function createD1Store(db: D1Database): Store {
       return db
         .prepare(
           `SELECT id, name, device_id AS device_id, ip_hash AS ip_hash,
-                  banned, banned_until AS banned_until, created_at AS created_at
+                  banned, banned_until AS bannedUntil, created_at AS createdAt
            FROM players WHERE id = ?`,
         )
         .bind(id)
@@ -109,7 +116,7 @@ export function createD1Store(db: D1Database): Store {
       return db
         .prepare(
           `SELECT id, name, device_id AS device_id, ip_hash AS ip_hash,
-                  banned, banned_until AS banned_until, created_at AS created_at
+                  banned, banned_until AS bannedUntil, created_at AS createdAt
            FROM players WHERE device_id = ?`,
         )
         .bind(deviceId)
@@ -145,6 +152,12 @@ export function createD1Store(db: D1Database): Store {
     },
 
     async upsertDailyScore(playerId, dateKey, score, combo) {
+      const previous = await db
+        .prepare(
+          "SELECT score FROM scores WHERE player_id = ? AND date_key = ? AND mode = 'daily'",
+        )
+        .bind(playerId, dateKey)
+        .first<{ score: number }>()
       await db
         .prepare(
           `INSERT INTO scores (player_id, mode, date_key, score, combo)
@@ -166,7 +179,46 @@ export function createD1Store(db: D1Database): Store {
         .first<{ score: number; combo: number }>()
 
       return {
-        isNewBest: score >= (row?.score ?? 0),
+        isNewBest: score > (previous?.score ?? -1),
+        best: row?.score ?? score,
+      }
+    },
+
+    async saveDailyScoreAndProof(playerId, dateKey, score, combo, eventsJson) {
+      const previous = await db
+        .prepare(
+          "SELECT score FROM scores WHERE player_id = ? AND date_key = ? AND mode = 'daily'",
+        )
+        .bind(playerId, dateKey)
+        .first<{ score: number }>()
+      await db.batch([
+        db
+          .prepare(
+            `INSERT INTO scores (player_id, mode, date_key, score, combo)
+             VALUES (?, 'daily', ?, ?, ?)
+             ON CONFLICT(player_id, date_key) WHERE mode = 'daily'
+             DO UPDATE SET
+               score = excluded.score,
+               combo = excluded.combo
+             WHERE excluded.score > scores.score`,
+          )
+          .bind(playerId, dateKey, score, combo),
+        db
+          .prepare(
+            'INSERT INTO score_proofs (player_id, date_key, score, events) VALUES (?, ?, ?, ?)',
+          )
+          .bind(playerId, dateKey, score, eventsJson),
+      ])
+
+      const row = await db
+        .prepare(
+          "SELECT score FROM scores WHERE player_id = ? AND date_key = ? AND mode = 'daily'",
+        )
+        .bind(playerId, dateKey)
+        .first<{ score: number }>()
+
+      return {
+        isNewBest: score > (previous?.score ?? -1),
         best: row?.score ?? score,
       }
     },
@@ -174,7 +226,7 @@ export function createD1Store(db: D1Database): Store {
     async getLeaderboard(dateKey, limit) {
       const rows = await db
         .prepare(
-          `SELECT p.id AS player_id, p.name AS name, s.score AS score, s.combo AS combo
+          `SELECT p.id AS playerId, p.name AS name, s.score AS score, s.combo AS combo
            FROM scores s
            JOIN players p ON p.id = s.player_id
            WHERE s.mode = 'daily' AND s.date_key = ? AND ${ACTIVE}
@@ -184,7 +236,10 @@ export function createD1Store(db: D1Database): Store {
         .bind(dateKey, limit)
         .all<Omit<LeaderboardEntry, 'rank'>>()
 
-      return rows.results.map((row, index) => ({ ...row, rank: index + 1 }))
+      return rows.results.map((row, _index, entries) => ({
+        ...row,
+        rank: entries.findIndex((entry) => entry.score === row.score) + 1,
+      }))
     },
 
     async getRank(dateKey, score) {
@@ -343,7 +398,7 @@ export function createD1Store(db: D1Database): Store {
 
     async deletePlayerScores(playerId, dateKey) {
       if (dateKey) {
-        await db
+        const scoresResult = await db
           .prepare('DELETE FROM scores WHERE player_id = ? AND date_key = ?')
           .bind(playerId, dateKey)
           .run()
@@ -353,7 +408,7 @@ export function createD1Store(db: D1Database): Store {
           )
           .bind(playerId, dateKey)
           .run()
-        return 1
+        return scoresResult.meta.changes
       }
 
       const scoresResult = await db

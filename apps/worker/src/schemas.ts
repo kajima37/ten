@@ -13,6 +13,7 @@ export const gameEventSchema = z.discriminatedUnion('type', [
     cells: z.array(z.number().int().min(0).max(24)).min(2).max(25),
   }),
   z.object({ type: z.literal('shuffle') }),
+  z.object({ type: z.literal('miss') }),
 ])
 
 export const scoreSubmissionSchema = z.object({

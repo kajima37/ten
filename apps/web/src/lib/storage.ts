@@ -12,19 +12,36 @@ export const STORAGE_KEYS = {
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS]
 
 function getStorage(): Storage | null {
-  return typeof window === 'undefined' ? null : window.localStorage
+  if (typeof window === 'undefined') return null
+  try {
+    return window.localStorage
+  } catch {
+    return null
+  }
 }
 
 export function readStorage(key: StorageKey): string | null {
-  return getStorage()?.getItem(key) ?? null
+  try {
+    return getStorage()?.getItem(key) ?? null
+  } catch {
+    return null
+  }
 }
 
 export function writeStorage(key: StorageKey, value: string) {
-  getStorage()?.setItem(key, value)
+  try {
+    getStorage()?.setItem(key, value)
+  } catch {
+    // Storage can be unavailable or full in private browsing contexts.
+  }
 }
 
 export function removeStorage(key: StorageKey) {
-  getStorage()?.removeItem(key)
+  try {
+    getStorage()?.removeItem(key)
+  } catch {
+    // Ignore unavailable storage during cleanup.
+  }
 }
 
 export function readJson<T>(key: StorageKey): T | null {

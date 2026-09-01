@@ -85,6 +85,7 @@ export function Tutorial({
           </Button>
           <Button
             className="rounded-full"
+            autoFocus
             onClick={step === 2 ? onComplete : onNext}
           >
             {step === 2 ? t('tutorial.start') : t('tutorial.next')}

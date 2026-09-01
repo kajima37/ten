@@ -73,7 +73,10 @@ export function computeOutcome(events: Array<GameEvent>) {
   let maxCombo = 0
   let score = 0
   for (const event of events) {
-    if (event.type === 'shuffle') continue
+    if (event.type !== 'eliminate') {
+      if (event.type === 'miss') combo = 0
+      continue
+    }
     combo += 1
     maxCombo = Math.max(maxCombo, combo)
     score += event.cells.length * 100 + (combo - 1) * 50
@@ -204,8 +207,9 @@ export function createMemoryStore(): Store & {
       let isNewBest = true
       if (existing) {
         isNewBest = score > existing.score
+        const isImproved = score > existing.score
         existing.score = Math.max(existing.score, score)
-        existing.combo = combo
+        if (isImproved) existing.combo = combo
       } else {
         scores.push({
           playerId,
@@ -224,6 +228,17 @@ export function createMemoryStore(): Store & {
       return result
     },
 
+    async saveDailyScoreAndProof(playerId, dateKey, score, combo, events) {
+      const result = await this.upsertDailyScore(
+        playerId,
+        dateKey,
+        score,
+        combo,
+      )
+      this.proofs.push({ playerId, dateKey, score, events })
+      return result
+    },
+
     async getLeaderboard(dateKey, limit) {
       const active = new Set(
         [...players.values()].filter(isActive).map((player) => player.id),
@@ -234,8 +249,10 @@ export function createMemoryStore(): Store & {
           (a, b) => b.score - a.score || a.createdAt.localeCompare(b.createdAt),
         )
         .slice(0, limit)
-        .map<LeaderboardEntry>((entry, index) => ({
-          rank: index + 1,
+        .map<LeaderboardEntry>((entry, _index, entries) => ({
+          rank:
+            entries.findIndex((candidate) => candidate.score === entry.score) +
+            1,
           playerId: entry.playerId,
           name: players.get(entry.playerId)?.name ?? 'Player',
           score: entry.score,

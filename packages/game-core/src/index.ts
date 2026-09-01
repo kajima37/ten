@@ -3,7 +3,9 @@ export const CELL_COUNT = GRID_SIZE * GRID_SIZE
 export const TARGET = 10
 
 export type GameEvent =
-  { type: 'eliminate'; cells: Array<number> } | { type: 'shuffle' }
+  | { type: 'eliminate'; cells: Array<number> }
+  | { type: 'shuffle' }
+  | { type: 'miss' }
 
 export function randomNumber(random = Math.random) {
   return 1 + Math.floor(random() * 5)

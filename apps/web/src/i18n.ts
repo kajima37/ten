@@ -64,6 +64,7 @@ const resources = {
       },
       daily: {
         title: '今日のTEN.',
+        loading: '今日の問題を確認中です',
         invitation: '今日のTEN.に挑戦しよう',
         record: '今日の記録',
         nationalRank: '全国順位',
@@ -244,6 +245,7 @@ const resources = {
       },
       daily: {
         title: "TODAY'S TEN.",
+        loading: "Checking today's puzzle",
         invitation: "Take on today's TEN.",
         record: "Today's score",
         nationalRank: 'National rank',

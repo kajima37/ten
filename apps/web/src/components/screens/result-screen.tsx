@@ -94,6 +94,7 @@ export function ResultScreen({
           size="icon"
           className="rounded-full"
           onClick={onHome}
+          aria-label={t('result.home')}
         >
           <House className="size-4" weight="bold" />
         </Button>

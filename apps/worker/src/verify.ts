@@ -53,6 +53,11 @@ export function verifyGame(
       continue
     }
 
+    if (event.type === 'miss') {
+      combo = 0
+      continue
+    }
+
     if (!isValidElimination(board, event.cells)) {
       throw new Error('Invalid elimination')
     }

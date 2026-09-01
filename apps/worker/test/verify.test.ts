@@ -67,6 +67,24 @@ test('replay accounts for shuffles and their score cost', () => {
   assert.ok(simulated.events.some((event) => event.type === 'shuffle'))
 })
 
+test('a miss resets the combo before the next elimination', () => {
+  const simulated = simulateGame(20260901, 2)
+  assert.equal(simulated.events.length, 2)
+  const first = simulated.events[0]
+  const second = simulated.events[1]
+  if (first.type !== 'eliminate' || second.type !== 'eliminate') {
+    throw new Error('simulation did not produce two eliminations')
+  }
+
+  const events: Array<GameEvent> = [first, { type: 'miss' }, second]
+  const verified = verifyGame(20260901, events)
+  const firstScore = first.cells.length * 100
+  const secondScore = second.cells.length * 100
+  assert.equal(verified.score, firstScore + secondScore)
+  assert.equal(verified.maxCombo, 1)
+  assert.equal(verified.combo, 1)
+})
+
 test('empty event list yields zero score', () => {
   const verified = verifyGame(123, [])
   assert.deepEqual(verified, { score: 0, combo: 0, maxCombo: 0 })
