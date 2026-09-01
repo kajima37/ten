@@ -50,9 +50,9 @@ pnpm --filter @ten/worker exec wrangler kv namespace create DAILY_CACHE_STAGING
 pnpm --filter @ten/worker exec wrangler kv namespace create DAILY_CACHE_PRODUCTION
 # ※ 表示された id を apps/worker/wrangler.jsonc に記入
 
-# 4. 暗号鍵・秘密情報の暗号化ファイルへの登録
-# secrets/secrets.staging.age.env および secrets/secrets.production.age.env を編集して暗号化
 ```
+
+秘密情報の設定は、[秘密情報の初回設定・管理手順](./secrets.md) を参照してください。
 
 ## 4. 動作確認の方法
 

@@ -34,6 +34,12 @@ jobs:
           sed -E '/^[[:space:]]*(#|$)/d' "$RUNNER_TEMP/production.env" >> "$GITHUB_ENV"
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+      - name: Upload production Worker secrets
+        run: |-
+          test -n "$AUTH_SECRET"
+          test -n "$ADMIN_SECRET"
+          printf '%s' "$AUTH_SECRET" | pnpm --filter @ten/worker exec wrangler secret put AUTH_SECRET --env production
+          printf '%s' "$ADMIN_SECRET" | pnpm --filter @ten/worker exec wrangler secret put ADMIN_SECRET --env production
       - name: Apply production D1 migrations
         working-directory: apps/worker
         run: pnpm db:migrate:production
