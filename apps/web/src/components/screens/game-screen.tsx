@@ -15,6 +15,7 @@ import { TARGET } from '@ten/game-core'
 import type { CollapseMotion } from '@ten/game-core'
 import type { ThemeId } from '#/lib/themes'
 import type { BoardFeedback } from '#/components/shared/screen'
+import { getComboTier } from '#/lib/combo'
 
 type GameScreenProps = {
   board: Array<number>
@@ -45,6 +46,7 @@ type GameScreenProps = {
 
 export function GameScreen(props: GameScreenProps) {
   const { t } = useTranslation()
+  const comboTier = getComboTier(props.combo)
 
   return (
     <section>
@@ -92,7 +94,9 @@ export function GameScreen(props: GameScreenProps) {
           }}
         />
       </div>
-      <div className="game-board-shell relative overflow-hidden rounded-[1.7rem] border bg-card p-3 shadow-2xl shadow-black/60 touch-none select-none">
+      <div
+        className={`game-board-shell relative overflow-hidden rounded-[1.7rem] border bg-card p-3 shadow-2xl shadow-black/60 touch-none select-none is-${comboTier}`}
+      >
         <GameBoard
           board={props.board}
           selected={props.selected}
@@ -118,6 +122,18 @@ export function GameScreen(props: GameScreenProps) {
                 ))}
               </div>
             )}
+          </div>
+        )}
+        {props.boardFeedback === 'success' && comboTier !== 'normal' && (
+          <div
+            key={`combo-${props.feedbackId}`}
+            className={`ten-fever-label is-${comboTier}`}
+            aria-live="polite"
+          >
+            <strong>
+              {t(comboTier === 'blazing' ? 'game.blazingCombo' : 'game.fever')}
+            </strong>
+            <span>×{props.combo}</span>
           </div>
         )}
         {props.paused && (

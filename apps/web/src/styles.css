@@ -187,6 +187,48 @@
   animation: ten-board-miss 220ms ease-out;
 }
 
+.game-board-shell.is-fever,
+.game-board-shell.is-blazing {
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
+  box-shadow:
+    0 24px 50px rgb(0 0 0 / 55%),
+    0 0 24px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.game-board-shell.is-blazing {
+  animation: ten-fever-glow 1.3s ease-in-out infinite;
+}
+
+.ten-fever-label {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  z-index: 10;
+  display: grid;
+  min-width: 9rem;
+  transform: translate(-50%, -50%);
+  place-items: center;
+  color: var(--accent);
+  text-shadow: 0 2px 18px rgb(0 0 0 / 85%);
+  pointer-events: none;
+  animation: ten-fever-label 760ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.ten-fever-label strong {
+  font-size: 1.45rem;
+  font-weight: 950;
+  letter-spacing: 0.16em;
+}
+
+.ten-fever-label span {
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.ten-fever-label.is-blazing strong {
+  font-size: 1.7rem;
+  color: #fff0aa;
+}
+
 .ten-sparks {
   position: absolute;
   inset: 50%;
@@ -337,6 +379,32 @@ button:active:not(:disabled) {
   }
   100% {
     opacity: 0;
+  }
+}
+
+@keyframes ten-fever-glow {
+  50% {
+    box-shadow:
+      0 24px 50px rgb(0 0 0 / 55%),
+      0 0 36px color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+}
+
+@keyframes ten-fever-label {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -42%) scale(0.7);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -58%) scale(1);
   }
 }
 

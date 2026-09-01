@@ -34,6 +34,8 @@ const resources = {
         secondsBonus: '+10秒',
         used: '使用済み',
         once: '1回',
+        fever: 'FEVER',
+        blazingCombo: 'SUPER TEN',
       },
       toast: {
         combo: '{{combo}}コンボ  +{{gain}}',
@@ -226,6 +228,8 @@ const resources = {
         secondsBonus: '+10 sec',
         used: 'Used',
         once: 'Once',
+        fever: 'FEVER',
+        blazingCombo: 'SUPER TEN',
       },
       toast: {
         combo: '{{combo}} COMBO  +{{gain}}',
