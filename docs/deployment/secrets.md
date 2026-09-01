@@ -26,15 +26,18 @@ secrets/
 
 ## 環境と鍵の対応
 
-| ファイル                          | 復号鍵     | 用途                                |
-| --------------------------------- | ---------- | ----------------------------------- |
-| `secrets.staging.age.env`         | staging 鍵 | main からの staging Worker デプロイ |
-| `secrets.production.age.env`      | 本番系鍵   | production Worker デプロイ          |
-| `secrets.android-release.age.env` | 本番系鍵   | Android リリース（今後の workflow） |
-| `secrets.ios-release.age.env`     | 本番系鍵   | iOS リリース（今後の workflow）     |
+| ファイル                          | 復号鍵     | 用途                                           |
+| --------------------------------- | ---------- | ---------------------------------------------- |
+| `secrets.staging.age.env`         | staging 鍵 | main からの staging Worker デプロイ            |
+| `secrets.production.age.env`      | 本番系鍵   | production Worker デプロイ                     |
+| `secrets.android-release.age.env` | 本番系鍵   | `Android Release` workflow（署名・Play提出）   |
+| `secrets.ios-release.age.env`     | 本番系鍵   | `iOS Release` workflow（署名・TestFlight提出） |
 
 公開鍵は `secrets/.sops.yaml` に記載してコミットしています。秘密鍵はリポジトリに
 **コミットしません**。
+
+各リリース workflow は、`secrets/` の対応するファイルを復号して署名や提出に使います。
+値の一覧は [モバイルデプロイ](./mobile.md) を参照してください。
 
 ## 初回設定
 
@@ -85,8 +88,7 @@ sops secrets/secrets.ios-release.age.env
 | ------------------- | -------------------- |
 | `staging`           | staging 秘密鍵の内容 |
 | `production-worker` | 本番系秘密鍵の内容   |
-| `android-release`   | 本番系秘密鍵の内容   |
-| `ios-release`       | 本番系秘密鍵の内容   |
+| `release`           | 本番系秘密鍵の内容   |
 
 登録は GitHub の `Settings → Environments → 各環境 → Environment secrets` から行います。
 `SOPS_AGE_KEY` の値は秘密鍵ファイルの**内容全体**（`AGE-SECRET-KEY-1...` の行）です。

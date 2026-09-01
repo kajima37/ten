@@ -96,6 +96,14 @@ pnpm hooks:install
 
 `main` は開発確認用で、GitHub Pages と staging Worker を自動更新します。`production` はレビュー済みコードを公開するブランチで、production Worker を更新します。公開済みアプリのビルドには production Worker URL を使います。初回設定は [Cloudflare Worker の公開手順](./docs/deployment/cloudflare-worker.md) を参照してください。`AUTH_SECRET` と `ADMIN_SECRET` は Worker 専用で、Web やモバイルへ渡しません。デプロイ用の秘密情報は [秘密情報の管理](./docs/deployment/secrets.md) の暗号化ファイルで一元管理します。
 
+Android / iOS のストア提出は、`production` 由来のコミットにタグを作ると自動実行されます。
+
+```bash
+git tag v1.2.3
+git push origin v1.2.3
+# Android: Play内部テスト / iOS: TestFlight へ自動提出
+```
+
 ## 仕様
 
 ゲームのルール、画面、実装済み機能と将来案は [プロダクト説明書](./docs/product/README.md) を参照してください。

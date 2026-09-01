@@ -1,0 +1,100 @@
+name: Android Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    environment: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - uses: jdx/mise-action@v3
+        with:
+          cache: true
+      - name: Install Android SDK packages
+        run: >-
+          sdkmanager
+          "platform-tools"
+          "platforms;android-36"
+          "build-tools;35.0.0"
+          "build-tools;36.0.0"
+      - run: pnpm install --frozen-lockfile
+      - name: Verify tag
+        run: >-
+          test "$GITHUB_REF_TYPE" = "tag" &&
+          printf '%s' "$GITHUB_REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'
+      - name: Verify tag is on production
+        run: >-
+          git fetch --quiet origin production &&
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/production
+      - name: Decrypt release secrets
+        run: |-
+          sops -d secrets/secrets.android-release.age.env > "$RUNNER_TEMP/android-release.env"
+          sed -E '/^[[:space:]]*(#|$)/d' "$RUNNER_TEMP/android-release.env" >> "$GITHUB_ENV"
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+      - name: Derive version
+        id: version
+        run: |-
+          name="${GITHUB_REF_NAME#v}"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "TEN_VERSION_NAME=$name" >> "$GITHUB_ENV"
+          echo "TEN_VERSION_CODE=${{ github.run_number }}" >> "$GITHUB_ENV"
+      - name: Verify API URL
+        run: >-
+          test -n "$VITE_API_URL" &&
+          printf '%s' "$VITE_API_URL" | grep -Eq '^https://[^/]+$'
+        env:
+          VITE_API_URL: ${{ vars.TEN_API_URL }}
+      - run: pnpm mobile:sync
+        env:
+          VITE_API_URL: ${{ vars.TEN_API_URL }}
+      - name: Restore keystore
+        run: |-
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+          echo "TEN_KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          echo "TEN_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "TEN_KEY_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "TEN_KEY_PASSWORD=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
+      - name: Build release AAB
+        working-directory: apps/web/android
+        run: ./gradlew bundleRelease --no-daemon
+      - name: Verify signed AAB
+        working-directory: apps/web/android
+        run: |-
+          test -f app/build/outputs/bundle/release/app-release.aab
+          jarsigner -verify app/build/outputs/bundle/release/app-release.aab
+      - name: Write service account
+        run: printf '%s' "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/service-account.json"
+      - name: Upload to Google Play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJson: ${{ runner.temp }}/service-account.json
+          packageName: com.ten.game
+          releaseFiles: apps/web/android/app/build/outputs/bundle/release/app-release.aab
+          tracks: internal
+          releaseName: ${{ steps.version.outputs.name }}
+      - uses: actions/upload-artifact@v6
+        with:
+          name: ten-android-release-${{ github.ref_name }}
+          path: apps/web/android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 90
