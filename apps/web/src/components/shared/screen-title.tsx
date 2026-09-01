@@ -9,7 +9,7 @@ export function ScreenTitle({
 }) {
   return (
     <div className="mb-4 flex items-center justify-between">
-      <strong className="tracking-[0.13em]">{title}</strong>
+      <h1 className="tracking-[0.13em]">{title}</h1>
       <Icon className="size-5 text-muted-foreground" weight="duotone" />
     </div>
   )

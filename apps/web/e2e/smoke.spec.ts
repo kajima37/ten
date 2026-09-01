@@ -2,7 +2,9 @@ import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('ten_language', 'en')
+    if (!localStorage.getItem('ten_language')) {
+      localStorage.setItem('ten_language', 'en')
+    }
   })
 })
 

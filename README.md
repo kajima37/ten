@@ -24,7 +24,7 @@
 - **Node.js**: 26系
 - **pnpm**: 11系
 
-環境管理ツールを使うと、必要なツール（Node.js、pnpm、暗号化ツール等）が自動でセットアップされます。
+環境管理ツールを使うと、必要なツール（Node.js、pnpm、暗号化ツール等）が自動でセットアップされます。NixOS では `flake.nix` が Playwright の Chromium 実行環境も提供します。
 
 ```bash
 # Linux / macOS (direnv を利用している場合)
@@ -58,6 +58,9 @@ pnpm dev:worker
 ```bash
 pnpm check   # フォーマット確認、静的解析、型チェック、全テストを一括実行
 pnpm build   # プロダクションビルドの確認
+
+# Chromium を使うブラウザスモークテスト（NixOS）
+nix develop --command pnpm test:e2e
 ```
 
 ## 公開・デプロイ手順

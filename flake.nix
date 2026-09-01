@@ -24,6 +24,9 @@
                 nodejs_26
                 pnpm
 
+                # browser tests
+                playwright-driver.browsers
+
                 # secret management
                 age
                 sops
@@ -37,7 +40,10 @@
                 tree
                 which
               ];
-          };
+
+              PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
+              PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = "true";
+            };
         };
     };
 }
