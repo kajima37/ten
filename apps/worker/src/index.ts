@@ -53,7 +53,6 @@ const ALLOWED_ORIGINS = new Set([
   'http://localhost',
   'https://localhost',
   'capacitor://localhost',
-  'https://kajima37.github.io',
 ])
 
 const MAX_BODY_BYTES = 65_536

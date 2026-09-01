@@ -7,19 +7,16 @@ import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 const config = defineConfig(({ mode }) => {
-  const isCapacitor = mode === 'capacitor'
-  const isGitHubPages = mode === 'github-pages'
-  const repositoryName =
-    process.env.GITHUB_REPOSITORY?.split('/').at(-1) ?? 'ten'
+  const isStaticSpa = mode === 'worker' || mode === 'capacitor'
 
   return {
-    base: isGitHubPages ? `/${repositoryName}/` : '/',
+    base: '/',
     resolve: { tsconfigPaths: true },
     plugins: [
       devtools(),
       tailwindcss(),
       tanstackStart(
-        isCapacitor || isGitHubPages
+        isStaticSpa
           ? {
               spa: {
                 enabled: true,

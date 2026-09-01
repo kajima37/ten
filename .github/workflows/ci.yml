@@ -25,6 +25,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm build
+      - run: pnpm build:worker
       - run: pnpm build:mobile
       - name: Verify Capacitor web bundle
         run: test -f apps/web/dist/client/index.html

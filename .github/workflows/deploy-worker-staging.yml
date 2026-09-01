@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'apps/worker/**'
+      - 'apps/web/**'
       - 'packages/game-core/**'
       - 'pnpm-lock.yaml'
   workflow_dispatch:
@@ -28,6 +29,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Validate source and tests
         run: pnpm check
+      - name: Build staging web preview
+        run: pnpm build:worker
       - name: Decrypt staging secrets
         run: |-
           sops -d secrets/secrets.staging.age.env > "$RUNNER_TEMP/staging.env"
@@ -47,6 +50,12 @@ jobs:
         working-directory: apps/worker
         run: pnpm deploy:staging
       - name: Check staging Worker
-        run: curl --fail --retry 5 --retry-delay 2 "$TEN_API_URL/api/health"
+        run: |-
+          test -n "$ACCESS_CLIENT_ID"
+          test -n "$ACCESS_CLIENT_SECRET"
+          curl --fail --retry 5 --retry-delay 2 \
+            -H "CF-Access-Client-Id: $ACCESS_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $ACCESS_CLIENT_SECRET" \
+            "$TEN_API_URL/api/health"
         env:
           TEN_API_URL: ${{ vars.TEN_API_URL }}

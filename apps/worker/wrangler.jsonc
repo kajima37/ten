@@ -4,6 +4,11 @@
   "env": {
     "staging": {
       "name": "ten-api-staging",
+      "assets": {
+        "directory": "../web/dist/client",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": ["/api/*"],
+      },
       "d1_databases": [
         {
           "binding": "DB",

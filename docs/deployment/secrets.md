@@ -76,12 +76,14 @@ sops secrets/secrets.staging.age.env
 
 開いたエディタで `<set-me>` の箇所を実際の値に書き換えて保存します。
 
-| 項目名                  | 内容                                     | 取得方法・備考                                                               |
-| ----------------------- | ---------------------------------------- | ---------------------------------------------------------------------------- |
-| `CLOUDFLARE_API_TOKEN`  | Cloudflare の API トークン               | Cloudflare ダッシュボードで「Workers デプロイ」「D1 編集」権限を付与して作成 |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare アカウント ID                 | Cloudflare ダッシュボードの Workers 概要画面で確認                           |
-| `AUTH_SECRET`           | ユーザー認証トークンの署名用シークレット | ランダムな長い文字列（例: `openssl rand -hex 32`）                           |
-| `ADMIN_SECRET`          | 管理者用 API の認証キー                  | ランダムな長い文字列（例: `openssl rand -hex 32`）                           |
+| 項目名                  | 内容                                          | 取得方法・備考                                                               |
+| ----------------------- | --------------------------------------------- | ---------------------------------------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`  | Cloudflare の API トークン                    | Cloudflare ダッシュボードで「Workers デプロイ」「D1 編集」権限を付与して作成 |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare アカウント ID                      | Cloudflare ダッシュボードの Workers 概要画面で確認                           |
+| `AUTH_SECRET`           | ユーザー認証トークンの署名用シークレット      | ランダムな長い文字列（例: `openssl rand -hex 32`）                           |
+| `ADMIN_SECRET`          | 管理者用 API の認証キー                       | ランダムな長い文字列（例: `openssl rand -hex 32`）                           |
+| `ACCESS_CLIENT_ID`      | staging ヘルスチェック用 Access Client ID     | `ten-api-staging` 用 Service Token の Client ID                              |
+| `ACCESS_CLIENT_SECRET`  | staging ヘルスチェック用 Access Client Secret | 上記 Service Token の Client Secret                                          |
 
 ### 2. 本番環境の設定 (`secrets.production.age.env`)
 

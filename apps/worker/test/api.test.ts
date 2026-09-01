@@ -268,7 +268,7 @@ test('repeated submissions are rate limited', async () => {
   assert.equal(lastStatus, 429)
 })
 
-test('preflight request returns CORS headers for allowed origins', async () => {
+test('preflight request does not allow the retired GitHub Pages origin', async () => {
   const { app, env } = createTestContext()
   const response = await app.request(
     'https://example.com/api/scores',
@@ -279,10 +279,7 @@ test('preflight request returns CORS headers for allowed origins', async () => {
     env,
   )
   assert.equal(response.status, 204)
-  assert.equal(
-    response.headers.get('access-control-allow-origin'),
-    'https://kajima37.github.io',
-  )
+  assert.equal(response.headers.get('access-control-allow-origin'), null)
 })
 
 test('capacitor origins are allowed for mobile clients', async () => {

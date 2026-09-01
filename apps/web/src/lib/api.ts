@@ -1,7 +1,9 @@
 import type { GameEvent } from '@ten/game-core'
 
 export const API_URL: string =
-  import.meta.env.VITE_API_URL ?? 'http://localhost:8787'
+  import.meta.env.MODE === 'worker'
+    ? ''
+    : (import.meta.env.VITE_API_URL ?? 'http://localhost:8787')
 
 export type DailyPayload = {
   dateKey: string
