@@ -1,119 +1,78 @@
 # TEN.
 
-数字をなぞって合計10を作る、60秒のミニマル数字パズルです。
+**MAKE 10. BEAT YOUR BEST.**  
+数字をなぞって合計「10」を作る、60秒の大人向けミニマル数字パズルです。
 
-## このリポジトリ
+## はじめに
 
-pnpm workspaceのモノレポです。
+このリポジトリは、スマートフォン向けアプリ（iOS / Android）および Web プレビュー版のソースコードと、オンライン対戦・ランキング用バックエンド（Cloudflare Worker）を含むモノレポです。
 
-| 場所                 | 内容                                 |
-| -------------------- | ------------------------------------ |
-| `apps/web`           | Web版とCapacitor版の画面・ゲーム体験 |
-| `apps/worker`        | Cloudflare Worker API                |
-| `packages/game-core` | WebとWorkerで共有するゲームルール    |
-| `docs/product`       | プロダクト仕様・デザイン資料         |
-| `docs/deployment`    | 公開・運用手順                       |
+### 構成一覧
 
-## 環境構築
+| フォルダ             | 役割                                                                  |
+| -------------------- | --------------------------------------------------------------------- |
+| `apps/web`           | ゲーム画面、Web プレビュー版、Capacitor モバイルアプリ                |
+| `apps/worker`        | デイリー盤面配信、ランキング集計、スコア検証 API（Cloudflare Worker） |
+| `packages/game-core` | ゲームのルール、盤面生成、スコア計算（共有モジュール）                |
+| `docs/product`       | プロダクト仕様書、ゲームルール、画面設計                              |
+| `docs/deployment`    | モバイルアプリ配布、サーバー公開、秘密情報の初期設定手順              |
 
-このリポジトリはNode.js 26.8.1とpnpm 11.21.0を使います。バージョンを自動で揃える方法は次の2つです。
+## 開発環境のセットアップ
 
-- Linux / NixOS: Nix、direnvを用意し、リポジトリで `direnv allow` を実行する。`.envrc` が `flake.nix` の開発環境を読み込む
-- Windowsなど: miseを用意し、リポジトリで `mise install` を実行する。`mise.toml` のNode.js、pnpm、Android SDK、Javaが用意される
+### 前提条件
 
-どちらも使わない場合は、Node.js 26系とpnpm 11系を自分で用意してください。
+- **Node.js**: 26系
+- **pnpm**: 11系
 
-依存関係をインストールします。
+環境管理ツールを使うと、必要なツール（Node.js、pnpm、暗号化ツール等）が自動でセットアップされます。
+
+```bash
+# Linux / macOS (direnv を利用している場合)
+direnv allow
+
+# Windows または mise を利用している場合
+mise install
+```
+
+### パッケージのインストール
 
 ```bash
 pnpm install
 ```
 
-Nixやdirenvを使わないLinux環境では、次の方法でも開発環境に入れます。
+### ローカルでゲームを起動する
 
 ```bash
-nix develop
-# 開発環境に入った後に実行
-pnpm install
-```
-
-## 開発を始める
-
-リポジトリのルートで実行します。
-
-```bash
+# Web 開発サーバーを起動 (通常 http://localhost:3000 で起動)
 pnpm dev
-```
 
-Web画面は通常 `http://localhost:3000/` で開きます。Worker APIも使う場合は、別のターミナルで次を実行します。
-
-```bash
+# (任意) ローカル Worker API サーバーも動かす場合 (別のターミナルで実行)
 pnpm --filter @ten/worker db:migrate:local
 pnpm dev:worker
 ```
 
-Workerは `http://localhost:8787` で起動します。WebとWorkerは別のターミナルで起動してください。
+## コード品質チェック・テスト
 
-APIの接続先は `VITE_API_URL` で指定でき、未指定時は `http://localhost:8787` です。
-
-## 確認コマンド
+プルリクエスト前や動作確認には、以下のコマンドを実行します。
 
 ```bash
-pnpm check
-pnpm build
+pnpm check   # フォーマット確認、静的解析、型チェック、全テストを一括実行
+pnpm build   # プロダクションビルドの確認
 ```
 
-テストや個別の処理は次で実行できます。
+## 公開・デプロイ手順
 
-```bash
-pnpm test
-pnpm lint
-pnpm typecheck
-pnpm format:check
-```
+目的に応じて各ドキュメントを参照してください。
 
-## Gitフック
+- **[モバイルアプリの公開・ビルド](./docs/deployment/mobile.md)**:  
+  `production` ブランチでバージョンタグ（例: `v1.0.0`）をプッシュするだけで、Android（Google Play 内部テスト）と iOS（TestFlight）へ自動提出されます。
+- **[Cloudflare Worker の公開と運用](./docs/deployment/cloudflare-worker.md)**:  
+  バックエンド API、データベース（D1）、キャッシュ（KV）の設定と自動デプロイについて説明しています。
+- **[GitHub Pages への公開](./docs/deployment/github-pages.md)**:  
+  関係者向けの Web プレビュー版（ステージング環境）の自動公開手順です。
+- **[秘密情報の初回設定手順（SOPS + age）](./docs/deployment/secrets.md)**:  
+  署名キーストア、証明書、API トークンなどの暗号化ファイルの準備や、GitHub リポジトリへの環境設定方法をステップ・バイ・ステップで解説しています。
 
-`pnpm install` の最後にGitフックが登録されます。登録されていない場合は次を実行します。
+## 仕様・デザイン
 
-```bash
-pnpm hooks:install
-```
-
-- commit前: 変更したJavaScript / TypeScriptなどをESLintとPrettierで確認・修正
-- push前: 型チェックとテストを実行
-
-フックで変更されたファイルは、内容を確認してからコミットしてください。
-
-## 公開
-
-公開手順は目的ごとに分かれています。
-
-- [Cloudflare Worker](./docs/deployment/cloudflare-worker.md): API、D1、KVの初回設定と公開
-- [GitHub Pages](./docs/deployment/github-pages.md): Web版の公開
-- [モバイル](./docs/deployment/mobile.md): Android / iOSのビルドと配布
-- [秘密情報の管理](./docs/deployment/secrets.md): SOPS + age による秘密情報の一元管理
-
-`main` は開発確認用で、GitHub Pages と staging Worker を自動更新します。`production` はレビュー済みコードを公開するブランチで、production Worker を更新します。公開済みアプリのビルドには production Worker URL を使います。初回設定は [Cloudflare Worker の公開手順](./docs/deployment/cloudflare-worker.md) を参照してください。`AUTH_SECRET` と `ADMIN_SECRET` は Worker 専用で、Web やモバイルへ渡しません。デプロイ用の秘密情報は [秘密情報の管理](./docs/deployment/secrets.md) の暗号化ファイルで一元管理します。
-
-Android / iOS のストア提出は、`production` 由来のコミットにタグを作ると自動実行されます。
-
-```bash
-git tag v1.2.3
-git push origin v1.2.3
-# Android: Play内部テスト / iOS: TestFlight へ自動提出
-```
-
-## 仕様
-
-ゲームのルール、画面、実装済み機能と将来案は [プロダクト説明書](./docs/product/README.md) を参照してください。
-
-## ツールチェーン
-
-- Node.js 26系
-- pnpm 11系
-- React / TypeScript / Vite
-- TanStack Start / TanStack Router
-- PixiJS / Tailwind CSS
-- Cloudflare Workers / D1 / KV
-- Capacitor 8
+ゲームの詳しいルール、画面構成、実装済み機能やロードマップは **[プロダクト説明書](./docs/product/README.md)** をご覧ください。

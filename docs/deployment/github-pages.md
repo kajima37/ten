@@ -1,42 +1,29 @@
-# GitHub Pagesへの公開
+# GitHub Pages への公開
 
-Web版をGitHub Pagesへ公開します。`main` は開発確認用なので、Pages は staging Worker に接続します。初回の Worker 設定は [Cloudflare Worker](./cloudflare-worker.md) を参照してください。
+Web プレビュー版を **GitHub Pages** に公開する手順です。開発チームや関係者がブラウザから最新のゲーム体験を確認するために利用します。
 
-## 初回設定
+## 1. 概要
 
-1. GitHubの **Settings → Pages → Build and deployment → Source** で **GitHub Actions** を選びます。
-2. **Settings → Environments → staging → Variables** に、staging Worker の URL を `TEN_API_URL` として登録します。
+- **公開 URL**: `https://kajima37.github.io/ten/`
+- **接続先サーバー**: 自動的に **ステージング Worker**（`ten-api-staging`）に接続されます。本番データには影響を与えません。
+- **更新タイミング**: `main` ブランチへ変更がマージされるたびに、GitHub Actions が自動で最新版をビルドして公開します。
 
-```text
-TEN_API_URL=https://ten-api-staging.<account>.workers.dev
-```
+## 2. 初回のみ必要な設定（リポジトリ管理者）
 
-URLの末尾に `/` は付けません。
+1. **GitHub Pages の有効化**:
+   - リポジトリの **Settings → Pages → Build and deployment → Source** で **GitHub Actions** を選択します。
+2. **接続先 API URL の登録**:
+   - **Settings → Environments → staging → Variables** に `TEN_API_URL` を追加します。
+   - 値の例: `https://ten-api-staging.<account>.workers.dev`（末尾のスラッシュ `/` は不要です）
 
-## 公開
+## 3. 手動での更新とローカル確認
 
-`main` ブランチへのプッシュで `.github/workflows/pages.yml` が自動公開します。GitHubの **Actions → GitHub Pages → Run workflow** から手動実行することもできます。
+通常はプッシュ時に自動更新されますが、手動で再実行したい場合は GitHub の **Actions → GitHub Pages → Run workflow** から実行できます。
 
-ワークフローは、`TEN_API_URL` を埋め込んだSPAを作成し、`apps/web/dist/client` をGitHub Pagesへ公開します。
-
-通常の公開先は次のURLです。
-
-```text
-https://kajima37.github.io/ten/
-```
-
-## 公開後の確認
-
-- ページが開く
-- デイリー画面に今日の盤面が表示される
-- デイリーの結果送信とランキング表示が動作する
-
-staging Worker の URL を変更した場合は、`staging` Environment の `TEN_API_URL` を更新してから Pages を再実行します。Worker の処理だけを変更した場合は、Pages の再公開は不要です。
-
-## ローカル確認
+### 手元でビルドを確認する場合
 
 ```bash
 pnpm build:pages
 ```
 
-`apps/web/dist/client/index.html` が生成され、アセットURLがリポジトリ名のサブパスから始まることを確認します。
+実行後、`apps/web/dist/client/` に GitHub Pages 用の Web ファイル一式が生成されます。
