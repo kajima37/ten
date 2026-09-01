@@ -1,32 +1,42 @@
-# GitHub Pages への公開
+# GitHub Pagesへの公開
 
-TEN. はバックエンドを使わないSPAとしてビルドし、GitHub Pagesで公開します。
+Web版をGitHub Pagesへ公開します。デイリー盤面やランキングを使うには、先に [Cloudflare Worker](./cloudflare-worker.md) を公開してください。
 
-## 公開の流れ
+## 初回設定
 
-`main` ブランチへのプッシュ時に `.github/workflows/pages.yml` が次を実行します。
+1. GitHubの **Settings → Pages → Build and deployment → Source** で **GitHub Actions** を選びます。
+2. **Settings → Secrets and variables → Actions → Variables** に、公開したWorkerのURLを `TEN_API_URL` として登録します。
 
-1. 依存関係をインストールする
-2. GitHub Pages用のサブパスを設定してSPAをビルドする
-3. `dist/client` をPages成果物としてアップロードする
-4. `github-pages` 環境へデプロイする
+```text
+TEN_API_URL=https://ten-api.<account>.workers.dev
+```
 
-Actions画面から `GitHub Pages` ワークフローを手動実行することもできます。
+URLの末尾に `/` は付けません。
 
-## 初回のみ必要なGitHub設定
+## 公開
 
-リポジトリの **Settings → Pages → Build and deployment → Source** で **GitHub Actions** を選択します。リポジトリが非公開の場合は、契約中のGitHubプランで非公開リポジトリのPagesが利用できる必要があります。
+`main` ブランチへのプッシュで `.github/workflows/pages.yml` が自動公開します。GitHubの **Actions → GitHub Pages → Run workflow** から手動実行することもできます。
 
-公開先は通常、次のURLです。
+ワークフローは、`TEN_API_URL` を埋め込んだSPAを作成し、`apps/web/dist/client` をGitHub Pagesへ公開します。
+
+通常の公開先は次のURLです。
 
 ```text
 https://kajima37.github.io/ten/
 ```
 
+## 公開後の確認
+
+- ページが開く
+- デイリー画面に今日の盤面が表示される
+- デイリーの結果送信とランキング表示が動作する
+
+WorkerのURLを変更した場合は、`TEN_API_URL` を更新してからPagesを再実行します。Workerの処理だけを変更した場合は、Pagesの再公開は不要です。
+
 ## ローカル確認
 
-```powershell
-.\.tools\mise\mise.exe exec -- pnpm build:pages
+```bash
+pnpm build:pages
 ```
 
-`dist/client/index.html` が生成され、HTML内のアセットURLが `/ten/` から始まることを確認します。
+`apps/web/dist/client/index.html` が生成され、アセットURLがリポジトリ名のサブパスから始まることを確認します。

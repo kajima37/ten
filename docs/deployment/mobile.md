@@ -1,9 +1,6 @@
 # TEN. モバイルデプロイ
 
-TEN. は Capacitor 8 を使用し、既存の TanStack Start アプリケーションを
-Android および iOS 向けにパッケージ化します。Web 版は引き続き SSR に対応し、
-モバイルビルドでは TanStack Start の SPA モードを使用して
-`dist/client/index.html` を生成します。
+TEN. は Capacitor 8 を使用し、既存のWebアプリをAndroidおよびiOS向けにパッケージ化します。デイリーやランキングを使う場合は、先に [Cloudflare Worker](./cloudflare-worker.md) を公開してください。
 
 ## アプリケーション情報
 
@@ -14,19 +11,24 @@ Android および iOS 向けにパッケージ化します。Web 版は引き続
 Application ID を変更してください。公開後に変更すると、ストア上では別の
 アプリケーションとして扱われます。
 
-## ローカルでのビルド手順
+## ローカルでのビルド
+
+WorkerのURLを `VITE_API_URL` に指定します。ローカルWorkerを使う場合は `http://localhost:8787` に置き換えます。
 
 ```sh
+export VITE_API_URL=https://ten-api.<account>.workers.dev
 pnpm build:mobile
 pnpm mobile:sync
+```
+
+API URLはアプリのビルドに埋め込まれます。`AUTH_SECRET` や `ADMIN_SECRET` はモバイルビルドへ絶対に入れません。
+
+```sh
 pnpm mobile:open:android
 pnpm mobile:open:ios
 ```
 
-`pnpm mobile:sync` はモバイル用 SPA を生成して両方のネイティブプロジェクトへ
-コピーし、Capacitor プラグインを同期します。Android の端末向けビルドには
-Android Studio が必要です。iOS の端末向けビルドには macOS 上の Xcode が
-必要です。
+`pnpm mobile:sync` はモバイル用Webファイルを生成してネイティブプロジェクトへコピーし、Capacitorプラグインを同期します。Androidの端末向けビルドにはAndroid Studio、iOSの端末向けビルドにはmacOS上のXcodeが必要です。
 
 ## 継続的インテグレーション
 
@@ -34,6 +36,8 @@ Android Studio が必要です。iOS の端末向けビルドには macOS 上の
   モバイル用 Web バンドルを検証します。
 - `Android`: 手動実行時にデバッグ APK を生成します。
 - `iOS`: 手動実行時に署名なしの Simulator アプリを生成します。
+
+AndroidとiOSのActionsは、GitHubの **Settings → Secrets and variables → Actions → Variables** に登録した `TEN_API_URL` を使います。API URLを変更した場合は、Actionsを再実行してアプリを作り直してください。
 
 Android と iOS のネイティブビルドは実行時間とコストを抑えるため、push や
 pull request では自動実行されません。GitHub のリポジトリで
