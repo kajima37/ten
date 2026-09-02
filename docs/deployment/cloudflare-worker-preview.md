@@ -34,7 +34,7 @@ GitHub 上でコードが `main` ブランチにマージされると、GitHub A
 3. **管理画面**: プレビュー承認済みのアカウントは、staging の管理画面（[管理画面の公開と運用](./admin.md)）にも同じログインで入れます。
 4. **ログアウト**: `https://ten-api-staging.<account>.workers.dev/auth/logout` の画面からログアウトできます。
 
-手動で再デプロイしたい場合は、GitHub の **Actions → Deploy Staging Worker → Run workflow** から実行できます。
+手動で再デプロイしたい場合は、GitHub の **Actions → Pipeline → Run workflow** を開き、`main` ブランチを選択して実行します。手動実行では Worker と管理画面を再デプロイします。
 
 ## 3. 初回のみ必要な準備（管理者向け）
 

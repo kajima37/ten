@@ -1,47 +1,40 @@
-name: Deploy Production Admin
+name: Deploy Admin
 
 on:
-  push:
-    branches: [production]
-    paths:
-      - 'apps/admin/**'
-      - 'apps/worker/migrations/**'
-      - 'packages/oauth/**'
-      - 'pnpm-lock.yaml'
-  workflow_dispatch:
-
-concurrency:
-  group: admin-production
-  cancel-in-progress: false
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      sha:
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   deploy:
-    environment: production
+    environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.sha }}
       - uses: jdx/mise-action@v3
         with:
           cache: true
       - run: pnpm install --frozen-lockfile
-      - name: Validate source and tests
-        run: pnpm check
-      - name: Verify production ref
-        run: test "$GITHUB_REF" = "refs/heads/production"
-      - name: Build admin web
-        run: pnpm --filter @ten/admin build
-      - name: Resolve production Cloudflare credentials
+      - uses: actions/download-artifact@v7
+        with:
+          name: admin-assets-${{ inputs.sha }}
+          path: apps/admin/dist/client
+      - name: Resolve Cloudflare credentials
         run: |-
-          sops -d secrets/secrets.production.age.env > "$RUNNER_TEMP/production.env"
-          secret() {
-            sed -n "s/^$1=//p" "$RUNNER_TEMP/production.env" | head -n 1
-          }
-          export CLOUDFLARE_API_TOKEN
+          sops -d "secrets/secrets.${{ inputs.environment }}.age.env" > "$RUNNER_TEMP/environment.env"
+          secret() { sed -n "s/^$1=//p" "$RUNNER_TEMP/environment.env" | head -n 1; }
           CLOUDFLARE_API_TOKEN="$(secret CLOUDFLARE_API_TOKEN)"
-          export CLOUDFLARE_ACCOUNT_ID
           CLOUDFLARE_ACCOUNT_ID="$(secret CLOUDFLARE_ACCOUNT_ID)"
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
@@ -49,18 +42,14 @@ jobs:
           echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
           echo "CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN" >> "$GITHUB_ENV"
           echo "CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID" >> "$GITHUB_ENV"
-          rm -f "$RUNNER_TEMP/production.env"
+          rm -f "$RUNNER_TEMP/environment.env"
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
-      - name: Upload production Admin secrets
+      - name: Upload Admin secrets
         run: |-
-          sops -d secrets/secrets.production.age.env > "$RUNNER_TEMP/production.env"
-          secret() {
-            sed -n "s/^$1=//p" "$RUNNER_TEMP/production.env" | head -n 1
-          }
-          require() {
-            test -n "$(secret "$1")" || { echo "missing required secret: $1" >&2; exit 1; }
-          }
+          sops -d "secrets/secrets.${{ inputs.environment }}.age.env" > "$RUNNER_TEMP/environment.env"
+          secret() { sed -n "s/^$1=//p" "$RUNNER_TEMP/environment.env" | head -n 1; }
+          require() { test -n "$(secret "$1")" || { echo "missing required secret: $1" >&2; exit 1; }; }
           require ADMIN_SESSION_SECRET
           require GITHUB_OAUTH_CLIENT_ID
           require GITHUB_OAUTH_CLIENT_SECRET
@@ -72,7 +61,7 @@ jobs:
             local name="$1" value
             value="$(secret "$name")"
             echo "::add-mask::$value"
-            printf '%s' "$value" | pnpm --filter @ten/admin exec wrangler secret put "$name" --env production
+            printf '%s' "$value" | pnpm --filter @ten/admin exec wrangler secret put "$name" --env "${{ inputs.environment }}"
           }
           put ADMIN_SESSION_SECRET
           if [ -n "$(secret GOOGLE_OAUTH_CLIENT_ID)" ] || [ -n "$(secret GOOGLE_OAUTH_CLIENT_SECRET)" ]; then
@@ -81,16 +70,13 @@ jobs:
           fi
           put GITHUB_OAUTH_CLIENT_ID
           put GITHUB_OAUTH_CLIENT_SECRET
-          rm -f "$RUNNER_TEMP/production.env"
+          rm -f "$RUNNER_TEMP/environment.env"
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
-      - name: Apply production D1 migrations
+      - name: Deploy Admin
         working-directory: apps/admin
-        run: pnpm db:migrate:production
-      - name: Deploy production Admin
-        working-directory: apps/admin
-        run: pnpm exec wrangler deploy --env production --var "DEPLOY_VERSION:$GITHUB_SHA"
-      - name: Check production Admin
+        run: pnpm exec wrangler deploy --env "${{ inputs.environment }}" --var "DEPLOY_VERSION:${{ inputs.sha }}"
+      - name: Check Admin
         run: |-
           case "$TEN_ADMIN_URL" in
             https://*.workers.dev) : ;;
@@ -98,6 +84,6 @@ jobs:
           esac
           health="$(curl --fail --retry 5 --retry-delay 2 --proto '=https' --tlsv1.2 "$TEN_ADMIN_URL/api/health")"
           actual="$(printf '%s' "$health" | jq -r '.version // empty')"
-          test "$actual" = "$GITHUB_SHA" || { echo "health version mismatch: $actual != $GITHUB_SHA" >&2; exit 1; }
+          test "$actual" = "${{ inputs.sha }}" || { echo "health version mismatch: $actual != ${{ inputs.sha }}" >&2; exit 1; }
         env:
           TEN_ADMIN_URL: ${{ vars.TEN_ADMIN_URL }}

@@ -1,0 +1,340 @@
+name: Pipeline
+
+on:
+  push:
+    branches: [main, production]
+  pull_request:
+    branches: [main, production]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      worker-staging: ${{ steps.outputs.outputs.worker-staging }}
+      worker-production: ${{ steps.outputs.outputs.worker-production }}
+      admin: ${{ steps.outputs.outputs.admin }}
+      web: ${{ steps.outputs.outputs.web }}
+      mobile: ${{ steps.outputs.outputs.mobile }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@15192bc058cc28a13dbf6cde61f19e18988b7af6 # v3
+        id: filter
+        if: github.event_name != 'workflow_dispatch'
+        with:
+          filters: |
+            worker-staging:
+              - 'apps/worker/**'
+              - 'apps/web/**'
+              - 'packages/game-core/**'
+              - 'packages/oauth/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'mise.toml'
+              - 'eslint.config.js'
+              - 'prettier.config.js'
+              - 'tsconfig*.json'
+            worker-production:
+              - 'apps/worker/**'
+              - 'packages/game-core/**'
+              - 'packages/oauth/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'mise.toml'
+              - 'eslint.config.js'
+              - 'prettier.config.js'
+              - 'tsconfig*.json'
+            admin:
+              - 'apps/admin/**'
+              - 'apps/worker/migrations/**'
+              - 'packages/oauth/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'mise.toml'
+              - 'eslint.config.js'
+              - 'prettier.config.js'
+              - 'tsconfig*.json'
+            web:
+              - 'apps/web/**'
+              - 'packages/game-core/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'mise.toml'
+              - 'eslint.config.js'
+              - 'prettier.config.js'
+              - 'tsconfig*.json'
+            mobile:
+              - 'apps/web/**'
+              - 'packages/game-core/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'mise.toml'
+              - 'eslint.config.js'
+              - 'prettier.config.js'
+              - 'tsconfig*.json'
+      - id: outputs
+        run: |-
+          if [ "${{ github.event_name }}" = workflow_dispatch ]; then
+            {
+              for target in worker-staging worker-production admin web mobile; do
+                echo "$target=true"
+              done
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "worker-staging=${{ steps.filter.outputs.worker-staging }}"
+              echo "worker-production=${{ steps.filter.outputs.worker-production }}"
+              echo "admin=${{ steps.filter.outputs.admin }}"
+              echo "web=${{ steps.filter.outputs.web }}"
+              echo "mobile=${{ steps.filter.outputs.mobile }}"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+  validate:
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v3
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+
+  build-web:
+    needs: [changes, validate]
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v3
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+  build-mobile:
+    needs: [changes, validate]
+    if: needs.changes.outputs.mobile == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v3
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:mobile
+      - name: Verify Capacitor web bundle
+        run: test -f apps/web/dist/client/index.html
+
+  build-staging-worker-assets:
+    needs: [changes, validate]
+    if: github.ref == 'refs/heads/main' && needs.changes.outputs.worker-staging == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v3
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:worker
+      - uses: actions/upload-artifact@v6
+        with:
+          name: staging-worker-assets-${{ github.sha }}
+          path: apps/web/dist/client
+          if-no-files-found: error
+          retention-days: 1
+
+  build-admin-assets:
+    needs: [changes, validate]
+    if: needs.changes.outputs.admin == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v3
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @ten/admin build
+      - uses: actions/upload-artifact@v6
+        with:
+          name: admin-assets-${{ github.sha }}
+          path: apps/admin/dist/client
+          if-no-files-found: error
+          retention-days: 1
+
+  e2e:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v3
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-1.59.1
+      - name: Install Chromium for browser tests
+        run: pnpm --filter @ten/web exec playwright install --with-deps chromium
+      - name: Run browser smoke tests
+        run: pnpm test:e2e
+      - name: Upload Playwright diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-diagnostics-${{ github.sha }}
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          if-no-files-found: ignore
+          retention-days: 14
+
+  migrate-staging:
+    needs: [changes, validate]
+    if: github.ref == 'refs/heads/main' && (needs.changes.outputs.worker-staging == 'true' || needs.changes.outputs.admin == 'true')
+    environment: staging
+    concurrency:
+      group: d1-staging-migrations
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v3
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - name: Resolve staging Cloudflare credentials
+        run: |-
+          sops -d secrets/secrets.staging.age.env > "$RUNNER_TEMP/staging.env"
+          secret() { sed -n "s/^$1=//p" "$RUNNER_TEMP/staging.env" | head -n 1; }
+          CLOUDFLARE_API_TOKEN="$(secret CLOUDFLARE_API_TOKEN)"
+          CLOUDFLARE_ACCOUNT_ID="$(secret CLOUDFLARE_ACCOUNT_ID)"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+          echo "CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN" >> "$GITHUB_ENV"
+          echo "CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID" >> "$GITHUB_ENV"
+          rm -f "$RUNNER_TEMP/staging.env"
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+      - name: Apply staging D1 migrations
+        working-directory: apps/worker
+        run: pnpm db:migrate:staging
+
+  deploy-staging-worker:
+    needs: [changes, validate, build-staging-worker-assets, migrate-staging]
+    if: always() && github.ref == 'refs/heads/main' && needs.changes.outputs.worker-staging == 'true' && needs.validate.result == 'success' && needs.build-staging-worker-assets.result == 'success' && needs.migrate-staging.result == 'success'
+    uses: ./.github/workflows/_deploy-worker.yml
+    with:
+      environment: staging
+      sha: ${{ github.sha }}
+      download-assets: true
+
+  deploy-staging-admin:
+    needs: [changes, validate, build-admin-assets, migrate-staging]
+    if: always() && github.ref == 'refs/heads/main' && needs.changes.outputs.admin == 'true' && needs.validate.result == 'success' && needs.build-admin-assets.result == 'success' && needs.migrate-staging.result == 'success'
+    uses: ./.github/workflows/_deploy-admin.yml
+    with:
+      environment: staging
+      sha: ${{ github.sha }}
+
+  migrate-production:
+    needs: [changes, validate, e2e]
+    if: github.ref == 'refs/heads/production' && (needs.changes.outputs.worker-production == 'true' || needs.changes.outputs.admin == 'true')
+    environment: production
+    concurrency:
+      group: d1-production-migrations
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v3
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - name: Resolve production Cloudflare credentials
+        run: |-
+          sops -d secrets/secrets.production.age.env > "$RUNNER_TEMP/production.env"
+          secret() { sed -n "s/^$1=//p" "$RUNNER_TEMP/production.env" | head -n 1; }
+          CLOUDFLARE_API_TOKEN="$(secret CLOUDFLARE_API_TOKEN)"
+          CLOUDFLARE_ACCOUNT_ID="$(secret CLOUDFLARE_ACCOUNT_ID)"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+          echo "CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN" >> "$GITHUB_ENV"
+          echo "CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID" >> "$GITHUB_ENV"
+          rm -f "$RUNNER_TEMP/production.env"
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+      - name: Apply production D1 migrations
+        working-directory: apps/worker
+        run: pnpm db:migrate:production
+
+  deploy-production-worker:
+    needs: [changes, validate, e2e, migrate-production]
+    if: always() && github.ref == 'refs/heads/production' && needs.changes.outputs.worker-production == 'true' && needs.validate.result == 'success' && needs.e2e.result == 'success' && needs.migrate-production.result == 'success'
+    uses: ./.github/workflows/_deploy-worker.yml
+    with:
+      environment: production
+      sha: ${{ github.sha }}
+      download-assets: false
+
+  deploy-production-admin:
+    needs: [changes, validate, e2e, build-admin-assets, migrate-production]
+    if: always() && github.ref == 'refs/heads/production' && needs.changes.outputs.admin == 'true' && needs.validate.result == 'success' && needs.e2e.result == 'success' && needs.build-admin-assets.result == 'success' && needs.migrate-production.result == 'success'
+    uses: ./.github/workflows/_deploy-admin.yml
+    with:
+      environment: production
+      sha: ${{ github.sha }}
+
+  production-ready:
+    name: Production ready
+    needs:
+      [
+        changes,
+        validate,
+        e2e,
+        deploy-production-worker,
+        deploy-production-admin,
+      ]
+    if: always() && github.ref == 'refs/heads/production'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify production pipeline
+        run: |-
+          test "$VALIDATE" = success
+          test "$E2E" = success
+          if [ "$WORKER_CHANGED" = true ]; then test "$WORKER_DEPLOY" = success; fi
+          if [ "$ADMIN_CHANGED" = true ]; then test "$ADMIN_DEPLOY" = success; fi
+        env:
+          VALIDATE: ${{ needs.validate.result }}
+          E2E: ${{ needs.e2e.result }}
+          WORKER_CHANGED: ${{ needs.changes.outputs.worker-production }}
+          ADMIN_CHANGED: ${{ needs.changes.outputs.admin }}
+          WORKER_DEPLOY: ${{ needs.deploy-production-worker.result }}
+          ADMIN_DEPLOY: ${{ needs.deploy-production-admin.result }}

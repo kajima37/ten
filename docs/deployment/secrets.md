@@ -146,6 +146,8 @@ GitHub Actions がビルド時に自動で暗号化ファイルを復号でき�
    - **Variable**: `TEN_ADMIN_URL` = `https://ten-admin-production.<account>.workers.dev`
    - **Deployment branches**: `production` ブランチのみ許可、必要に応じて「Required reviewers（手動承認）」を設定
 
+   production の更新は `Pipeline` の E2E 成功後にのみ開始されます。Worker と管理画面が同じ D1 を使うため、マイグレーションは環境ごとに直列実行されます。
+
 3. **`release`**（Android / iOS リリース用）
    - **Secret**: `SOPS_AGE_KEY` = `secrets/.private/production.agekey` の中身全体
    - **Variable**: `TEN_API_URL` = `https://ten-api-production.<account>.workers.dev`

@@ -11,28 +11,50 @@ concurrency:
 
 permissions:
   contents: read
+  checks: read
 
 jobs:
+  verify-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+      - name: Verify tag and production ancestry
+        run: >-
+          test "$GITHUB_REF_TYPE" = "tag" &&
+          printf '%s' "$GITHUB_REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' &&
+          git fetch --quiet origin production &&
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/production
+      - name: Wait for production pipeline
+        run: |-
+          deadline=$((SECONDS + 3600))
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            conclusion="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/check-runs?filter=latest" --jq '[.check_runs[] | select(.name == "Production ready")] | last | .conclusion // empty')"
+            case "$conclusion" in
+              success) exit 0 ;;
+              '') sleep 30 ;;
+              *) echo "Production ready concluded: $conclusion" >&2; exit 1 ;;
+            esac
+          done
+          echo 'timed out waiting for Production ready' >&2
+          exit 1
+        env:
+          GH_TOKEN: ${{ github.token }}
   release:
+    needs: verify-production
     environment: release
     runs-on: macos-15
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
-      - uses: jdx/mise-action@v3
+      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
         with:
           cache: true
       - run: pnpm install --frozen-lockfile
-      - name: Verify tag
-        run: >-
-          test "$GITHUB_REF_TYPE" = "tag" &&
-          printf '%s' "$GITHUB_REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'
-      - name: Verify tag is on production
-        run: >-
-          git fetch --quiet origin production &&
-          git merge-base --is-ancestor "$GITHUB_SHA" origin/production
       - name: Decrypt release secrets
         run: |-
           sops -d secrets/secrets.ios-release.age.env > "$RUNNER_TEMP/ios-release.env"
@@ -44,21 +66,10 @@ jobs:
         run: |-
           name="${GITHUB_REF_NAME#v}"
           echo "name=$name" >> "$GITHUB_OUTPUT"
-          echo "TEN_VERSION_NAME=$name" >> "$GITHUB_ENV"
-          echo "TEN_BUILD_NUMBER=${{ github.run_number }}" >> "$GITHUB_ENV"
-      - name: Export release secrets
-        id: secrets
-        run: |-
-          echo "certb64=$APPLE_CERTIFICATE_BASE64" >> "$GITHUB_OUTPUT"
-          echo "certpass=$APPLE_CERTIFICATE_PASSWORD" >> "$GITHUB_OUTPUT"
-          echo "team=$APPLE_TEAM_ID" >> "$GITHUB_OUTPUT"
-          echo "keyid=$APP_STORE_CONNECT_KEY_ID" >> "$GITHUB_OUTPUT"
-          echo "issuer=$APP_STORE_CONNECT_ISSUER_ID" >> "$GITHUB_OUTPUT"
           {
-            echo "apikey<<EOF"
-            printf '%s\n' "$APP_STORE_CONNECT_PRIVATE_KEY"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+            echo "TEN_VERSION_NAME=$name"
+            echo "TEN_BUILD_NUMBER=${{ github.run_number }}"
+          } >> "$GITHUB_ENV"
       - name: Verify API URL
         run: >-
           test -n "$VITE_API_URL" &&
@@ -80,18 +91,18 @@ jobs:
           mkdir -p "$HOME/private_keys"
           printf '%s\n' "$APP_STORE_CONNECT_PRIVATE_KEY" > "$HOME/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
       - name: Import codesigning certificates
-        uses: apple-actions/import-codesign-certs@v7
+        uses: apple-actions/import-codesign-certs@7abe6dfe88f6bf6b1fa06e6a5704a2605d897418 # v7
         with:
-          p12-file-base64: ${{ steps.secrets.outputs.certb64 }}
-          p12-password: ${{ steps.secrets.outputs.certpass }}
+          p12-file-base64: ${{ env.APPLE_CERTIFICATE_BASE64 }}
+          p12-password: ${{ env.APPLE_CERTIFICATE_PASSWORD }}
       - name: Download provisioning profile
-        uses: apple-actions/download-provisioning-profiles@v6
+        uses: apple-actions/download-provisioning-profiles@ef4c72c40493b58ca46a63a5714a31dc6b62998e # v6
         with:
           bundle-id: com.ten.game
           profile-type: IOS_APP_STORE
-          issuer-id: ${{ steps.secrets.outputs.issuer }}
-          api-key-id: ${{ steps.secrets.outputs.keyid }}
-          api-private-key: ${{ steps.secrets.outputs.apikey }}
+          issuer-id: ${{ env.APP_STORE_CONNECT_ISSUER_ID }}
+          api-key-id: ${{ env.APP_STORE_CONNECT_KEY_ID }}
+          api-private-key: ${{ env.APP_STORE_CONNECT_PRIVATE_KEY }}
       - name: Archive app
         run: >-
           xcodebuild archive
@@ -131,14 +142,14 @@ jobs:
           -exportPath "$RUNNER_TEMP/ipa"
           -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
       - name: Upload to TestFlight
-        uses: apple-actions/upload-testflight-build@v5
+        uses: apple-actions/upload-testflight-build@94c406fd91f8b13b4c1fb078f1de09a76910513a # v5
         with:
           app-path: ${{ runner.temp }}/ipa/App.ipa
-          issuer-id: ${{ steps.secrets.outputs.issuer }}
-          api-key-id: ${{ steps.secrets.outputs.keyid }}
-          api-private-key: ${{ steps.secrets.outputs.apikey }}
+          issuer-id: ${{ env.APP_STORE_CONNECT_ISSUER_ID }}
+          api-key-id: ${{ env.APP_STORE_CONNECT_KEY_ID }}
+          api-private-key: ${{ env.APP_STORE_CONNECT_PRIVATE_KEY }}
           wait-for-processing: 'true'
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: ten-ios-release-${{ github.ref_name }}
           path: ${{ runner.temp }}/ipa/App.ipa

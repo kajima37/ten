@@ -46,7 +46,7 @@ production 環境では画面全体に警告色のバナーを表示し、危険
 3. 「プレイヤー検索」から対象を検索し、詳細画面で操作します。
 4. 操作後は「監査ログ」で記録内容を確認します。
 
-手動で再デプロイする場合は、GitHub の **Actions → Deploy Staging Admin / Deploy Production Admin → Run workflow** から実行できます。
+手動で再デプロイする場合は、GitHub の **Actions → Pipeline → Run workflow** から実行します。staging は `main`、production は `production` ブランチを選択してください。手動実行では Worker と管理画面を再デプロイします。
 
 ## 4. 初回のみ必要な準備（管理者向け）
 

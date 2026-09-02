@@ -57,7 +57,7 @@ GitHub リポジトリの `Settings → Environments → release` に以下を�
 
 ## 3. アプリをリリースする手順（通常運用）
 
-本番コードが `production` ブランチに反映されたら、以下のコマンドでリリースを開始します。
+本番コードが `production` ブランチに反映されたら、以下のコマンドでリリースを開始できます。release workflow は対象コミットの **Production ready** が成功するまで最大 60 分待機してから、署名とストア提出へ進みます。Production ready には format、lint、型検査、テスト、E2E、変更があった Worker / 管理画面のデプロイとヘルスチェックが含まれます。
 
 ```bash
 # 1. production ブランチの最新コミットを取得
@@ -69,7 +69,7 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-プッシュ後、GitHub の **Actions** タブで `Android Release` と `iOS Release` のワークフローが起動します。環境承認（Environment Protection Rule）を設定している場合は、承認後にビルドとストア提出が行われます。
+プッシュ後、GitHub の **Actions** タブで `Android Release` と `iOS Release` のワークフローが起動します。両 workflow は、タグのコミットで **Production ready** が成功するまで待機してから、環境承認とビルド・ストア提出へ進みます。Production ready が失敗するか、60 分以内に完了しない場合だけ release は停止します。
 
 ## 4. 手元（ローカル PC）でアプリを動かす・確認する
 
