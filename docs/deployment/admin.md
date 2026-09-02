@@ -71,12 +71,12 @@ production 環境では画面全体に警告色のバナーを表示し、危険
 
 リポジトリの **Settings → Environments** に接続先 URL を登録します。
 
-| Environment        | Variable        | 値の例                                               |
-| ------------------ | --------------- | ---------------------------------------------------- |
-| `staging`          | `TEN_ADMIN_URL` | `https://ten-admin-staging.<account>.workers.dev`    |
-| `production-admin` | `TEN_ADMIN_URL` | `https://ten-admin-production.<account>.workers.dev` |
+| Environment  | Variable        | 値の例                                               |
+| ------------ | --------------- | ---------------------------------------------------- |
+| `staging`    | `TEN_ADMIN_URL` | `https://ten-admin-staging.<account>.workers.dev`    |
+| `production` | `TEN_ADMIN_URL` | `https://ten-admin-production.<account>.workers.dev` |
 
-※ `production-admin` Environment は新規に作成し、`SOPS_AGE_KEY`（本番系鍵）を Secret として登録してください。必要に応じて「Required reviewers」を設定します。
+※ Environment 一覧と `SOPS_AGE_KEY` の登録手順は [秘密情報の初回設定・管理手順](./secrets.md) を参照してください。必要に応じて `production` Environment に「Required reviewers」を設定します。
 
 ### ステップ 4: 管理者の承認
 

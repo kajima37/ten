@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   deploy:
-    environment: production-worker
+    environment: production
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6

@@ -140,17 +140,13 @@ GitHub Actions がビルド時に自動で暗号化ファイルを復号でき�
    - **Variable**: `TEN_API_URL` = `https://ten-api-staging.<account>.workers.dev`
    - **Variable**: `TEN_ADMIN_URL` = `https://ten-admin-staging.<account>.workers.dev`
 
-2. **`production-worker`**（本番 Worker 用）
+2. **`production`**（本番 Worker / 管理画面 用）
    - **Secret**: `SOPS_AGE_KEY` = `secrets/.private/production.agekey` の中身全体
    - **Variable**: `TEN_API_URL` = `https://ten-api-production.<account>.workers.dev`
+   - **Variable**: `TEN_ADMIN_URL` = `https://ten-admin-production.<account>.workers.dev`
    - **Deployment branches**: `production` ブランチのみ許可、必要に応じて「Required reviewers（手動承認）」を設定
 
-3. **`production-admin`**（本番管理画面用）
-   - **Secret**: `SOPS_AGE_KEY` = `secrets/.private/production.agekey` の中身全体
-   - **Variable**: `TEN_ADMIN_URL` = `https://ten-admin-production.<account>.workers.dev`
-   - **Deployment branches**: `production` ブランチのみ許可、「Required reviewers」を設定推奨
-
-4. **`release`**（Android / iOS リリース用）
+3. **`release`**（Android / iOS リリース用）
    - **Secret**: `SOPS_AGE_KEY` = `secrets/.private/production.agekey` の中身全体
    - **Variable**: `TEN_API_URL` = `https://ten-api-production.<account>.workers.dev`
    - **Variable**: `ADMOB_APP_ID` = 本番 AdMob の App ID（Android / iOS）
