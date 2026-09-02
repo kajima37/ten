@@ -2,7 +2,6 @@ import type {
   LeaderboardEntry,
   FriendRequestRow,
   FriendRow,
-  PlayerAdminRow,
   PlayerRow,
   RankInfo,
   Store,
@@ -125,10 +124,19 @@ export async function submitDaily(
   return { response, score }
 }
 
-export async function startDaily(app: TestApp, env: Env, token: string) {
+export async function startDaily(
+  app: TestApp,
+  env: Env,
+  token: string,
+  options: { ip?: string } = {},
+) {
+  const headers: Record<string, string> = {
+    authorization: `Bearer ${token}`,
+  }
+  if (options.ip) headers['cf-connecting-ip'] = options.ip
   const response = await app.request(
     'https://example.com/api/daily/start',
-    { method: 'POST', headers: { authorization: `Bearer ${token}` } },
+    { method: 'POST', headers },
     env,
   )
   return {
@@ -144,6 +152,15 @@ export type StoredScore = {
   score: number
   combo: number
   createdAt: string
+  hiddenAt: string | null
+}
+
+export type StoredIpBan = {
+  ipHash: string
+  reason: string | null
+  bannedBy: string | null
+  expiresAt: string | null
+  createdAt: string
 }
 
 export function createMemoryStore(): Store & {
@@ -157,6 +174,7 @@ export function createMemoryStore(): Store & {
     events: string
   }>
   friendCodes: Map<string, { code: string; expiresAt: string }>
+  bannedIps: Map<string, StoredIpBan>
 } {
   const players = new Map<string, PlayerRow>()
   const scores: Array<StoredScore> = []
@@ -168,6 +186,7 @@ export function createMemoryStore(): Store & {
     events: string
   }> = []
   const friendCodes = new Map<string, { code: string; expiresAt: string }>()
+  const bannedIps = new Map<string, StoredIpBan>()
   const friendRequests: Array<{
     id: number
     low: string
@@ -188,13 +207,19 @@ export function createMemoryStore(): Store & {
       (entry) => entry.mode === 'daily' && entry.dateKey === dateKey,
     )
 
+  const visibleDailyOf = (dateKey: string) =>
+    dailyOf(dateKey).filter((entry) => entry.hiddenAt === null)
+
   const scoresOf = (playerId: string) =>
     scores.filter(
       (entry) => entry.playerId === playerId && entry.mode === 'daily',
     )
 
+  const visibleScoresOf = (playerId: string) =>
+    scoresOf(playerId).filter((entry) => entry.hiddenAt === null)
+
   const streakOf = (playerId: string) => {
-    const dates = scoresOf(playerId)
+    const dates = visibleScoresOf(playerId)
       .map((entry) => entry.dateKey)
       .sort((a, b) => b.localeCompare(a))
     if (!dates.length) return 0
@@ -219,6 +244,7 @@ export function createMemoryStore(): Store & {
     logs,
     proofs,
     friendCodes,
+    bannedIps,
 
     async getPlayer(id) {
       return players.get(id) ?? null
@@ -276,6 +302,7 @@ export function createMemoryStore(): Store & {
           score,
           combo,
           createdAt: new Date().toISOString(),
+          hiddenAt: null,
         })
       }
       const best =
@@ -301,7 +328,7 @@ export function createMemoryStore(): Store & {
       const active = new Set(
         [...players.values()].filter(isActive).map((player) => player.id),
       )
-      const ranked = dailyOf(dateKey)
+      const ranked = visibleDailyOf(dateKey)
         .filter((entry) => active.has(entry.playerId))
         .sort(
           (a, b) => b.score - a.score || a.createdAt.localeCompare(b.createdAt),
@@ -323,7 +350,7 @@ export function createMemoryStore(): Store & {
       const active = new Set(
         [...players.values()].filter(isActive).map((player) => player.id),
       )
-      const daily = dailyOf(dateKey).filter((entry) =>
+      const daily = visibleDailyOf(dateKey).filter((entry) =>
         active.has(entry.playerId),
       )
       const above = daily.filter((entry) => entry.score > score).length
@@ -344,16 +371,17 @@ export function createMemoryStore(): Store & {
       const active = new Set(
         [...players.values()].filter(isActive).map((player) => player.id),
       )
-      return dailyOf(dateKey).filter((entry) => active.has(entry.playerId))
-        .length
+      return visibleDailyOf(dateKey).filter((entry) =>
+        active.has(entry.playerId),
+      ).length
     },
 
     async getDailyScore(playerId, dateKey) {
       const player = players.get(playerId)
       if (!player || !isActive(player)) return null
       return (
-        dailyOf(dateKey).find((entry) => entry.playerId === playerId)?.score ??
-        null
+        visibleDailyOf(dateKey).find((entry) => entry.playerId === playerId)
+          ?.score ?? null
       )
     },
 
@@ -368,6 +396,7 @@ export function createMemoryStore(): Store & {
           entry.mode !== 'daily' ||
           entry.dateKey < weekStart ||
           entry.dateKey >= weekEnd ||
+          entry.hiddenAt !== null ||
           (allowed && !allowed.has(entry.playerId)) ||
           !isActive(players.get(entry.playerId)!)
         ) {
@@ -432,7 +461,7 @@ export function createMemoryStore(): Store & {
     async getWeeklyScore(playerId, weekStart, weekEnd) {
       const player = players.get(playerId)
       if (!player || !isActive(player)) return null
-      const total = scoresOf(playerId)
+      const total = visibleScoresOf(playerId)
         .filter(
           (entry) => entry.dateKey >= weekStart && entry.dateKey < weekEnd,
         )
@@ -576,78 +605,18 @@ export function createMemoryStore(): Store & {
       logs.push(`${playerId}:${new Date().toISOString()}`)
     },
 
-    async banPlayer(playerId, untilIso) {
-      const player = players.get(playerId)
-      if (player)
-        players.set(playerId, { ...player, banned: 1, bannedUntil: untilIso })
-    },
-
-    async unbanPlayer(playerId) {
-      const player = players.get(playerId)
-      if (player)
-        players.set(playerId, { ...player, banned: 0, bannedUntil: null })
-    },
-
-    async banPlayersByIp(ipHash, untilIso) {
-      let count = 0
-      for (const player of players.values()) {
-        if (player.ipHash === ipHash) {
-          players.set(player.id, {
-            ...player,
-            banned: 1,
-            bannedUntil: untilIso,
-          })
-          count += 1
-        }
+    async isIpBanned(ipHash) {
+      const ban = bannedIps.get(ipHash)
+      if (!ban) return null
+      if (ban.expiresAt !== null && new Date(ban.expiresAt) <= new Date()) {
+        return null
       }
-      return count
-    },
-
-    async findPlayersByIp(ipHash) {
-      const rows: Array<PlayerAdminRow> = []
-      for (const player of players.values()) {
-        if (player.ipHash === ipHash) {
-          rows.push({
-            id: player.id,
-            name: player.name,
-            ipHash: player.ipHash,
-            banned: player.banned,
-            createdAt: player.createdAt,
-            scores: scoresOf(player.id)
-              .map((entry) => ({
-                dateKey: entry.dateKey,
-                score: entry.score,
-                combo: entry.combo,
-                createdAt: entry.createdAt,
-              }))
-              .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-          })
-        }
+      return {
+        ipHash,
+        reason: ban.reason,
+        bannedBy: ban.bannedBy,
+        expiresAt: ban.expiresAt,
       }
-      return rows
-    },
-
-    async deletePlayerScores(playerId, dateKey) {
-      const before = scores.length
-      for (let index = scores.length - 1; index >= 0; index -= 1) {
-        const entry = scores[index]
-        if (
-          entry.playerId === playerId &&
-          (dateKey === undefined || entry.dateKey === dateKey)
-        ) {
-          scores.splice(index, 1)
-        }
-      }
-      for (let index = proofs.length - 1; index >= 0; index -= 1) {
-        const entry = proofs[index]
-        if (
-          entry.playerId === playerId &&
-          (dateKey === undefined || entry.dateKey === dateKey)
-        ) {
-          proofs.splice(index, 1)
-        }
-      }
-      return before - scores.length
     },
   }
 }
@@ -676,7 +645,6 @@ export function testEnv(): { env: Env } {
       DB: {} as unknown as D1Database,
       DAILY_CACHE: createKvMock(),
       AUTH_SECRET: 'test-secret',
-      ADMIN_SECRET: 'admin-secret',
       PREVIEW_MODE: 'disabled',
     },
   }

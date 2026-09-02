@@ -117,13 +117,11 @@ test('friend code can be rotated and old codes no longer resolve', async () => {
 })
 
 test('banned players cannot mutate or read social data', async () => {
-  const { app, env } = createTestContext()
+  const { app, env, store } = createTestContext()
   const alice = await register(app, env, 'device-alice')
-  await app.request(
-    `https://example.com/api/admin/players/${alice.playerId}/ban`,
-    { method: 'POST', headers: { authorization: 'Bearer admin-secret' } },
-    env,
-  )
+  const player = store.players.get(alice.playerId)
+  assert.ok(player)
+  store.players.set(alice.playerId, { ...player, banned: 1, bannedUntil: null })
 
   for (const [path, init] of [
     ['/api/me', {}],

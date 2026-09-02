@@ -1,17 +1,17 @@
-name: Deploy Staging Worker
+name: Deploy Staging Admin
 
 on:
   push:
     branches: [main]
     paths:
-      - 'apps/worker/**'
-      - 'apps/web/**'
-      - 'packages/game-core/**'
+      - 'apps/admin/**'
+      - 'apps/worker/migrations/**'
+      - 'packages/oauth/**'
       - 'pnpm-lock.yaml'
   workflow_dispatch:
 
 concurrency:
-  group: worker-staging
+  group: admin-staging
   cancel-in-progress: true
 
 permissions:
@@ -29,8 +29,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Validate source and tests
         run: pnpm check
-      - name: Build staging web preview
-        run: pnpm build:worker
+      - name: Build admin web
+        run: pnpm --filter @ten/admin build
       - name: Resolve staging Cloudflare credentials
         run: |-
           sops -d secrets/secrets.staging.age.env > "$RUNNER_TEMP/staging.env"
@@ -50,7 +50,7 @@ jobs:
           rm -f "$RUNNER_TEMP/staging.env"
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
-      - name: Upload staging Worker secrets
+      - name: Upload staging Admin secrets
         run: |-
           sops -d secrets/secrets.staging.age.env > "$RUNNER_TEMP/staging.env"
           secret() {
@@ -59,8 +59,7 @@ jobs:
           require() {
             test -n "$(secret "$1")" || { echo "missing required secret: $1" >&2; exit 1; }
           }
-          require AUTH_SECRET
-          require PREVIEW_SESSION_SECRET
+          require ADMIN_SESSION_SECRET
           require GITHUB_OAUTH_CLIENT_ID
           require GITHUB_OAUTH_CLIENT_SECRET
           if [ -n "$(secret GOOGLE_OAUTH_CLIENT_ID)" ] || [ -n "$(secret GOOGLE_OAUTH_CLIENT_SECRET)" ]; then
@@ -71,10 +70,9 @@ jobs:
             local name="$1" value
             value="$(secret "$name")"
             echo "::add-mask::$value"
-            printf '%s' "$value" | pnpm --filter @ten/worker exec wrangler secret put "$name" --env staging
+            printf '%s' "$value" | pnpm --filter @ten/admin exec wrangler secret put "$name" --env staging
           }
-          put AUTH_SECRET
-          put PREVIEW_SESSION_SECRET
+          put ADMIN_SESSION_SECRET
           if [ -n "$(secret GOOGLE_OAUTH_CLIENT_ID)" ] || [ -n "$(secret GOOGLE_OAUTH_CLIENT_SECRET)" ]; then
             put GOOGLE_OAUTH_CLIENT_ID
             put GOOGLE_OAUTH_CLIENT_SECRET
@@ -85,22 +83,22 @@ jobs:
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
       - name: Apply staging D1 migrations
-        working-directory: apps/worker
+        working-directory: apps/admin
         run: pnpm db:migrate:staging
-      - name: Deploy staging Worker
-        working-directory: apps/worker
+      - name: Deploy staging Admin
+        working-directory: apps/admin
         run: pnpm exec wrangler deploy --env staging --var "DEPLOY_VERSION:$GITHUB_SHA"
-      - name: Check staging Worker
+      - name: Check staging Admin
         run: |-
-          case "$TEN_API_URL" in
+          case "$TEN_ADMIN_URL" in
             https://*.workers.dev) : ;;
-            *) echo "TEN_API_URL must be an https workers.dev URL" >&2; exit 1 ;;
+            *) echo "TEN_ADMIN_URL must be an https workers.dev URL" >&2; exit 1 ;;
           esac
-          health="$(curl --fail --retry 5 --retry-delay 2 --proto '=https' --tlsv1.2 "$TEN_API_URL/api/health")"
+          health="$(curl --fail --retry 5 --retry-delay 2 --proto '=https' --tlsv1.2 "$TEN_ADMIN_URL/api/health")"
           actual="$(printf '%s' "$health" | jq -r '.version // empty')"
           test "$actual" = "$GITHUB_SHA" || { echo "health version mismatch: $actual != $GITHUB_SHA" >&2; exit 1; }
-          login_page="$(curl --fail --proto '=https' --tlsv1.2 -s "$TEN_API_URL/")"
+          login_page="$(curl --fail --proto '=https' --tlsv1.2 -s "$TEN_ADMIN_URL/auth/login")"
           printf '%s' "$login_page" | grep -q 'auth/login/github' \
-            || { echo 'preview login page was not served' >&2; exit 1; }
+            || { echo 'admin login page was not served' >&2; exit 1; }
         env:
-          TEN_API_URL: ${{ vars.TEN_API_URL }}
+          TEN_ADMIN_URL: ${{ vars.TEN_ADMIN_URL }}

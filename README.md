@@ -13,7 +13,9 @@
 | -------------------- | --------------------------------------------------------------------- |
 | `apps/web`           | ゲーム画面、Web プレビュー版、Capacitor モバイルアプリ                |
 | `apps/worker`        | デイリー盤面配信、ランキング集計、スコア検証 API（Cloudflare Worker） |
+| `apps/admin`         | 利用停止・スコア管理などの運用を行う管理画面（Cloudflare Worker）     |
 | `packages/game-core` | ゲームのルール、盤面生成、スコア計算（共有モジュール）                |
+| `packages/oauth`     | プレビュー・管理画面で共用する OAuth ログイン機構                     |
 | `docs/product`       | プロダクト仕様書、ゲームルール、画面設計                              |
 | `docs/deployment`    | モバイルアプリ配布、サーバー公開、秘密情報の初期設定手順              |
 
@@ -75,6 +77,8 @@ nix develop --command pnpm test:e2e
   バックエンド API、データベース（D1）、キャッシュ（KV）の設定と自動デプロイについて説明しています。
 - **[ステージング Web プレビューの公開](./docs/deployment/cloudflare-worker-preview.md)**:
   Cloudflare Workers Static Assets と Google / GitHub ログインによる、関係者限定 Web プレビューの公開手順です。
+- **[管理画面の公開と運用](./docs/deployment/admin.md)**:
+  プレイヤーの利用停止、IP 停止、スコアの非表示、監査ログなど、運用作業を行う管理画面の公開手順です。
 - **[秘密情報の初回設定手順（SOPS + age）](./docs/deployment/secrets.md)**:  
   署名キーストア、証明書、API トークンなどの暗号化ファイルの準備や、GitHub リポジトリへの環境設定方法をステップ・バイ・ステップで解説しています。
 

@@ -31,7 +31,8 @@ GitHub 上でコードが `main` ブランチにマージされると、GitHub A
 
 1. **自動反映**: `main` ブランチに変更がマージされると、ステージング環境が自動更新されます。
 2. **プレビュー確認**: ブラウザで公開 URL を開き、Google または GitHub でログインします。承認済みのアカウントなら最新の画面を確認できます。
-3. **ログアウト**: `https://ten-api-staging.<account>.workers.dev/auth/logout` の画面からログアウトできます。
+3. **管理画面**: プレビュー承認済みのアカウントは、staging の管理画面（[管理画面の公開と運用](./admin.md)）にも同じログインで入れます。
+4. **ログアウト**: `https://ten-api-staging.<account>.workers.dev/auth/logout` の画面からログアウトできます。
 
 手動で再デプロイしたい場合は、GitHub の **Actions → Deploy Staging Worker → Run workflow** から実行できます。
 

@@ -6,7 +6,7 @@ async function getPlayerStreak(
 ): Promise<number> {
   const rows = await db
     .prepare(
-      "SELECT date_key AS dateKey FROM scores WHERE player_id = ? AND mode = 'daily' ORDER BY date_key DESC",
+      "SELECT date_key AS dateKey FROM scores WHERE player_id = ? AND mode = 'daily' AND hidden_at IS NULL ORDER BY date_key DESC",
     )
     .bind(playerId)
     .all<{ dateKey: string }>()
@@ -34,20 +34,6 @@ export type PlayerRow = {
   createdAt: string
 }
 
-export type PlayerAdminRow = {
-  id: string
-  name: string
-  ipHash: string | null
-  banned: number
-  createdAt: string
-  scores: Array<{
-    dateKey: string
-    score: number
-    combo: number
-    createdAt: string
-  }>
-}
-
 export type LeaderboardEntry = {
   rank: number
   playerId: string
@@ -71,6 +57,13 @@ export type FriendRequestRow = {
   playerId: string
   name: string
   direction: 'incoming' | 'outgoing'
+}
+
+export type IpBanRow = {
+  ipHash: string
+  reason: string | null
+  bannedBy: string | null
+  expiresAt: string | null
 }
 
 export type RankInfo = {
@@ -168,11 +161,7 @@ export interface Store {
     sinceIso: string,
   ) => Promise<number>
   logSubmission: (playerId: string, ipHash: string) => Promise<void>
-  banPlayer: (playerId: string, untilIso: string | null) => Promise<void>
-  unbanPlayer: (playerId: string) => Promise<void>
-  banPlayersByIp: (ipHash: string, untilIso: string | null) => Promise<number>
-  findPlayersByIp: (ipHash: string) => Promise<Array<PlayerAdminRow>>
-  deletePlayerScores: (playerId: string, dateKey?: string) => Promise<number>
+  isIpBanned: (ipHash: string) => Promise<IpBanRow | null>
 }
 
 export function createD1Store(db: D1Database): Store {
@@ -305,8 +294,8 @@ export function createD1Store(db: D1Database): Store {
           `SELECT p.id AS playerId, p.name AS name, s.score AS score, s.combo AS combo
            FROM scores s
            JOIN players p ON p.id = s.player_id
-           WHERE s.mode = 'daily' AND s.date_key = ? AND ${ACTIVE}
-           ORDER BY s.score DESC, s.created_at ASC
+            WHERE s.mode = 'daily' AND s.date_key = ? AND s.hidden_at IS NULL AND ${ACTIVE}
+            ORDER BY s.score DESC, s.created_at ASC
            LIMIT ?`,
         )
         .bind(dateKey, limit)
@@ -323,9 +312,9 @@ export function createD1Store(db: D1Database): Store {
         .prepare(
           `SELECT
              (SELECT COUNT(*) FROM scores s JOIN players p ON p.id = s.player_id
-               WHERE s.mode = 'daily' AND s.date_key = ? AND ${ACTIVE}) AS total,
+               WHERE s.mode = 'daily' AND s.date_key = ? AND s.hidden_at IS NULL AND ${ACTIVE}) AS total,
              (SELECT COUNT(*) FROM scores s JOIN players p ON p.id = s.player_id
-               WHERE s.mode = 'daily' AND s.date_key = ? AND ${ACTIVE} AND s.score > ?) AS above`,
+               WHERE s.mode = 'daily' AND s.date_key = ? AND s.hidden_at IS NULL AND ${ACTIVE} AND s.score > ?) AS above`,
         )
         .bind(dateKey, dateKey, score)
         .first<{ total: number; above: number }>()
@@ -345,7 +334,7 @@ export function createD1Store(db: D1Database): Store {
       const row = await db
         .prepare(
           `SELECT COUNT(*) AS count FROM scores s JOIN players p ON p.id = s.player_id
-           WHERE s.mode = 'daily' AND s.date_key = ? AND ${ACTIVE}`,
+           WHERE s.mode = 'daily' AND s.date_key = ? AND s.hidden_at IS NULL AND ${ACTIVE}`,
         )
         .bind(dateKey)
         .first<{ count: number }>()
@@ -356,7 +345,7 @@ export function createD1Store(db: D1Database): Store {
       const row = await db
         .prepare(
           `SELECT s.score AS score FROM scores s JOIN players p ON p.id = s.player_id
-           WHERE s.player_id = ? AND s.date_key = ? AND s.mode = 'daily' AND ${ACTIVE}`,
+           WHERE s.player_id = ? AND s.date_key = ? AND s.mode = 'daily' AND s.hidden_at IS NULL AND ${ACTIVE}`,
         )
         .bind(playerId, dateKey)
         .first<{ score: number }>()
@@ -372,7 +361,7 @@ export function createD1Store(db: D1Database): Store {
           `SELECT p.id AS playerId, p.name AS name, SUM(s.score) AS score,
                   MAX(s.combo) AS combo
            FROM scores s JOIN players p ON p.id = s.player_id
-           WHERE s.mode = 'daily' AND s.date_key >= ? AND s.date_key < ? AND ${ACTIVE}${idsClause}
+           WHERE s.mode = 'daily' AND s.date_key >= ? AND s.date_key < ? AND s.hidden_at IS NULL AND ${ACTIVE}${idsClause}
            GROUP BY p.id, p.name
            ORDER BY score DESC, MIN(s.created_at) ASC
            LIMIT ?`,
@@ -397,7 +386,7 @@ export function createD1Store(db: D1Database): Store {
           `WITH weekly AS (
              SELECT s.player_id, SUM(s.score) AS score
              FROM scores s JOIN players p ON p.id = s.player_id
-             WHERE s.mode = 'daily' AND s.date_key >= ? AND s.date_key < ? AND ${ACTIVE}${idsClause}
+             WHERE s.mode = 'daily' AND s.date_key >= ? AND s.date_key < ? AND s.hidden_at IS NULL AND ${ACTIVE}${idsClause}
              GROUP BY s.player_id
            )
            SELECT COUNT(*) AS total, SUM(CASE WHEN score > ? THEN 1 ELSE 0 END) AS above FROM weekly`,
@@ -424,7 +413,7 @@ export function createD1Store(db: D1Database): Store {
         .prepare(
           `SELECT COUNT(DISTINCT s.player_id) AS count FROM scores s
            JOIN players p ON p.id = s.player_id
-           WHERE s.mode = 'daily' AND s.date_key >= ? AND s.date_key < ? AND ${ACTIVE}${idsClause}`,
+           WHERE s.mode = 'daily' AND s.date_key >= ? AND s.date_key < ? AND s.hidden_at IS NULL AND ${ACTIVE}${idsClause}`,
         )
         .bind(weekStart, weekEnd, ...(playerIds ?? []))
         .first<{ count: number }>()
@@ -435,7 +424,7 @@ export function createD1Store(db: D1Database): Store {
       const row = await db
         .prepare(
           `SELECT SUM(s.score) AS score FROM scores s JOIN players p ON p.id = s.player_id
-           WHERE s.player_id = ? AND s.mode = 'daily' AND s.date_key >= ? AND s.date_key < ? AND ${ACTIVE}`,
+           WHERE s.player_id = ? AND s.mode = 'daily' AND s.date_key >= ? AND s.date_key < ? AND s.hidden_at IS NULL AND ${ACTIVE}`,
         )
         .bind(playerId, weekStart, weekEnd)
         .first<{ score: number | null }>()
@@ -570,101 +559,27 @@ export function createD1Store(db: D1Database): Store {
         .run()
     },
 
-    async banPlayer(playerId, untilIso) {
-      await db
-        .prepare('UPDATE players SET banned = 1, banned_until = ? WHERE id = ?')
-        .bind(untilIso, playerId)
-        .run()
-    },
-
-    async unbanPlayer(playerId) {
-      await db
+    async isIpBanned(ipHash) {
+      const row = await db
         .prepare(
-          'UPDATE players SET banned = 0, banned_until = NULL WHERE id = ?',
-        )
-        .bind(playerId)
-        .run()
-    },
-
-    async banPlayersByIp(ipHash, untilIso) {
-      const result = await db
-        .prepare(
-          'UPDATE players SET banned = 1, banned_until = ? WHERE ip_hash = ?',
-        )
-        .bind(untilIso, ipHash)
-        .run()
-      return result.meta.changes
-    },
-
-    async findPlayersByIp(ipHash) {
-      const players = await db
-        .prepare(
-          `SELECT id, name, ip_hash AS ip_hash, banned, created_at AS created_at
-           FROM players WHERE ip_hash = ?`,
+          `SELECT reason, banned_by AS bannedBy, expires_at AS expiresAt
+           FROM banned_ip_hashes
+           WHERE ip_hash = ?
+             AND (expires_at IS NULL OR expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`,
         )
         .bind(ipHash)
-        .all<{
-          id: string
-          name: string
-          ip_hash: string | null
-          banned: number
-          created_at: string
+        .first<{
+          reason: string | null
+          bannedBy: string | null
+          expiresAt: string | null
         }>()
-
-      const rows: Array<PlayerAdminRow> = []
-      for (const player of players.results) {
-        const scores = await db
-          .prepare(
-            "SELECT date_key AS date_key, score, combo, created_at AS created_at FROM scores WHERE player_id = ? AND mode = 'daily' ORDER BY created_at DESC",
-          )
-          .bind(player.id)
-          .all<{
-            date_key: string
-            score: number
-            combo: number
-            created_at: string
-          }>()
-        rows.push({
-          id: player.id,
-          name: player.name,
-          ipHash: player.ip_hash,
-          banned: player.banned,
-          createdAt: player.created_at,
-          scores: scores.results.map((score) => ({
-            dateKey: score.date_key,
-            score: score.score,
-            combo: score.combo,
-            createdAt: score.created_at,
-          })),
-        })
+      if (!row) return null
+      return {
+        ipHash,
+        reason: row.reason,
+        bannedBy: row.bannedBy,
+        expiresAt: row.expiresAt,
       }
-      return rows
-    },
-
-    async deletePlayerScores(playerId, dateKey) {
-      if (dateKey) {
-        const scoresResult = await db
-          .prepare('DELETE FROM scores WHERE player_id = ? AND date_key = ?')
-          .bind(playerId, dateKey)
-          .run()
-        await db
-          .prepare(
-            'DELETE FROM score_proofs WHERE player_id = ? AND date_key = ?',
-          )
-          .bind(playerId, dateKey)
-          .run()
-        return scoresResult.meta.changes
-      }
-
-      const scoresResult = await db
-        .prepare('DELETE FROM scores WHERE player_id = ?')
-        .bind(playerId)
-        .run()
-      await db
-        .prepare('DELETE FROM score_proofs WHERE player_id = ?')
-        .bind(playerId)
-        .run()
-      return scoresResult.meta.changes
     },
   }
 }

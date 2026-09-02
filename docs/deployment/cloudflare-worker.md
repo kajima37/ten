@@ -18,6 +18,8 @@ TEN. では安全な運用のために **ステージング（開発検証用）
 
 ※ データベース（D1）や暗号鍵も環境ごとに独立しており、開発中のテストデータが本番ランキングに混ざることはありません。
 
+※ 運用（利用停止・スコア管理など）は、別途公開される管理画面用 Worker（`ten-admin-*`）が担います。詳細は [管理画面の公開と運用](./admin.md) を参照してください。
+
 ## 2. 通常の開発・公開の流れ
 
 GitHub 上でコードをマージすると、GitHub Actions が自動でデータベース更新とデプロイを実行します。日常的な手動デプロイ作業は不要です。
@@ -79,23 +81,9 @@ pnpm --filter @ten/worker exec wrangler tail ten-api-production
 
 ### 不正スコアと利用停止の管理
 
-管理 API は `ADMIN_SECRET` を Bearer トークンとして要求します。トークンをシェル履歴やファイルへ直接書かず、実行時に環境変数として渡してください。実行前に対象プレイヤー ID と対象日を記録し、操作後はログとランキングを確認します。
+プレイヤーの利用停止や不正スコアの処理は、**管理画面（専用 Worker）** から行います。理由の入力と監査ログの記録が必須になり、危険な操作には確認ステップがあります。詳細は **[管理画面の公開と運用](./admin.md)** を参照してください。
 
-```bash
-# プレイヤーを無期限に利用停止する
-curl --fail -X POST "$TEN_API_URL/api/admin/players/$PLAYER_ID/ban" \
-  -H "Authorization: Bearer $ADMIN_SECRET"
-
-# 誤った日次記録だけを削除する。date を省略すると全記録を削除するため注意する
-curl --fail -X DELETE "$TEN_API_URL/api/admin/players/$PLAYER_ID/scores?date=YYYY-MM-DD" \
-  -H "Authorization: Bearer $ADMIN_SECRET"
-
-# 同一ネットワークに紐づくアカウントを利用停止する。誤検知の影響が大きいため最後の手段とする
-curl --fail -X POST "$TEN_API_URL/api/admin/ip/$IP_HASH/ban" \
-  -H "Authorization: Bearer $ADMIN_SECRET"
-```
-
-`IP_HASH` は平文 IP アドレスではなく、Worker のログや管理調査で得たハッシュ値です。利用停止は後から `POST /api/admin/players/:id/unban` で解除できます。誤操作時はまず解除し、必要ならスコアを再確認してください。
+以前提供していた `ADMIN_SECRET` を使う curl 管理 API（`/api/admin/*`）は廃止しました。緊急時の個別対応は、D1 への SQL 実行（例: `wrangler d1 execute ten-db-production --remote --env production --command "UPDATE players SET banned = 0, banned_until = NULL WHERE id = '<プレイヤー ID>';"`）で代替できます。`IP_HASH` は平文 IP アドレスではなく、Worker のログや管理画面で得たハッシュ値です。
 
 ### よくあるトラブル
 

@@ -1,16 +1,17 @@
-name: Deploy Production Worker
+name: Deploy Production Admin
 
 on:
   push:
     branches: [production]
     paths:
-      - 'apps/worker/**'
-      - 'packages/game-core/**'
+      - 'apps/admin/**'
+      - 'apps/worker/migrations/**'
+      - 'packages/oauth/**'
       - 'pnpm-lock.yaml'
   workflow_dispatch:
 
 concurrency:
-  group: worker-production
+  group: admin-production
   cancel-in-progress: false
 
 permissions:
@@ -18,7 +19,7 @@ permissions:
 
 jobs:
   deploy:
-    environment: production-worker
+    environment: production-admin
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -30,6 +31,8 @@ jobs:
         run: pnpm check
       - name: Verify production ref
         run: test "$GITHUB_REF" = "refs/heads/production"
+      - name: Build admin web
+        run: pnpm --filter @ten/admin build
       - name: Resolve production Cloudflare credentials
         run: |-
           sops -d secrets/secrets.production.age.env > "$RUNNER_TEMP/production.env"
@@ -49,7 +52,7 @@ jobs:
           rm -f "$RUNNER_TEMP/production.env"
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
-      - name: Upload production Worker secrets
+      - name: Upload production Admin secrets
         run: |-
           sops -d secrets/secrets.production.age.env > "$RUNNER_TEMP/production.env"
           secret() {
@@ -58,27 +61,43 @@ jobs:
           require() {
             test -n "$(secret "$1")" || { echo "missing required secret: $1" >&2; exit 1; }
           }
-          require AUTH_SECRET
+          require ADMIN_SESSION_SECRET
+          require GITHUB_OAUTH_CLIENT_ID
+          require GITHUB_OAUTH_CLIENT_SECRET
+          if [ -n "$(secret GOOGLE_OAUTH_CLIENT_ID)" ] || [ -n "$(secret GOOGLE_OAUTH_CLIENT_SECRET)" ]; then
+            require GOOGLE_OAUTH_CLIENT_ID
+            require GOOGLE_OAUTH_CLIENT_SECRET
+          fi
           put() {
             local name="$1" value
             value="$(secret "$name")"
             echo "::add-mask::$value"
-            printf '%s' "$value" | pnpm --filter @ten/worker exec wrangler secret put "$name" --env production
+            printf '%s' "$value" | pnpm --filter @ten/admin exec wrangler secret put "$name" --env production
           }
-          put AUTH_SECRET
+          put ADMIN_SESSION_SECRET
+          if [ -n "$(secret GOOGLE_OAUTH_CLIENT_ID)" ] || [ -n "$(secret GOOGLE_OAUTH_CLIENT_SECRET)" ]; then
+            put GOOGLE_OAUTH_CLIENT_ID
+            put GOOGLE_OAUTH_CLIENT_SECRET
+          fi
+          put GITHUB_OAUTH_CLIENT_ID
+          put GITHUB_OAUTH_CLIENT_SECRET
           rm -f "$RUNNER_TEMP/production.env"
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
       - name: Apply production D1 migrations
-        working-directory: apps/worker
+        working-directory: apps/admin
         run: pnpm db:migrate:production
-      - name: Deploy production Worker
-        working-directory: apps/worker
+      - name: Deploy production Admin
+        working-directory: apps/admin
         run: pnpm exec wrangler deploy --env production --var "DEPLOY_VERSION:$GITHUB_SHA"
-      - name: Check production Worker
+      - name: Check production Admin
         run: |-
-          health="$(curl --fail --retry 5 --retry-delay 2 --proto '=https' --tlsv1.2 "$TEN_API_URL/api/health")"
+          case "$TEN_ADMIN_URL" in
+            https://*.workers.dev) : ;;
+            *) echo "TEN_ADMIN_URL must be an https workers.dev URL" >&2; exit 1 ;;
+          esac
+          health="$(curl --fail --retry 5 --retry-delay 2 --proto '=https' --tlsv1.2 "$TEN_ADMIN_URL/api/health")"
           actual="$(printf '%s' "$health" | jq -r '.version // empty')"
           test "$actual" = "$GITHUB_SHA" || { echo "health version mismatch: $actual != $GITHUB_SHA" >&2; exit 1; }
         env:
-          TEN_API_URL: ${{ vars.TEN_API_URL }}
+          TEN_ADMIN_URL: ${{ vars.TEN_ADMIN_URL }}

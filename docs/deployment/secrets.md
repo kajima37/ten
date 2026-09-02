@@ -81,12 +81,14 @@ sops secrets/secrets.staging.age.env
 | `CLOUDFLARE_API_TOKEN`       | Cloudflare の API トークン               | Cloudflare ダッシュボードで「Workers デプロイ」「D1 編集」権限を付与して作成 |
 | `CLOUDFLARE_ACCOUNT_ID`      | Cloudflare アカウント ID                 | Cloudflare ダッシュボードの Workers 概要画面で確認                           |
 | `AUTH_SECRET`                | ユーザー認証トークンの署名用シークレット | ランダムな長い文字列（例: `openssl rand -hex 32`）                           |
-| `ADMIN_SECRET`               | 管理者用 API の認証キー                  | ランダムな長い文字列（例: `openssl rand -hex 32`）                           |
+| `ADMIN_SESSION_SECRET`       | 管理画面セッションの署名鍵               | ランダムな長い文字列（例: `openssl rand -hex 32`）。必須                     |
 | `PREVIEW_SESSION_SECRET`     | プレビューセッションの署名鍵             | ランダムな長い文字列（例: `openssl rand -hex 32`）。必須                     |
 | `GOOGLE_OAUTH_CLIENT_ID`     | Google OAuth Client ID                   | 任意。Google Cloud Console で作成した Web application の Client ID           |
 | `GOOGLE_OAUTH_CLIENT_SECRET` | Google OAuth Client Secret               | 任意。上記 Client ID とセットで登録する。アプリへ含めない                    |
 | `GITHUB_OAUTH_CLIENT_ID`     | GitHub OAuth App Client ID               | GitHub の OAuth App 設定で作成した Client ID。必須                           |
 | `GITHUB_OAUTH_CLIENT_SECRET` | GitHub OAuth App Client Secret           | 上記 OAuth App の Client Secret。必須。アプリへ含めない                      |
+
+※ かつて管理 API 用に使われていた `ADMIN_SECRET` は廃止しました。ファイルに残っていても無視されます。
 
 ### 2. 本番環境の設定 (`secrets.production.age.env`)
 
@@ -96,7 +98,7 @@ export SOPS_AGE_KEY="$(cat secrets/.private/production.agekey)"
 sops secrets/secrets.production.age.env
 ```
 
-staging と同様に、本番専用の Cloudflare API トークン、本番用 `AUTH_SECRET` / `ADMIN_SECRET` を登録します（※ staging と同じシークレットを使い回さないでください）。
+staging と同様に、本番専用の Cloudflare API トークンと `AUTH_SECRET` を登録します（※ staging と同じシークレットを使い回さないでください）。加えて、管理画面（production）のために `ADMIN_SESSION_SECRET` と、production の公開 URL を callback に登録した OAuth Client 情報（`GITHUB_OAUTH_CLIENT_ID` / `GITHUB_OAUTH_CLIENT_SECRET`、必要なら Google のペア）を登録します。詳細は [管理画面の公開と運用](./admin.md) を参照してください。
 
 ### 3. Android リリース設定 (`secrets.android-release.age.env`)
 
@@ -136,13 +138,19 @@ GitHub Actions がビルド時に自動で暗号化ファイルを復号でき�
 1. **`staging`**
    - **Secret**: `SOPS_AGE_KEY` = `secrets/.private/staging.agekey` の中身全体（`AGE-SECRET-KEY-1...`）
    - **Variable**: `TEN_API_URL` = `https://ten-api-staging.<account>.workers.dev`
+   - **Variable**: `TEN_ADMIN_URL` = `https://ten-admin-staging.<account>.workers.dev`
 
 2. **`production-worker`**（本番 Worker 用）
    - **Secret**: `SOPS_AGE_KEY` = `secrets/.private/production.agekey` の中身全体
    - **Variable**: `TEN_API_URL` = `https://ten-api-production.<account>.workers.dev`
    - **Deployment branches**: `production` ブランチのみ許可、必要に応じて「Required reviewers（手動承認）」を設定
 
-3. **`release`**（Android / iOS リリース用）
+3. **`production-admin`**（本番管理画面用）
+   - **Secret**: `SOPS_AGE_KEY` = `secrets/.private/production.agekey` の中身全体
+   - **Variable**: `TEN_ADMIN_URL` = `https://ten-admin-production.<account>.workers.dev`
+   - **Deployment branches**: `production` ブランチのみ許可、「Required reviewers」を設定推奨
+
+4. **`release`**（Android / iOS リリース用）
    - **Secret**: `SOPS_AGE_KEY` = `secrets/.private/production.agekey` の中身全体
    - **Variable**: `TEN_API_URL` = `https://ten-api-production.<account>.workers.dev`
    - **Variable**: `ADMOB_APP_ID` = 本番 AdMob の App ID（Android / iOS）

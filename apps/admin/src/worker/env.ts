@@ -2,50 +2,15 @@ import { z } from 'zod'
 
 export const envConfigSchema = z
   .object({
-    PREVIEW_MODE: z.enum(['required', 'disabled']).optional(),
+    ENVIRONMENT: z.enum(['staging', 'production']),
     DEPLOY_VERSION: z.string().min(1).optional(),
-    AUTH_SECRET: z.string().min(1),
-    PREVIEW_SESSION_SECRET: z.string().min(1).optional(),
+    ADMIN_SESSION_SECRET: z.string().min(1),
     GOOGLE_OAUTH_CLIENT_ID: z.string().min(1).optional(),
     GOOGLE_OAUTH_CLIENT_SECRET: z.string().min(1).optional(),
     GITHUB_OAUTH_CLIENT_ID: z.string().min(1).optional(),
     GITHUB_OAUTH_CLIENT_SECRET: z.string().min(1).optional(),
   })
   .superRefine((config, ctx) => {
-    const hasPreviewBindings = Boolean(
-      config.PREVIEW_SESSION_SECRET ||
-      config.GOOGLE_OAUTH_CLIENT_ID ||
-      config.GOOGLE_OAUTH_CLIENT_SECRET ||
-      config.GITHUB_OAUTH_CLIENT_ID ||
-      config.GITHUB_OAUTH_CLIENT_SECRET,
-    )
-    if (hasPreviewBindings && config.PREVIEW_MODE !== 'required') {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['PREVIEW_MODE'],
-        message: 'must be "required" when preview bindings are present',
-      })
-    }
-    if (config.PREVIEW_MODE === 'required') {
-      if (!config.PREVIEW_SESSION_SECRET) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['PREVIEW_SESSION_SECRET'],
-          message: 'required when PREVIEW_MODE is required',
-        })
-      }
-      if (
-        !config.GITHUB_OAUTH_CLIENT_ID ||
-        !config.GITHUB_OAUTH_CLIENT_SECRET
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['GITHUB_OAUTH_CLIENT'],
-          message:
-            'GitHub OAuth credentials are required when PREVIEW_MODE is required',
-        })
-      }
-    }
     const hasGoogleId = Boolean(config.GOOGLE_OAUTH_CLIENT_ID)
     const hasGoogleSecret = Boolean(config.GOOGLE_OAUTH_CLIENT_SECRET)
     if (hasGoogleId !== hasGoogleSecret) {
@@ -55,25 +20,37 @@ export const envConfigSchema = z
         message: 'Google OAuth Client ID and Secret must be set together',
       })
     }
+    const hasGithubId = Boolean(config.GITHUB_OAUTH_CLIENT_ID)
+    const hasGithubSecret = Boolean(config.GITHUB_OAUTH_CLIENT_SECRET)
+    if (hasGithubId !== hasGithubSecret) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['GITHUB_OAUTH_CLIENT'],
+        message: 'GitHub OAuth Client ID and Secret must be set together',
+      })
+    }
+    const hasProvider = Boolean(hasGoogleId || hasGithubId)
+    if (!hasProvider) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['OAUTH_CLIENT'],
+        message: 'At least one OAuth provider must be configured',
+      })
+    }
   })
 
 export type RuntimeEnv = z.input<typeof envConfigSchema>
 
-export type PreviewMode = 'required' | 'disabled' | 'unset'
+export type AdminEnvironment = 'staging' | 'production'
 
 export type OAuthProviderConfig = { clientId: string; clientSecret: string }
 
-export type PreviewAuthConfig = {
-  sessionSecret: string | null
-  github: OAuthProviderConfig | null
-  google: OAuthProviderConfig | null
-}
-
 export type ParsedEnv = {
-  previewMode: PreviewMode
+  environment: AdminEnvironment
   deployVersion: string | null
-  authSecret: string
-  preview: PreviewAuthConfig
+  sessionSecret: string
+  google: OAuthProviderConfig | null
+  github: OAuthProviderConfig | null
 }
 
 export type EnvValidationResult =
@@ -109,14 +86,11 @@ export function parseEnv(env: RuntimeEnv): EnvValidationResult {
   return {
     ok: true,
     config: {
-      previewMode: value.PREVIEW_MODE ?? 'unset',
+      environment: value.ENVIRONMENT,
       deployVersion: value.DEPLOY_VERSION ?? null,
-      authSecret: value.AUTH_SECRET,
-      preview: {
-        sessionSecret: value.PREVIEW_SESSION_SECRET ?? null,
-        github,
-        google,
-      },
+      sessionSecret: value.ADMIN_SESSION_SECRET,
+      github,
+      google,
     },
   }
 }

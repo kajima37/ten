@@ -1,0 +1,48 @@
+{
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-08-01",
+  "env": {
+    "staging": {
+      "name": "ten-admin-staging",
+      "assets": {
+        "directory": "dist/client",
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": ["/api/*", "/auth/*"],
+      },
+      "vars": {
+        "ENVIRONMENT": "staging",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "ten-db-staging",
+          "database_id": "740c178f-4913-4908-860d-2e2311bd5603",
+          "migrations_dir": "../../worker/migrations",
+          "remote": true,
+        },
+      ],
+    },
+    "production": {
+      "name": "ten-admin-production",
+      "assets": {
+        "directory": "dist/client",
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": ["/api/*", "/auth/*"],
+      },
+      "vars": {
+        "ENVIRONMENT": "production",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "ten-db-production",
+          "database_id": "c49b527b-33d1-430b-8707-7cd0de1e4af5",
+          "migrations_dir": "../../worker/migrations",
+          "remote": true,
+        },
+      ],
+    },
+  },
+}

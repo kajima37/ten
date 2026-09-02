@@ -93,21 +93,21 @@ function createPreviewDb(
         bind(...args: unknown[]) {
           return {
             async run() {
-              if (query.includes('DELETE FROM preview_transactions')) {
+              if (query.includes('DELETE FROM oauth_transactions')) {
                 const cutoff = args[0] as string
                 for (const [id, tx] of transactions) {
                   if (tx.expiresAt < cutoff) transactions.delete(id)
                 }
                 return { meta: { changes: 1 } }
               }
-              if (query.includes('DELETE FROM preview_sessions')) {
+              if (query.includes('DELETE FROM oauth_sessions')) {
                 const cutoff = args[0] as string
                 for (const [id, row] of sessions) {
                   if (row.expiresAt < cutoff) sessions.delete(id)
                 }
                 return { meta: { changes: 1 } }
               }
-              if (query.includes('INSERT INTO preview_transactions')) {
+              if (query.includes('INSERT INTO oauth_transactions')) {
                 const [id, provider, state, verifier, nonce, expiresAt] =
                   args as [
                     string,
@@ -129,9 +129,7 @@ function createPreviewDb(
                 })
                 return { meta: { changes: 1 } }
               }
-              if (
-                query.includes('UPDATE preview_transactions SET consumed_at')
-              ) {
+              if (query.includes('UPDATE oauth_transactions SET consumed_at')) {
                 const [when, id] = args as [string, string]
                 const tx = transactions.get(id)
                 if (!tx || tx.consumedAt !== null)
@@ -162,7 +160,7 @@ function createPreviewDb(
                 }
                 return { meta: { changes: 1 } }
               }
-              if (query.includes('INSERT INTO preview_sessions')) {
+              if (query.includes('INSERT INTO oauth_sessions')) {
                 const [id, provider, subject, expiresAt] = args as [
                   string,
                   string,
@@ -179,7 +177,7 @@ function createPreviewDb(
                 })
                 return { meta: { changes: 1 } }
               }
-              if (query.includes('UPDATE preview_sessions SET revoked_at')) {
+              if (query.includes('UPDATE oauth_sessions SET revoked_at')) {
                 const [when, id] = args as [string, string]
                 const row = sessions.get(id)
                 if (row) row.revokedAt = when
@@ -188,7 +186,7 @@ function createPreviewDb(
               return { meta: { changes: 0 } }
             },
             async first<T>() {
-              if (query.includes('FROM preview_transactions WHERE id')) {
+              if (query.includes('FROM oauth_transactions WHERE id')) {
                 const tx = transactions.get(args[0] as string)
                 if (!tx) return null
                 return {
@@ -200,6 +198,16 @@ function createPreviewDb(
                   consumedAt: tx.consumedAt,
                 } as T
               }
+              if (query.includes('FROM oauth_sessions s')) {
+                const [sid, when] = args as [string, string]
+                const row = sessions.get(sid)
+                if (!row || row.revokedAt !== null || row.expiresAt <= when)
+                  return null
+                return {
+                  provider: row.provider,
+                  subject: row.subject,
+                } as T
+              }
               if (query.includes('SELECT approved_at')) {
                 const [provider, subject] = args as [string, string]
                 const row = identities.get(key(provider, subject))
@@ -208,20 +216,6 @@ function createPreviewDb(
                   approvedAt: row.approvedAt,
                   revokedAt: row.revokedAt,
                 } as T
-              }
-              if (query.includes('JOIN preview_identities')) {
-                const [sid, when] = args as [string, string]
-                const row = sessions.get(sid)
-                if (!row || row.revokedAt !== null || row.expiresAt <= when)
-                  return null
-                const identity = identities.get(key(row.provider, row.subject))
-                if (
-                  !identity ||
-                  identity.approvedAt === null ||
-                  identity.revokedAt !== null
-                )
-                  return null
-                return { id: row.id } as T
               }
               return null
             },
@@ -1076,7 +1070,6 @@ test('preview mode requires authentication before assets', async () => {
     DB: db,
     DAILY_CACHE: {} as KVNamespace,
     AUTH_SECRET: 'auth-secret',
-    ADMIN_SECRET: 'admin-secret',
     PREVIEW_MODE: 'required',
     PREVIEW_SESSION_SECRET: 'preview-session-secret',
     GOOGLE_OAUTH_CLIENT_ID: 'google-client-id',
@@ -1106,7 +1099,6 @@ test('unset preview mode with preview bindings fails closed', async () => {
     DB: {} as unknown as D1Database,
     DAILY_CACHE: {} as KVNamespace,
     AUTH_SECRET: 'auth-secret',
-    ADMIN_SECRET: 'admin-secret',
     PREVIEW_SESSION_SECRET: 'preview-session-secret',
   }
   const response = await worker.fetch(request('/api/health'), env)
@@ -1118,7 +1110,6 @@ test('disabled preview mode serves the app normally', async () => {
     DB: {} as unknown as D1Database,
     DAILY_CACHE: {} as KVNamespace,
     AUTH_SECRET: 'auth-secret',
-    ADMIN_SECRET: 'admin-secret',
     PREVIEW_MODE: 'disabled',
   }
   const response = await worker.fetch(request('/api/health'), env)

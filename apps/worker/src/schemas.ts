@@ -46,7 +46,3 @@ export const friendCodeSchema = z.object({
     .trim()
     .regex(/^[A-Z0-9]{8}$/i),
 })
-
-export const adminPlayersQuerySchema = z.object({
-  ipHash: z.string().min(1).max(128),
-})

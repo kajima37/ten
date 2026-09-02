@@ -25,7 +25,6 @@ import { parseEnv } from './env.ts'
 import type { EnvValidationResult, RuntimeEnv } from './env.ts'
 import { handlePreviewAuth } from './preview-auth.ts'
 import {
-  adminPlayersQuerySchema,
   friendCodeSchema,
   leaderboardQuerySchema,
   nameSchema,
@@ -185,17 +184,12 @@ export function createApp(storeFactory: (env: Env) => Store): Hono<AppContext> {
     await next()
   }
 
-  const adminAuth: MiddlewareHandler<AppContext> = async (c, next) => {
-    const expected = c.env.ADMIN_SECRET
-    if (!expected || c.req.header('Authorization') !== `Bearer ${expected}`) {
-      return c.json({ error: 'forbidden' }, 403)
-    }
-    await next()
-  }
-
   const activePlayer: MiddlewareHandler<AppContext> = async (c, next) => {
-    const player = await c.get('store').getPlayer(c.get('playerId'))
+    const store = c.get('store')
+    const player = await store.getPlayer(c.get('playerId'))
     if (!player || isPlayerBanned(player))
+      return c.json({ error: 'forbidden' }, 403)
+    if (await store.isIpBanned(c.get('ipHash')))
       return c.json({ error: 'forbidden' }, 403)
     await next()
   }
@@ -210,6 +204,10 @@ export function createApp(storeFactory: (env: Env) => Store): Hono<AppContext> {
     const ipHash = c.get('ipHash')
     const deviceId = body.deviceId.trim()
     const name = (body.name ?? '').trim() || 'Player'
+
+    if (await store.isIpBanned(ipHash)) {
+      return c.json({ error: 'forbidden' }, 403)
+    }
 
     const since = new Date(Date.now() - REGISTRATION_WINDOW_MS).toISOString()
     const recent = await store.countRecentRegistrations(ipHash, since)
@@ -258,12 +256,8 @@ export function createApp(storeFactory: (env: Env) => Store): Hono<AppContext> {
     return c.json(payload)
   })
 
-  app.post('/api/daily/start', authPlayer, async (c) => {
-    const store = c.get('store')
+  app.post('/api/daily/start', authPlayer, activePlayer, async (c) => {
     const playerId = c.get('playerId')
-    const player = await store.getPlayer(playerId)
-    if (!player || isPlayerBanned(player))
-      return c.json({ error: 'forbidden' }, 403)
     const dateKey = getJstDateKey()
     return c.json({
       dateKey,
@@ -540,48 +534,6 @@ export function createApp(storeFactory: (env: Env) => Store): Hono<AppContext> {
       friends: await store.getFriends(playerId),
       requests: await store.getFriendRequests(playerId),
     })
-  })
-
-  app.use('/api/admin/*', adminAuth)
-
-  app.get(
-    '/api/admin/players',
-    queryValidator(adminPlayersQuerySchema),
-    async (c) => {
-      const store = c.get('store')
-      const { ipHash } = c.req.valid('query')
-      const players = await store.findPlayersByIp(ipHash)
-      return c.json({ players })
-    },
-  )
-
-  app.post('/api/admin/players/:id/ban', async (c) => {
-    const store = c.get('store')
-    const playerId = c.req.param('id')
-    await store.banPlayer(playerId, null)
-    return c.json({ banned: playerId })
-  })
-
-  app.post('/api/admin/players/:id/unban', async (c) => {
-    const store = c.get('store')
-    const playerId = c.req.param('id')
-    await store.unbanPlayer(playerId)
-    return c.json({ unbanned: playerId })
-  })
-
-  app.post('/api/admin/ip/:ipHash/ban', async (c) => {
-    const store = c.get('store')
-    const ipHash = c.req.param('ipHash')
-    const count = await store.banPlayersByIp(ipHash, null)
-    return c.json({ banned: count })
-  })
-
-  app.delete('/api/admin/players/:id/scores', async (c) => {
-    const store = c.get('store')
-    const playerId = c.req.param('id')
-    const dateKey = c.req.query('date')
-    const count = await store.deletePlayerScores(playerId, dateKey)
-    return c.json({ deleted: count })
   })
 
   app.notFound((c) => c.json({ error: 'Not Found' }, 404))

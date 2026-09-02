@@ -11,7 +11,6 @@ function validRequiredConfig(): RuntimeEnv {
   return {
     PREVIEW_MODE: 'required',
     AUTH_SECRET: 'auth-secret-value',
-    ADMIN_SECRET: 'admin-secret-value',
     PREVIEW_SESSION_SECRET: 'preview-session-secret-value',
     GITHUB_OAUTH_CLIENT_ID: 'github-client-id',
     GITHUB_OAUTH_CLIENT_SECRET: 'github-client-secret',
@@ -22,7 +21,6 @@ function validDisabledConfig(): RuntimeEnv {
   return {
     PREVIEW_MODE: 'disabled',
     AUTH_SECRET: 'auth-secret-value',
-    ADMIN_SECRET: 'admin-secret-value',
   }
 }
 
@@ -31,7 +29,6 @@ test('valid required preview config parses to typed config', () => {
   assert.ok(result.ok)
   assert.equal(result.config.previewMode, 'required')
   assert.equal(result.config.authSecret, 'auth-secret-value')
-  assert.equal(result.config.adminSecret, 'admin-secret-value')
   assert.equal(
     result.config.preview.sessionSecret,
     'preview-session-secret-value',
@@ -52,12 +49,12 @@ test('valid disabled config parses with no preview settings', () => {
   assert.equal(result.config.preview.google, null)
 })
 
-test('missing auth or admin secret is rejected', () => {
-  for (const key of ['AUTH_SECRET', 'ADMIN_SECRET'] as const) {
-    const result = parseEnv({ ...validDisabledConfig(), [key]: undefined })
-    assert.equal(result.ok, false)
-    assert.ok(result.issues.some((issue) => issue.path === key))
-  }
+test('missing auth secret is rejected', () => {
+  const config: Record<string, unknown> = { ...validDisabledConfig() }
+  delete config.AUTH_SECRET
+  const result = parseEnv(config as RuntimeEnv)
+  assert.equal(result.ok, false)
+  assert.ok(result.issues.some((issue) => issue.path === 'AUTH_SECRET'))
 })
 
 test('invalid PREVIEW_MODE value is rejected', () => {
@@ -128,7 +125,6 @@ function fetchEnv(overrides: Record<string, unknown> = {}): Env {
     DB: {} as unknown as D1Database,
     DAILY_CACHE: {} as KVNamespace,
     AUTH_SECRET: 'auth-secret-value',
-    ADMIN_SECRET: 'admin-secret-value',
     PREVIEW_MODE: 'disabled',
     ...overrides,
   }

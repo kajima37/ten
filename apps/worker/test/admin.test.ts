@@ -7,175 +7,159 @@ import {
   createTestContext,
   readJson,
   register,
+  startDaily,
   submitDaily,
 } from './helpers.ts'
 
-test('admin endpoints require the admin secret', async () => {
-  const { app, env } = createTestContext()
-  const response = await app.request(
-    'https://example.com/api/admin/players?ipHash=abc',
-    {},
-    env,
-  )
-  assert.equal(response.status, 403)
+function banPlayerDirect(
+  context: ReturnType<typeof createTestContext>,
+  playerId: string,
+  untilIso: string | null,
+) {
+  const player = context.store.players.get(playerId)
+  assert.ok(player)
+  context.store.players.set(playerId, {
+    ...player,
+    banned: 1,
+    bannedUntil: untilIso,
+  })
+}
 
-  const withToken = await app.request(
-    'https://example.com/api/admin/players?ipHash=abc',
-    { headers: { authorization: 'Bearer admin-secret' } },
-    env,
-  )
-  assert.equal(withToken.status, 200)
-})
-
-test('players can be found by their hashed ip', async () => {
-  const { app, env } = createTestContext()
+test('registration and submissions are blocked for a banned ip', async () => {
+  const { app, env, store } = createTestContext()
   const ip = '203.0.113.5'
-  const { playerId } = await register(app, env, 'device-1', {
-    ip,
-    name: 'Alice',
-  })
   const ipHash = await hashIp(ip, env.AUTH_SECRET)
+  const alice = await register(app, env, 'device-a', { ip, name: 'Alice' })
 
-  const response = await app.request(
-    `https://example.com/api/admin/players?ipHash=${ipHash}`,
-    { headers: { authorization: 'Bearer admin-secret' } },
+  store.bannedIps.set(ipHash, {
+    ipHash,
+    reason: 'fraud network',
+    bannedBy: 'admin',
+    expiresAt: null,
+    createdAt: new Date().toISOString(),
+  })
+
+  const blocked = await app.request(
+    'https://example.com/api/auth/register',
+    {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'cf-connecting-ip': ip,
+      },
+      body: JSON.stringify({ deviceId: 'device-new', name: 'Mallory' }),
+    },
     env,
   )
-  assert.equal(response.status, 200)
-  const body = await readJson<{ players: Array<{ id: string; name: string }> }>(
-    response,
-  )
-  assert.equal(body.players.length, 1)
-  assert.equal(body.players[0].id, playerId)
+  assert.equal(blocked.status, 403)
+
+  const start = await startDaily(app, env, alice.token, { ip })
+  assert.equal(start.response.status, 403)
 })
 
-test('banned players are excluded from the leaderboard and cannot submit', async () => {
-  const { app, env } = createTestContext()
-  const dateKey = getJstDateKey()
-  const seed = getDailySeed(dateKey)
-
-  const alice = await register(app, env, 'device-a', {
-    ip: '203.0.113.5',
-    name: 'Alice',
+test('an expired ip ban no longer blocks registration', async () => {
+  const { app, env, store } = createTestContext()
+  const ip = '203.0.113.7'
+  const ipHash = await hashIp(ip, env.AUTH_SECRET)
+  store.bannedIps.set(ipHash, {
+    ipHash,
+    reason: 'temporary',
+    bannedBy: 'admin',
+    expiresAt: '2020-01-01T00:00:00.000Z',
+    createdAt: '2020-01-01T00:00:00.000Z',
   })
-  const bob = await register(app, env, 'device-b', {
-    ip: '203.0.113.6',
+  const response = await register(app, env, 'device-after', {
+    ip,
     name: 'Bob',
   })
-  await submitDaily(app, env, alice.token, dateKey, seed, 6)
-  await submitDaily(app, env, bob.token, dateKey, seed, 3)
-
-  const ban = await app.request(
-    `https://example.com/api/admin/players/${alice.playerId}/ban`,
-    { method: 'POST', headers: { authorization: 'Bearer admin-secret' } },
-    env,
-  )
-  assert.equal(ban.status, 200)
-
-  const leaderboard = await app.request(
-    `https://example.com/api/leaderboard?date=${dateKey}`,
-    {},
-    env,
-  )
-  const leaderboardBody = await readJson<{
-    total: number
-    entries: Array<{ playerId: string }>
-  }>(leaderboard)
-  assert.equal(leaderboardBody.total, 1)
-  assert.equal(leaderboardBody.entries[0].playerId, bob.playerId)
-
-  const submit = await submitDaily(app, env, alice.token, dateKey, seed, 4)
-  assert.equal(submit.response.status, 403)
+  assert.equal(response.response.status, 200)
 })
 
-test('unban restores the player', async () => {
-  const { app, env } = createTestContext()
-  const dateKey = getJstDateKey()
-  const seed = getDailySeed(dateKey)
-  const alice = await register(app, env, 'device-a', {
-    ip: '203.0.113.5',
-    name: 'Alice',
-  })
-
-  await app.request(
-    `https://example.com/api/admin/players/${alice.playerId}/ban`,
-    { method: 'POST', headers: { authorization: 'Bearer admin-secret' } },
-    env,
-  )
-  await app.request(
-    `https://example.com/api/admin/players/${alice.playerId}/unban`,
-    { method: 'POST', headers: { authorization: 'Bearer admin-secret' } },
-    env,
-  )
-  const submit = await submitDaily(app, env, alice.token, dateKey, seed, 3)
-  assert.equal(submit.response.status, 200)
-})
-
-test('banning an ip bans every account behind it', async () => {
-  const { app, env } = createTestContext()
-  const dateKey = getJstDateKey()
-  const seed = getDailySeed(dateKey)
-  const ip = '203.0.113.9'
-  const ipHash = await hashIp(ip, env.AUTH_SECRET)
-
-  const first = await register(app, env, 'device-1', { ip, name: 'Alice' })
-  const second = await register(app, env, 'device-2', { ip, name: 'Bob' })
-
-  const ban = await app.request(
-    `https://example.com/api/admin/ip/${ipHash}/ban`,
-    { method: 'POST', headers: { authorization: 'Bearer admin-secret' } },
-    env,
-  )
-  assert.equal(ban.status, 200)
-
-  const a = await submitDaily(app, env, first.token, dateKey, seed, 3)
-  const b = await submitDaily(app, env, second.token, dateKey, seed, 3)
-  assert.equal(a.response.status, 403)
-  assert.equal(b.response.status, 403)
-})
-
-test('fraudulent scores can be deleted', async () => {
+test('a timed player ban expires and restores access', async () => {
   const { app, env, store } = createTestContext()
   const dateKey = getJstDateKey()
   const seed = getDailySeed(dateKey)
-  const alice = await register(app, env, 'device-a', {
-    ip: '203.0.113.5',
-    name: 'Alice',
-  })
-  const { score } = await submitDaily(app, env, alice.token, dateKey, seed, 6)
+  const alice = await register(app, env, 'device-a', { name: 'Alice' })
 
-  const del = await app.request(
-    `https://example.com/api/admin/players/${alice.playerId}/scores?date=${dateKey}`,
-    { method: 'DELETE', headers: { authorization: 'Bearer admin-secret' } },
-    env,
+  banPlayerDirect(
+    { app, env, store },
+    alice.playerId,
+    '2020-01-01T00:00:00.000Z',
   )
-  assert.equal(del.status, 200)
+  const active = store.players.get(alice.playerId)
+  assert.ok(active)
+  store.players.set(alice.playerId, {
+    ...active,
+    banned: 1,
+    bannedUntil: new Date(Date.now() + 60_000).toISOString(),
+  })
+  const duringBan = await startDaily(app, env, alice.token)
+  assert.equal(duringBan.response.status, 403)
+
+  const banned = store.players.get(alice.playerId)
+  assert.ok(banned)
+  store.players.set(alice.playerId, {
+    ...banned,
+    bannedUntil: new Date(Date.now() - 60_000).toISOString(),
+  })
+  const afterExpiry = await submitDaily(app, env, alice.token, dateKey, seed, 3)
+  assert.equal(afterExpiry.response.status, 200)
+})
+
+test('hidden scores are excluded from daily and weekly leaderboards', async () => {
+  const { app, env, store } = createTestContext()
+  const dateKey = getJstDateKey()
+  const seed = getDailySeed(dateKey)
+
+  const alice = await register(app, env, 'device-a', { name: 'Alice' })
+  const bob = await register(app, env, 'device-b', { name: 'Bob' })
+  await submitDaily(app, env, alice.token, dateKey, seed, 6)
+  await submitDaily(app, env, bob.token, dateKey, seed, 3)
+
+  const aliceEntry = store.scores.find(
+    (entry) => entry.playerId === alice.playerId,
+  )
+  assert.ok(aliceEntry)
+  aliceEntry.hiddenAt = new Date().toISOString()
 
   const leaderboard = await app.request(
     `https://example.com/api/leaderboard?date=${dateKey}`,
     {},
     env,
   )
-  const leaderboardBody = await readJson<{ total: number }>(leaderboard)
-  assert.equal(leaderboardBody.total, 0)
-  assert.equal(store.proofs.filter((p) => p.score === score).length, 0)
+  const body = await readJson<{
+    total: number
+    entries: Array<{ playerId: string }>
+  }>(leaderboard)
+  assert.equal(body.total, 1)
+  assert.deepEqual(
+    body.entries.map((entry) => entry.playerId),
+    [bob.playerId],
+  )
+
+  const mine = await app.request(
+    `https://example.com/api/leaderboard?date=${dateKey}`,
+    { headers: { authorization: `Bearer ${alice.token}` } },
+    env,
+  )
+  const mineBody = await readJson<{ mine: unknown }>(mine)
+  assert.equal(mineBody.mine, null)
 })
 
-test('registration is rate limited per ip', async () => {
-  const { app, env } = createTestContext()
-  const ip = '203.0.113.42'
-  let lastStatus = 0
-  for (let index = 0; index < 21; index += 1) {
-    const response = await app.request(
-      'https://example.com/api/auth/register',
-      {
-        method: 'POST',
-        headers: { 'cf-connecting-ip': ip, 'content-type': 'application/json' },
-        body: JSON.stringify({ deviceId: `device-${index}-${'x'.repeat(10)}` }),
-      },
-      env,
-    )
-    lastStatus = response.status
-  }
-  assert.equal(lastStatus, 429)
+test('unban restores the player', async () => {
+  const { app, env, store } = createTestContext()
+  const dateKey = getJstDateKey()
+  const seed = getDailySeed(dateKey)
+  const alice = await register(app, env, 'device-a', { name: 'Alice' })
+
+  banPlayerDirect({ app, env, store }, alice.playerId, null)
+  const banned = await startDaily(app, env, alice.token)
+  assert.equal(banned.response.status, 403)
+
+  const player = store.players.get(alice.playerId)
+  assert.ok(player)
+  store.players.set(alice.playerId, { ...player, banned: 0, bannedUntil: null })
+
+  const restored = await submitDaily(app, env, alice.token, dateKey, seed, 3)
+  assert.equal(restored.response.status, 200)
 })
