@@ -74,28 +74,9 @@ github:12345678 (octocat)
 google:123456789012345678901 (tester@example.com)
 ```
 
-初回ログイン時に、この identity が `preview_identities` へ保留状態（`approved_at` が空）で記録されます。管理者は保留一覧を確認し、本人であることを確認してから承認します。
+初回ログイン時に、この identity が `preview_identities` へ保留状態（`approved_at` が空）で記録されます。管理者は staging の管理画面で「アクセス管理」を開き、保留一覧を確認して本人確認のうえ承認します。利用を停止する場合も同じ画面から取り消します。操作には理由が必要で、実行者と変更内容が監査ログに記録されます。
 
-保留一覧の確認（リポジトリのルートから実行）:
-
-```bash
-pnpm --filter @ten/worker exec wrangler d1 execute ten-db-staging --remote --env staging \
-  --command "SELECT provider, subject, email, display_name, created_at FROM preview_identities WHERE approved_at IS NULL;"
-```
-
-承認する場合（`<管理者名>` は誰が承認したか分かる値へ置き換え、`provider` と `subject` は保留一覧の値へ置き換えます）:
-
-```bash
-pnpm --filter @ten/worker exec wrangler d1 execute ten-db-staging --remote --env staging \
-  --command "UPDATE preview_identities SET approved_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), approved_by = '<管理者名>' WHERE provider = 'github' AND subject = '12345678';"
-```
-
-利用を停止する場合は、対象 identity を削除せず次の SQL で取り消します。既存のセッションも次のリクエストから無効になります。
-
-```bash
-pnpm --filter @ten/worker exec wrangler d1 execute ten-db-staging --remote --env staging \
-  --command "UPDATE preview_identities SET revoked_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE provider = 'github' AND subject = '12345678';"
-```
+取消は次のリクエストから反映され、既存セッションも無効になります。
 
 ### ステップ 3: GitHub Environment Variables の設定
 

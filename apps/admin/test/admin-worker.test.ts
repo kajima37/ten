@@ -6,6 +6,7 @@ import type { AdminEnv } from '../src/worker/index.ts'
 import {
   createAuthDb,
   createMemoryAdminStore,
+  seedIdentity,
   seedPlayer,
   sessionCookie,
   testAdminEnv,
@@ -169,6 +170,107 @@ test('production requires an approved admin identity, not a preview approval', a
   assert.equal(allowed.status, 200)
   const body = await readJson<{ environment: string }>(allowed)
   assert.equal(body.environment, 'production')
+})
+
+test('identities can be approved and revoked with audit records', async () => {
+  const { app, store, env } = createTest({
+    previewIdentities: [
+      { provider: 'github', subject: '1', approvedAt: APPROVED },
+    ],
+  })
+  seedIdentity(store, {
+    provider: 'github',
+    subject: '2',
+    displayName: 'Pending user',
+    email: 'pending@example.com',
+  })
+
+  const listed = await app.fetch(
+    request('/api/admin/identities', {
+      headers: { cookie: await sessionCookie('sid-1') },
+    }),
+    env,
+  )
+  assert.equal(listed.status, 200)
+  const listBody = await readJson<{
+    identities: Array<{
+      provider: string
+      subject: string
+      approvedAt: string | null
+    }>
+  }>(listed)
+  assert.deepEqual(
+    listBody.identities.map((identity) => ({
+      provider: identity.provider,
+      subject: identity.subject,
+      approvedAt: identity.approvedAt,
+    })),
+    [{ provider: 'github', subject: '2', approvedAt: null }],
+  )
+
+  const approved = await app.fetch(
+    request('/api/admin/identities/github/2/approve', {
+      method: 'POST',
+      headers: {
+        cookie: await sessionCookie('sid-1'),
+        origin: 'https://admin.example.com',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ reason: 'team member verified' }),
+    }),
+    env,
+  )
+  assert.equal(approved.status, 200)
+  assert.equal(store.identities.get('github:2')?.approvedBy, 'github:1')
+
+  const revoked = await app.fetch(
+    request('/api/admin/identities/github/2/revoke', {
+      method: 'POST',
+      headers: {
+        cookie: await sessionCookie('sid-1'),
+        origin: 'https://admin.example.com',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ reason: 'access no longer needed' }),
+    }),
+    env,
+  )
+  assert.equal(revoked.status, 200)
+  assert.notEqual(store.identities.get('github:2')?.revokedAt, null)
+  assert.deepEqual(
+    store.audits.map((entry) => entry.action),
+    ['identity.approve', 'identity.revoke'],
+  )
+})
+
+test('production cannot revoke its final active administrator', async () => {
+  const { app, store, env } = createTest({
+    environment: 'production',
+    adminIdentities: [
+      { provider: 'github', subject: '9', approvedAt: APPROVED },
+    ],
+  })
+  seedIdentity(store, {
+    provider: 'github',
+    subject: '9',
+    approvedAt: APPROVED,
+    approvedBy: 'bootstrap',
+  })
+
+  const response = await app.fetch(
+    request('/api/admin/identities/github/9/revoke', {
+      method: 'POST',
+      headers: {
+        cookie: await sessionCookie('sid-9'),
+        origin: 'https://admin.example.com',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ reason: 'test' }),
+    }),
+    env,
+  )
+  assert.equal(response.status, 409)
+  assert.equal(store.identities.get('github:9')?.revokedAt, null)
 })
 
 test('search players by name, id, and ip hash', async () => {

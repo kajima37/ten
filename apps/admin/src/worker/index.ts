@@ -13,6 +13,7 @@ import type { AdminStore } from './store.ts'
 import {
   auditQuerySchema,
   banSchema,
+  identityParamsSchema,
   reasonSchema,
   scoreActionSchema,
   searchQuerySchema,
@@ -79,7 +80,7 @@ const requireSameOrigin: MiddlewareHandler<AppContext> = async (c, next) => {
 
 export function createAdminApp(
   storeFactory: (env: AdminEnv) => AdminStore = (env) =>
-    createD1AdminStore(env.DB),
+    createD1AdminStore(env.DB, env.ENVIRONMENT),
 ): Hono<AppContext> {
   const app = new Hono<AppContext>()
 
@@ -313,6 +314,93 @@ export function createAdminApp(
     const ips = await c.get('store').listBannedIps()
     return c.json({ ips })
   })
+
+  app.get('/api/admin/identities', async (c) => {
+    const identities = await c.get('store').listIdentities()
+    return c.json({ identities })
+  })
+
+  app.post(
+    '/api/admin/identities/:provider/:subject/approve',
+    jsonValidator(reasonSchema),
+    async (c) => {
+      const params = identityParamsSchema.safeParse(c.req.param())
+      if (!params.success) return c.json({ error: 'validation failed' }, 400)
+      const { provider, subject } = params.data
+      const store = c.get('store')
+      const target = await store.getIdentity(provider, subject)
+      if (!target) return c.json({ error: 'identity not found' }, 404)
+      const identity = c.get('identity')
+      const { reason } = c.req.valid('json')
+      const changed = await store.approveIdentity(
+        provider,
+        subject,
+        identityLabel(identity),
+      )
+      await store.recordAudit({
+        actorProvider: identity.provider,
+        actorSubject: identity.subject,
+        action: 'identity.approve',
+        targetType: 'identity',
+        targetId: `${provider}:${subject}`,
+        reason,
+        beforeJson: JSON.stringify({
+          approvedAt: target.approvedAt,
+          approvedBy: target.approvedBy,
+          revokedAt: target.revokedAt,
+        }),
+        afterJson: JSON.stringify({
+          approved: true,
+          approvedBy: identityLabel(identity),
+        }),
+        affectedCount: changed ? 1 : 0,
+      })
+      return c.json({ provider, subject, approved: true, changed })
+    },
+  )
+
+  app.post(
+    '/api/admin/identities/:provider/:subject/revoke',
+    jsonValidator(reasonSchema),
+    async (c) => {
+      const params = identityParamsSchema.safeParse(c.req.param())
+      if (!params.success) return c.json({ error: 'validation failed' }, 400)
+      const { provider, subject } = params.data
+      const store = c.get('store')
+      const target = await store.getIdentity(provider, subject)
+      if (!target) return c.json({ error: 'identity not found' }, 404)
+      if (
+        c.env.ENVIRONMENT === 'production' &&
+        target.approvedAt !== null &&
+        target.revokedAt === null &&
+        (await store.countAllowedIdentities()) <= 1
+      ) {
+        return c.json(
+          { error: 'cannot revoke the last active administrator' },
+          409,
+        )
+      }
+      const identity = c.get('identity')
+      const { reason } = c.req.valid('json')
+      const changed = await store.revokeIdentity(provider, subject)
+      await store.recordAudit({
+        actorProvider: identity.provider,
+        actorSubject: identity.subject,
+        action: 'identity.revoke',
+        targetType: 'identity',
+        targetId: `${provider}:${subject}`,
+        reason,
+        beforeJson: JSON.stringify({
+          approvedAt: target.approvedAt,
+          approvedBy: target.approvedBy,
+          revokedAt: target.revokedAt,
+        }),
+        afterJson: JSON.stringify({ revoked: true }),
+        affectedCount: changed ? 1 : 0,
+      })
+      return c.json({ provider, subject, revoked: true, changed })
+    },
+  )
 
   app.get('/api/admin/audit', queryValidator(auditQuerySchema), async (c) => {
     const query = c.req.valid('query')

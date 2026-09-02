@@ -58,6 +58,18 @@ export type AuditRow = {
   createdAt: string
 }
 
+export type Identity = {
+  provider: string
+  subject: string
+  email: string | null
+  displayName: string | null
+  approvedAt: string | null
+  approvedBy: string | null
+  revokedAt: string | null
+  createdAt: string
+  lastSeenAt: string | null
+}
+
 export class ApiError extends Error {
   status: number
 
@@ -147,6 +159,17 @@ export const api = {
       { method: 'POST', body: JSON.stringify(body) },
     ),
   bannedIps: () => request<{ ips: Array<IpBan> }>('/banned-ips'),
+  identities: () => request<{ identities: Array<Identity> }>('/identities'),
+  approveIdentity: (provider: string, subject: string, reason: string) =>
+    request<{ provider: string; subject: string; approved: boolean }>(
+      `/identities/${encodeURIComponent(provider)}/${encodeURIComponent(subject)}/approve`,
+      { method: 'POST', body: JSON.stringify({ reason }) },
+    ),
+  revokeIdentity: (provider: string, subject: string, reason: string) =>
+    request<{ provider: string; subject: string; revoked: boolean }>(
+      `/identities/${encodeURIComponent(provider)}/${encodeURIComponent(subject)}/revoke`,
+      { method: 'POST', body: JSON.stringify({ reason }) },
+    ),
   audit: (limit = 50, offset = 0) =>
     request<{ logs: Array<AuditRow> }>(
       `/audit?limit=${limit}&offset=${offset}`,

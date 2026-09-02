@@ -92,6 +92,13 @@ export function Layout({ children }: { children: ReactNode }) {
               IP 停止
             </Link>
             <Link
+              to="/identities"
+              className="text-zinc-300 hover:text-white"
+              activeProps={{ className: 'text-white font-medium' }}
+            >
+              アクセス管理
+            </Link>
+            <Link
               to="/audit"
               className="text-zinc-300 hover:text-white"
               activeProps={{ className: 'text-white font-medium' }}

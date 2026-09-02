@@ -83,21 +83,16 @@ OAuth App は **staging と production で別々のものを使用します**。
 ### ステップ 4: 管理者の承認
 
 - **staging**: Web プレビューの承認済みアカウントなら、そのまま管理画面にもログインできます。承認手順は[プレビューの利用者承認](./cloudflare-worker-preview.md)と共通です。
-- **production**: 承認された管理者のみログインできます。まず対象の人がログインを試みると「管理者として未承認です」の画面に識別子（`github:12345678` など）が表示されるので、本人確認のうえ次の SQL で承認します（リポジトリのルートから実行）:
+- **production**: 承認された管理者のみログインできます。対象者がログインを試みた後、既存の管理者が管理画面の「アクセス管理」を開き、保留中の識別子（`github:12345678` など）を本人確認のうえ承認します。承認・取消には理由が必要で、実行者と変更内容が監査ログに記録されます。承認済みの管理者は全員、他の管理者を管理できます。
+
+  取消は次のリクエストから反映され、既存セッションも無効になります。最後に有効な管理者は管理画面から取り消せません。
+
+  初回だけは承認済み管理者がいないため、ブートストラップとして Wrangler で最初の identity を `admin_identities` に承認登録します。その後の通常運用では Wrangler は不要です。
 
   ```bash
   pnpm --filter @ten/admin exec wrangler d1 execute ten-db-production --remote --env production \
-    --command "INSERT INTO admin_identities (provider, subject, approved_at, approved_by) VALUES ('github', '12345678', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), '<承認した管理者名>') ON CONFLICT(provider, subject) DO UPDATE SET approved_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), approved_by = '<承認した管理者名>';"
+    --command "INSERT INTO admin_identities (provider, subject, approved_at, approved_by) VALUES ('github', '12345678', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 'initial-bootstrap');"
   ```
-
-  承認を取り消す場合:
-
-  ```bash
-  pnpm --filter @ten/admin exec wrangler d1 execute ten-db-production --remote --env production \
-    --command "UPDATE admin_identities SET revoked_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE provider = 'github' AND subject = '12345678';"
-  ```
-
-  取り消しは次のリクエストから反映され、既存セッションも無効になります。
 
 ## 5. 動作確認とトラブルシューティング
 

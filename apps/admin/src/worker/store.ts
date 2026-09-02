@@ -50,6 +50,18 @@ export type AdminAuditRow = {
   createdAt: string
 }
 
+export type AdminIdentityRow = {
+  provider: string
+  subject: string
+  email: string | null
+  displayName: string | null
+  approvedAt: string | null
+  approvedBy: string | null
+  revokedAt: string | null
+  createdAt: string
+  lastSeenAt: string | null
+}
+
 export type AdminSearchQuery = {
   playerId?: string
   name?: string
@@ -92,11 +104,28 @@ export interface AdminStore {
     limit: number,
     offset: number,
   ) => Promise<Array<AdminAuditRow>>
+  listIdentities: () => Promise<Array<AdminIdentityRow>>
+  getIdentity: (
+    provider: string,
+    subject: string,
+  ) => Promise<AdminIdentityRow | null>
+  approveIdentity: (
+    provider: string,
+    subject: string,
+    approvedBy: string,
+  ) => Promise<boolean>
+  revokeIdentity: (provider: string, subject: string) => Promise<boolean>
+  countAllowedIdentities: () => Promise<number>
 }
 
 const NOW = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')"
 
-export function createD1AdminStore(db: D1Database): AdminStore {
+export function createD1AdminStore(
+  db: D1Database,
+  environment: 'staging' | 'production',
+): AdminStore {
+  const identityTable =
+    environment === 'production' ? 'admin_identities' : 'preview_identities'
   return {
     async searchPlayers(query) {
       const conditions: Array<string> = []
@@ -308,6 +337,70 @@ export function createD1AdminStore(db: D1Database): AdminStore {
         .bind(limit, offset)
         .all<AdminAuditRow>()
       return rows.results
+    },
+
+    async listIdentities() {
+      const rows = await db
+        .prepare(
+          `SELECT provider, subject, email, display_name AS displayName,
+                  approved_at AS approvedAt, approved_by AS approvedBy,
+                  revoked_at AS revokedAt, created_at AS createdAt,
+                  ${environment === 'staging' ? 'last_seen_at' : 'NULL'} AS lastSeenAt
+           FROM ${identityTable}
+           ORDER BY
+             CASE WHEN approved_at IS NULL THEN 0
+                  WHEN revoked_at IS NULL THEN 1 ELSE 2 END,
+             created_at DESC`,
+        )
+        .all<AdminIdentityRow>()
+      return rows.results
+    },
+
+    async getIdentity(provider, subject) {
+      const row = await db
+        .prepare(
+          `SELECT provider, subject, email, display_name AS displayName,
+                  approved_at AS approvedAt, approved_by AS approvedBy,
+                  revoked_at AS revokedAt, created_at AS createdAt,
+                  ${environment === 'staging' ? 'last_seen_at' : 'NULL'} AS lastSeenAt
+           FROM ${identityTable} WHERE provider = ? AND subject = ?`,
+        )
+        .bind(provider, subject)
+        .first<AdminIdentityRow>()
+      return row ?? null
+    },
+
+    async approveIdentity(provider, subject, approvedBy) {
+      const result = await db
+        .prepare(
+          `UPDATE ${identityTable}
+           SET approved_at = ${NOW}, approved_by = ?, revoked_at = NULL
+           WHERE provider = ? AND subject = ?`,
+        )
+        .bind(approvedBy, provider, subject)
+        .run()
+      return result.meta.changes > 0
+    },
+
+    async revokeIdentity(provider, subject) {
+      const result = await db
+        .prepare(
+          `UPDATE ${identityTable} SET revoked_at = ${NOW}
+           WHERE provider = ? AND subject = ?`,
+        )
+        .bind(provider, subject)
+        .run()
+      return result.meta.changes > 0
+    },
+
+    async countAllowedIdentities() {
+      const row = await db
+        .prepare(
+          `SELECT COUNT(*) AS count FROM ${identityTable}
+           WHERE approved_at IS NOT NULL AND revoked_at IS NULL`,
+        )
+        .first<{ count: number }>()
+      return row?.count ?? 0
     },
   }
 }

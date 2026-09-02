@@ -11,6 +11,7 @@ import { PlayersPage } from './routes/players'
 import { PlayerDetailPage } from './routes/player-detail'
 import { BannedIpsPage } from './routes/banned-ips'
 import { AuditPage } from './routes/audit'
+import { IdentitiesPage } from './routes/identities'
 import type { SearchType } from './lib/api'
 
 const rootRoute = createRootRoute({
@@ -64,12 +65,19 @@ const auditRoute = createRoute({
   component: AuditPage,
 })
 
+const identitiesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/identities',
+  component: IdentitiesPage,
+})
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   playersRoute,
   playerDetailRoute,
   bannedIpsRoute,
   auditRoute,
+  identitiesRoute,
 ])
 
 export const router = createRouter({ routeTree })

@@ -5,6 +5,7 @@ import type {
   AdminAuditRow,
   AdminIpBanOptions,
   AdminIpBanRow,
+  AdminIdentityRow,
   AdminPlayerDetail,
   AdminPlayerSummary,
   AdminScoreRow,
@@ -34,6 +35,7 @@ export type MemoryAdminStore = AdminStore & {
   players: Map<string, MemoryPlayer>
   ipBans: Map<string, AdminIpBanRow>
   audits: Array<AdminAuditEntry>
+  identities: Map<string, AdminIdentityRow>
 }
 
 function summaryOf(player: MemoryPlayer): AdminPlayerSummary {
@@ -54,11 +56,13 @@ export function createMemoryAdminStore(): MemoryAdminStore {
   const players = new Map<string, MemoryPlayer>()
   const ipBans = new Map<string, AdminIpBanRow>()
   const audits: Array<AdminAuditEntry & { id: number }> = []
+  const identities = new Map<string, AdminIdentityRow>()
 
   return {
     players,
     ipBans,
     audits,
+    identities,
 
     async searchPlayers(query: AdminSearchQuery) {
       const results: Array<AdminPlayerSummary> = []
@@ -215,7 +219,65 @@ export function createMemoryAdminStore(): MemoryAdminStore {
         }))
       return rows.slice(offset, offset + limit)
     },
+
+    async listIdentities() {
+      return [...identities.values()].sort((a, b) => {
+        const status = (identity: AdminIdentityRow) =>
+          identity.approvedAt === null ? 0 : identity.revokedAt === null ? 1 : 2
+        return status(a) - status(b) || b.createdAt.localeCompare(a.createdAt)
+      })
+    },
+
+    async getIdentity(provider, subject) {
+      return identities.get(`${provider}:${subject}`) ?? null
+    },
+
+    async approveIdentity(provider, subject, approvedBy) {
+      const key = `${provider}:${subject}`
+      const identity = identities.get(key)
+      if (!identity) return false
+      identities.set(key, {
+        ...identity,
+        approvedAt: new Date().toISOString(),
+        approvedBy,
+        revokedAt: null,
+      })
+      return true
+    },
+
+    async revokeIdentity(provider, subject) {
+      const key = `${provider}:${subject}`
+      const identity = identities.get(key)
+      if (!identity) return false
+      identities.set(key, { ...identity, revokedAt: new Date().toISOString() })
+      return true
+    },
+
+    async countAllowedIdentities() {
+      return [...identities.values()].filter(
+        (identity) =>
+          identity.approvedAt !== null && identity.revokedAt === null,
+      ).length
+    },
   }
+}
+
+export function seedIdentity(
+  store: MemoryAdminStore,
+  overrides: Partial<AdminIdentityRow> & { provider: string; subject: string },
+): AdminIdentityRow {
+  const identity: AdminIdentityRow = {
+    email: null,
+    displayName: null,
+    approvedAt: null,
+    approvedBy: null,
+    revokedAt: null,
+    createdAt: '2026-09-01T00:00:00.000Z',
+    lastSeenAt: null,
+    ...overrides,
+  }
+  store.identities.set(`${identity.provider}:${identity.subject}`, identity)
+  return identity
 }
 
 export type AuthIdentitySeed = {
