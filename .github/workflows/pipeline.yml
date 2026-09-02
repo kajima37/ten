@@ -191,12 +191,8 @@ jobs:
         with:
           cache: true
       - run: pnpm install --frozen-lockfile
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-1.59.1
-      - name: Install Chromium for browser tests
-        run: pnpm --filter @ten/web exec playwright install --with-deps chromium
+      - name: Verify runner Chrome
+        run: google-chrome --version
       - name: Run browser smoke tests
         run: pnpm test:e2e
       - name: Upload Playwright diagnostics
@@ -364,12 +360,20 @@ jobs:
       - name: Check Worker
         run: |-
           case "$TEN_API_URL" in
-            https://*.workers.dev) : ;;
-            *) echo "TEN_API_URL must be an https workers.dev URL" >&2; exit 1 ;;
+            https://ten-api-"$DEPLOY_ENV".*.workers.dev) : ;;
+            *) echo "TEN_API_URL must target ten-api-$DEPLOY_ENV on workers.dev" >&2; exit 1 ;;
           esac
-          health="$(curl --fail --retry 5 --retry-delay 2 --proto '=https' --tlsv1.2 "$TEN_API_URL/api/health")"
-          actual="$(printf '%s' "$health" | jq -r '.version // empty')"
-          test "$actual" = "$GITHUB_SHA" || { echo "health version mismatch: $actual != $GITHUB_SHA" >&2; exit 1; }
+          deadline=$((SECONDS + 120))
+          actual=''
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            if health="$(curl --fail --proto '=https' --tlsv1.2 "$TEN_API_URL/api/health")"; then
+              actual="$(printf '%s' "$health" | jq -r '.version // empty')"
+              [ "$actual" = "$GITHUB_SHA" ] && exit 0
+            fi
+            sleep 2
+          done
+          echo "health version mismatch: $actual != $GITHUB_SHA" >&2
+          exit 1
         env:
           TEN_API_URL: ${{ vars.TEN_API_URL }}
 
@@ -452,12 +456,20 @@ jobs:
       - name: Check Admin
         run: |-
           case "$TEN_ADMIN_URL" in
-            https://*.workers.dev) : ;;
-            *) echo "TEN_ADMIN_URL must be an https workers.dev URL" >&2; exit 1 ;;
+            https://ten-admin-"$DEPLOY_ENV".*.workers.dev) : ;;
+            *) echo "TEN_ADMIN_URL must target ten-admin-$DEPLOY_ENV on workers.dev" >&2; exit 1 ;;
           esac
-          health="$(curl --fail --retry 5 --retry-delay 2 --proto '=https' --tlsv1.2 "$TEN_ADMIN_URL/api/health")"
-          actual="$(printf '%s' "$health" | jq -r '.version // empty')"
-          test "$actual" = "$GITHUB_SHA" || { echo "health version mismatch: $actual != $GITHUB_SHA" >&2; exit 1; }
+          deadline=$((SECONDS + 120))
+          actual=''
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            if health="$(curl --fail --proto '=https' --tlsv1.2 "$TEN_ADMIN_URL/api/health")"; then
+              actual="$(printf '%s' "$health" | jq -r '.version // empty')"
+              [ "$actual" = "$GITHUB_SHA" ] && exit 0
+            fi
+            sleep 2
+          done
+          echo "health version mismatch: $actual != $GITHUB_SHA" >&2
+          exit 1
         env:
           TEN_ADMIN_URL: ${{ vars.TEN_ADMIN_URL }}
 
