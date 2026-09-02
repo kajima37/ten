@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import type { MiddlewareHandler } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import type { z } from 'zod'
-import { handleAuthRoutes, requireSession } from '@ten/oauth'
+import { handleAuthRoutes, loginPageResponse, requireSession } from '@ten/oauth'
 import type { OAuthIdentity } from '@ten/oauth'
 
 import { adminHooks, identityLabel, oauthConfig } from './auth.ts'
@@ -343,16 +343,16 @@ export default {
       return new Response('service is misconfigured', { status: 503 })
     }
     const config = parsed.config
-    const routed = await handleAuthRoutes(
-      request,
-      oauthConfig(config),
-      env.DB,
-      adminHooks(config.environment),
-    )
+    const url = new URL(request.url)
+    const oauth = oauthConfig(config)
+    const hooks = adminHooks(config.environment)
+    const routed = await handleAuthRoutes(request, oauth, env.DB, hooks)
     if (routed) return routed
 
-    const url = new URL(request.url)
     if (!url.pathname.startsWith('/api/')) {
+      if (!(await requireSession(request, oauth, env.DB, hooks))) {
+        return loginPageResponse(oauth)
+      }
       if (!env.ASSETS) {
         return new Response('assets are not configured', { status: 500 })
       }

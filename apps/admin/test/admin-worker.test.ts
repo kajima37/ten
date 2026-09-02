@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { createAdminApp } from '../src/worker/index.ts'
+import adminWorker, { createAdminApp } from '../src/worker/index.ts'
 import type { AdminEnv } from '../src/worker/index.ts'
 import {
   createAuthDb,
@@ -64,6 +64,35 @@ test('health endpoint is public', async () => {
   const body = await readJson<{ status: string; environment: string }>(response)
   assert.equal(body.status, 'ok')
   assert.equal(body.environment, 'staging')
+})
+
+test('admin assets require an approved session', async () => {
+  const db = createAuthDb(
+    [{ provider: 'github', subject: '1', approvedAt: APPROVED }],
+    [],
+    [{ id: 'sid-1', provider: 'github', subject: '1' }],
+  )
+  const env = testAdminEnv({ db }).env as unknown as AdminEnv
+  env.ASSETS = {
+    fetch: async () => new Response('admin asset'),
+  } as unknown as Fetcher
+
+  const unauthenticated = await adminWorker.fetch(
+    request('/assets/index.js'),
+    env,
+  )
+  assert.equal(unauthenticated.status, 200)
+  assert.match(await unauthenticated.text(), /GitHub でログイン/)
+
+  const authenticated = await adminWorker.fetch(
+    request('/assets/index.js', {
+      headers: { cookie: await sessionCookie('sid-1') },
+    }),
+    env,
+  )
+  assert.equal(authenticated.status, 200)
+  assert.equal(await authenticated.text(), 'admin asset')
+  assert.equal(authenticated.headers.get('cache-control'), 'private, no-store')
 })
 
 test('admin api requires a session', async () => {
