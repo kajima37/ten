@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import '@fontsource-variable/noto-sans-jp';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -34,7 +35,7 @@
  */
 
 @theme inline {
-  --font-sans: 'Inter', 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+  --font-sans: 'Noto Sans JP Variable', sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -75,6 +76,7 @@
 
   body {
     @apply m-0 min-h-screen bg-background text-foreground antialiased;
+    font-family: 'Noto Sans JP Variable', sans-serif;
     min-height: 100dvh;
     overflow-x: hidden;
     overscroll-behavior: none;

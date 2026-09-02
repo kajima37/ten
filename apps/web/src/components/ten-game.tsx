@@ -130,6 +130,7 @@ export default function TenGame() {
 
   const game = useGame({
     vibration: settings.preferences.vibration,
+    reducedMotion: settings.preferences.reducedMotion,
     sound: settings.preferences.sound,
     soundVolume: settings.preferences.soundVolume,
     onToast: showToast,

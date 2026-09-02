@@ -1,3 +1,5 @@
+import { APP_FONT_FAMILY } from './fonts'
+
 export type ResultImageLabels = {
   result: string
   best: string
@@ -50,23 +52,23 @@ export function createResultImage({
 
   context.textAlign = 'center'
   context.fillStyle = foreground
-  context.font = '900 64px Arial, sans-serif'
+  context.font = `900 64px ${APP_FONT_FAMILY}`
   context.fillText('TEN.', 600, 165)
   context.fillStyle = accent
-  context.font = '700 28px Arial, sans-serif'
+  context.font = `700 28px ${APP_FONT_FAMILY}`
   context.fillText(daily ? labels.daily : labels.result, 600, 220)
-  context.font = '900 132px Arial, sans-serif'
+  context.font = `900 132px ${APP_FONT_FAMILY}`
   context.fillText(score.toLocaleString(), 600, 370)
 
   context.fillStyle = muted
-  context.font = '600 26px Arial, sans-serif'
+  context.font = `600 26px ${APP_FONT_FAMILY}`
   context.fillText(
     `${labels.best} ${best.toLocaleString()}    ·    ${labels.combo} ×${maxCombo}`,
     600,
     450,
   )
   context.fillStyle = foreground
-  context.font = '600 22px Arial, sans-serif'
+  context.font = `600 22px ${APP_FONT_FAMILY}`
   context.fillText(labels.tagline, 600, 510)
 
   return new Promise<Blob>((resolve, reject) => {

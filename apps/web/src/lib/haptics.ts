@@ -1,8 +1,12 @@
 import { Capacitor } from '@capacitor/core'
 import { Haptics, ImpactStyle } from '@capacitor/haptics'
 
-export function vibrate(duration: number, enabled: boolean) {
-  if (!enabled) return
+export function vibrate(
+  duration: number,
+  enabled: boolean,
+  reducedMotion = false,
+) {
+  if (!enabled || reducedMotion) return
   if (Capacitor.isNativePlatform()) {
     void Haptics.impact({
       style: duration > 10 ? ImpactStyle.Medium : ImpactStyle.Light,

@@ -1,6 +1,6 @@
 import { Application, extend, useTick } from '@pixi/react'
 import { Container, Graphics, Text } from 'pixi.js'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FederatedPointerEvent } from 'pixi.js'
 import type { ReactNode } from 'react'
 import { GRID_SIZE } from '@ten/game-core'
@@ -12,6 +12,7 @@ import {
   getCellCenter,
 } from '#/lib/board-geometry'
 import { getPredictedNeighbor, isInsideDeepCommitZone } from '#/lib/gesture'
+import { APP_FONT_FAMILY } from '#/lib/fonts'
 import { getThemePalette } from '#/lib/themes'
 
 extend({ Container, Graphics, Text })
@@ -45,6 +46,28 @@ export default function GameBoard({
   const lockedAnchor = useRef<number | null>(null)
   const lockedTarget = useRef<number | null>(null)
   const committedAnchor = useRef<number | null>(null)
+  const [fontReady, setFontReady] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    const loadFont = async () => {
+      try {
+        await Promise.all([
+          document.fonts.load(`600 28px ${APP_FONT_FAMILY}`),
+          document.fonts.load(`700 28px ${APP_FONT_FAMILY}`),
+          document.fonts.load(`900 28px ${APP_FONT_FAMILY}`),
+        ])
+      } catch {
+        // Continue with the system fallback if the font cannot be loaded.
+      } finally {
+        if (active) setFontReady(true)
+      }
+    }
+    void loadFont()
+    return () => {
+      active = false
+    }
+  }, [])
 
   useEffect(() => {
     lockedAnchor.current = null
@@ -106,85 +129,92 @@ export default function GameBoard({
   }
 
   const palette = getThemePalette(theme)
+  const resolution =
+    typeof window === 'undefined'
+      ? 1
+      : Math.min(Math.max(window.devicePixelRatio || 1, 1), 2)
 
   return (
     <div className="game-canvas aspect-square w-full overflow-hidden rounded-2xl">
-      <Application
-        width={360}
-        height={360}
-        backgroundColor={palette.canvas}
-        antialias
-        resolution={1}
-      >
-        {selected.length > 1 && (
-          <pixiGraphics
-            draw={(graphics) => {
-              graphics.clear()
-              const [first, ...rest] = selected
-              const start = getCellCenter(first)
-              graphics.moveTo(start.x, start.y)
-              rest.forEach((index) => {
-                const point = getCellCenter(index)
-                graphics.lineTo(point.x, point.y)
-              })
-              graphics.stroke({
-                color: palette.accent,
-                width: 6,
-                alpha: 0.55,
-              })
-            }}
-          />
-        )}
-        {board.map((value, index) => {
-          const column = index % GRID_SIZE
-          const row = Math.floor(index / GRID_SIZE)
-          const x = CELL_PADDING + column * CELL_PITCH
-          const y = CELL_PADDING + row * CELL_PITCH
-          const highlighted = selected.includes(index)
+      {fontReady && (
+        <Application
+          width={360}
+          height={360}
+          backgroundColor={palette.canvas}
+          antialias
+          resolution={resolution}
+          autoDensity
+        >
+          {selected.length > 1 && (
+            <pixiGraphics
+              draw={(graphics) => {
+                graphics.clear()
+                const [first, ...rest] = selected
+                const start = getCellCenter(first)
+                graphics.moveTo(start.x, start.y)
+                rest.forEach((index) => {
+                  const point = getCellCenter(index)
+                  graphics.lineTo(point.x, point.y)
+                })
+                graphics.stroke({
+                  color: palette.accent,
+                  width: 6,
+                  alpha: 0.55,
+                })
+              }}
+            />
+          )}
+          {board.map((value, index) => {
+            const column = index % GRID_SIZE
+            const row = Math.floor(index / GRID_SIZE)
+            const x = CELL_PADDING + column * CELL_PITCH
+            const y = CELL_PADDING + row * CELL_PITCH
+            const highlighted = selected.includes(index)
 
-          return (
-            <AnimatedCell
-              key={`${revision}-${index}-${value}`}
-              x={x}
-              y={y}
-              highlighted={highlighted}
-              removing={removing.includes(index)}
-              motion={motions[index] ?? { dropRows: 0, isNew: false }}
-              reducedMotion={reducedMotion}
-              disabled={disabled}
-              onPointerDown={() => startPointerGesture(index)}
-              onPointerEnter={(event) => continuePointerGesture(index, event)}
-              onPointerMove={(event) => continuePointerGesture(index, event)}
-            >
-              <pixiGraphics
-                draw={(graphics) => {
-                  graphics.clear()
-                  graphics.roundRect(0, 0, CELL_SIZE, CELL_SIZE, 12)
-                  graphics.fill(highlighted ? palette.selected : palette.cell)
-                  graphics.stroke({
-                    color: highlighted ? palette.accent : palette.border,
-                    width: 2,
-                  })
-                }}
-              />
-              <pixiText
-                text={String(value)}
-                x={32}
-                y={32}
-                anchor={0.5}
-                style={{
-                  fill: highlighted
-                    ? `#${palette.accent.toString(16).padStart(6, '0')}`
-                    : palette.text,
-                  fontFamily: 'Arial',
-                  fontSize: 28,
-                  fontWeight: '700',
-                }}
-              />
-            </AnimatedCell>
-          )
-        })}
-      </Application>
+            return (
+              <AnimatedCell
+                key={`${revision}-${index}-${value}`}
+                x={x}
+                y={y}
+                highlighted={highlighted}
+                removing={removing.includes(index)}
+                motion={motions[index] ?? { dropRows: 0, isNew: false }}
+                reducedMotion={reducedMotion}
+                disabled={disabled}
+                onPointerDown={() => startPointerGesture(index)}
+                onPointerEnter={(event) => continuePointerGesture(index, event)}
+                onPointerMove={(event) => continuePointerGesture(index, event)}
+              >
+                <pixiGraphics
+                  draw={(graphics) => {
+                    graphics.clear()
+                    graphics.roundRect(0, 0, CELL_SIZE, CELL_SIZE, 12)
+                    graphics.fill(highlighted ? palette.selected : palette.cell)
+                    graphics.stroke({
+                      color: highlighted ? palette.accent : palette.border,
+                      width: 2,
+                    })
+                  }}
+                />
+                <pixiText
+                  text={String(value)}
+                  x={32}
+                  y={32}
+                  anchor={0.5}
+                  style={{
+                    fill: highlighted
+                      ? `#${palette.accent.toString(16).padStart(6, '0')}`
+                      : palette.text,
+                    fontFamily: APP_FONT_FAMILY,
+                    fontSize: 28,
+                    fontWeight: '700',
+                  }}
+                />
+              </AnimatedCell>
+            )
+          })}
+        </Application>
+      )}
     </div>
   )
 }

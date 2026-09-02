@@ -40,9 +40,14 @@ afterEach(() => {
 
 vi.mock('@capacitor/core', () => ({
   Capacitor: {
-    isNativePlatform: () => false,
-    getPlatform: () => 'web',
+    isNativePlatform: vi.fn(() => false),
+    getPlatform: vi.fn(() => 'web'),
   },
+}))
+
+vi.mock('@capacitor/haptics', () => ({
+  Haptics: { impact: vi.fn().mockResolvedValue(undefined) },
+  ImpactStyle: { Light: 'LIGHT', Medium: 'MEDIUM' },
 }))
 
 vi.mock('@capacitor-community/admob', () => ({

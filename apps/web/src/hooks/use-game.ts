@@ -33,6 +33,7 @@ type StartGameOptions = {
 
 type UseGameOptions = {
   vibration: boolean
+  reducedMotion: boolean
   sound: boolean
   soundVolume: number
   onToast: (message: string) => void
@@ -41,6 +42,7 @@ type UseGameOptions = {
 
 export function useGame({
   vibration,
+  reducedMotion,
   sound,
   soundVolume,
   onToast,
@@ -129,7 +131,7 @@ export function useGame({
           ? t('toast.combo', { combo: nextCombo, gain })
           : `+${gain}`,
       )
-      vibrate(18, vibration)
+      vibrate(18, vibration, reducedMotion)
       playSound('success', sound, soundVolume)
       window.setTimeout(() => {
         setCollapseMotions(getCollapseMotions(removed))
@@ -160,6 +162,7 @@ export function useGame({
     sum,
     t,
     vibration,
+    reducedMotion,
   ])
 
   useEffect(() => {
@@ -245,7 +248,7 @@ export function useGame({
     if (!running || paused || removing.length) return
     setDragging(true)
     setSelected([index])
-    vibrate(5, vibration)
+    vibrate(5, vibration, reducedMotion)
     playSound('select', sound, soundVolume)
   }
 
@@ -261,7 +264,7 @@ export function useGame({
         !current.includes(index) &&
         isAdjacent(last, index)
       ) {
-        vibrate(5, vibration)
+        vibrate(5, vibration, reducedMotion)
         playSound('select', sound, soundVolume)
         return [...current, index]
       }
