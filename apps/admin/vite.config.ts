@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 const config = defineConfig({
   base: '/',
+  build: { outDir: 'dist/client' },
   plugins: [tailwindcss(), viteReact()],
   server: {
     proxy: {
