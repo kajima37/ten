@@ -384,6 +384,8 @@ test('login page shows only configured providers', async () => {
   const response = await handlePreviewAuth(request('/'), config, db)
   assert.equal(response?.status, 200)
   const body = await response.text()
+  assert.match(body, /background: #09090b/)
+  assert.match(body, /a:focus-visible, button:focus-visible/)
   assert.match(body, /GitHub でログイン/)
   assert.doesNotMatch(body, /Google でログイン/)
 })

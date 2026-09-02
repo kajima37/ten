@@ -49,13 +49,27 @@ type TransactionRow = {
   consumedAt: string | null
 }
 
+const AUTH_PAGE_STYLE = `
+  :root { color-scheme: dark; font-family: ui-sans-serif, system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-width: 320px; background: #09090b; color: #f4f4f5; }
+  main { display: flex; min-height: 100vh; min-height: 100svh; max-width: 28rem; margin: 0 auto; padding: 1.5rem; flex-direction: column; justify-content: center; gap: 1rem; text-align: center; }
+  h1 { margin: 0; font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; }
+  p { margin: 0; color: #a1a1aa; font-size: 0.875rem; line-height: 1.25rem; }
+  form { margin: 0; }
+  a, button { display: inline-block; width: 100%; border: 0; border-radius: 0.375rem; padding: 0.625rem 1rem; background: #f4f4f5; color: #18181b; font: inherit; font-size: 0.875rem; font-weight: 500; line-height: 1.25rem; text-decoration: none; cursor: pointer; }
+  a:hover, button:hover { background: #fff; }
+  a:focus-visible, button:focus-visible { outline: 2px solid #a1a1aa; outline-offset: 2px; }
+  code { display: block; overflow-wrap: anywhere; border-radius: 0.375rem; background: #18181b; padding: 0.5rem 0.75rem; color: #d4d4d8; font-size: 0.75rem; line-height: 1rem; }
+`
+
 export function htmlResponse(
   title: string,
   body: string,
   status = 200,
 ): Response {
   return new Response(
-    `<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title><body><main>${body}</main></body></html>`,
+    `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title><style>${AUTH_PAGE_STYLE}</style></head><body><main>${body}</main></body></html>`,
     {
       status,
       headers: {
