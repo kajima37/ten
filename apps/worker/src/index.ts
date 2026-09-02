@@ -21,6 +21,7 @@ import {
 } from './auth.ts'
 import { createD1Store } from './db.ts'
 import type { Store } from './db.ts'
+import { handlePreviewAuth } from './preview-auth.ts'
 import {
   adminPlayersQuerySchema,
   friendCodeSchema,
@@ -34,8 +35,16 @@ import {
 export interface Env {
   DB: D1Database
   DAILY_CACHE: KVNamespace
+  ASSETS?: Fetcher
   AUTH_SECRET: string
   ADMIN_SECRET: string
+  PREVIEW_ENABLED?: string
+  PREVIEW_SESSION_SECRET?: string
+  PREVIEW_HEALTHCHECK_SECRET?: string
+  GOOGLE_OAUTH_CLIENT_ID?: string
+  GOOGLE_OAUTH_CLIENT_SECRET?: string
+  GITHUB_OAUTH_CLIENT_ID?: string
+  GITHUB_OAUTH_CLIENT_SECRET?: string
 }
 
 type AppContext = {
@@ -571,6 +580,15 @@ export function createApp(storeFactory: (env: Env) => Store): Hono<AppContext> {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    if (env.PREVIEW_ENABLED === 'true') {
+      const authResponse = await handlePreviewAuth(request, env)
+      if (authResponse) return authResponse
+      if (!new URL(request.url).pathname.startsWith('/api/')) {
+        if (!env.ASSETS)
+          return new Response('assets are not configured', { status: 500 })
+        return env.ASSETS.fetch(request)
+      }
+    }
     return createApp((bindings) => createD1Store(bindings.DB)).fetch(
       request,
       env,

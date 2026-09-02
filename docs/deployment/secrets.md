@@ -76,14 +76,18 @@ sops secrets/secrets.staging.age.env
 
 開いたエディタで `<set-me>` の箇所を実際の値に書き換えて保存します。
 
-| 項目名                  | 内容                                          | 取得方法・備考                                                               |
-| ----------------------- | --------------------------------------------- | ---------------------------------------------------------------------------- |
-| `CLOUDFLARE_API_TOKEN`  | Cloudflare の API トークン                    | Cloudflare ダッシュボードで「Workers デプロイ」「D1 編集」権限を付与して作成 |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare アカウント ID                      | Cloudflare ダッシュボードの Workers 概要画面で確認                           |
-| `AUTH_SECRET`           | ユーザー認証トークンの署名用シークレット      | ランダムな長い文字列（例: `openssl rand -hex 32`）                           |
-| `ADMIN_SECRET`          | 管理者用 API の認証キー                       | ランダムな長い文字列（例: `openssl rand -hex 32`）                           |
-| `ACCESS_CLIENT_ID`      | staging ヘルスチェック用 Access Client ID     | `ten-api-staging` 用 Service Token の Client ID                              |
-| `ACCESS_CLIENT_SECRET`  | staging ヘルスチェック用 Access Client Secret | 上記 Service Token の Client Secret                                          |
+| 項目名                       | 内容                                     | 取得方法・備考                                                               |
+| ---------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`       | Cloudflare の API トークン               | Cloudflare ダッシュボードで「Workers デプロイ」「D1 編集」権限を付与して作成 |
+| `CLOUDFLARE_ACCOUNT_ID`      | Cloudflare アカウント ID                 | Cloudflare ダッシュボードの Workers 概要画面で確認                           |
+| `AUTH_SECRET`                | ユーザー認証トークンの署名用シークレット | ランダムな長い文字列（例: `openssl rand -hex 32`）                           |
+| `ADMIN_SECRET`               | 管理者用 API の認証キー                  | ランダムな長い文字列（例: `openssl rand -hex 32`）                           |
+| `PREVIEW_SESSION_SECRET`     | プレビューセッションの署名鍵             | ランダムな長い文字列（例: `openssl rand -hex 32`）                           |
+| `PREVIEW_HEALTHCHECK_SECRET` | CI ヘルスチェックの認証キー              | ランダムな長い文字列（例: `openssl rand -hex 32`）。アプリへ含めない         |
+| `GOOGLE_OAUTH_CLIENT_ID`     | Google OAuth Client ID                   | Google Cloud Console で作成した Web application の Client ID                 |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | Google OAuth Client Secret               | 上記 OAuth Client の Secret。アプリへ含めない                                |
+| `GITHUB_OAUTH_CLIENT_ID`     | GitHub OAuth App Client ID               | GitHub の OAuth App 設定で作成した Client ID                                 |
+| `GITHUB_OAUTH_CLIENT_SECRET` | GitHub OAuth App Client Secret           | 上記 OAuth App の Client Secret。アプリへ含めない                            |
 
 ### 2. 本番環境の設定 (`secrets.production.age.env`)
 

@@ -72,7 +72,7 @@ nix develop --command pnpm test:e2e
 - **[Cloudflare Worker の公開と運用](./docs/deployment/cloudflare-worker.md)**:  
   バックエンド API、データベース（D1）、キャッシュ（KV）の設定と自動デプロイについて説明しています。
 - **[ステージング Web プレビューの公開](./docs/deployment/cloudflare-worker-preview.md)**:
-  Cloudflare Workers Static Assets と Cloudflare Access による、関係者限定 Web プレビューの公開手順です。
+  Cloudflare Workers Static Assets と Google / GitHub ログインによる、関係者限定 Web プレビューの公開手順です。
 - **[秘密情報の初回設定手順（SOPS + age）](./docs/deployment/secrets.md)**:  
   署名キーストア、証明書、API トークンなどの暗号化ファイルの準備や、GitHub リポジトリへの環境設定方法をステップ・バイ・ステップで解説しています。
 

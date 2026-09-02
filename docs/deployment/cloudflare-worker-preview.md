@@ -1,34 +1,34 @@
 # ステージング Web プレビューの公開・確認
 
-TEN. の開発中バージョンを、**Cloudflare Workers Static Assets** と **Cloudflare Access** を使って関係者限定の Web プレビューとして安全に公開・確認する手順です。
+TEN. の開発中バージョンを、**Cloudflare Workers Static Assets** と Google / GitHub ログインを使って関係者限定の Web プレビューとして公開・確認する手順です。
 
 ## 1. 全体の構成
 
-Web 画面とステージング API を同一の Worker 上でホストし、Worker 全体を Cloudflare Access で保護することで、安全に関係者のみへ最新の開発版を提供します。
+Web 画面とステージング API を同一の Worker 上でホストし、Worker が OAuth ログインと許可済み identity の確認を行います。未認証または未承認の利用者は Web 画面と API を利用できません。
 
 ```
-[関係者ブラウザ] ──(メール/IdP認証)──→ [Cloudflare Access]
-                                            ↓ 認証成功
-                                  [ten-api-staging (Worker)]
-                                  ├── Web 画面 (Static Assets)
-                                  └── API (/api/*) ──→ ステージング DB / キャッシュ
+[関係者ブラウザ] ──→ [Google / GitHub ログイン]
+                                      ↓ 認証成功・許可確認
+                            [ten-api-staging (Worker)]
+                            ├── Web 画面 (Static Assets)
+                            └── API (/api/*) ──→ ステージング DB / キャッシュ
 ```
 
-| 項目             | 設定内容                                                   |
-| ---------------- | ---------------------------------------------------------- |
-| **公開 URL**     | `https://ten-api-staging.<account>.workers.dev`            |
-| **アクセス制限** | Cloudflare Access（許可されたメンバー・メールのみ閲覧可）  |
-| **接続先 API**   | 同一オリジンの `/api/*`（CORS 不要、ステージング DB 接続） |
-| **更新契機**     | `main` ブランチへのマージ時に自動デプロイ                  |
+| 項目             | 設定内容                                                                        |
+| ---------------- | ------------------------------------------------------------------------------- |
+| **公開 URL**     | `https://ten-api-staging.<account>.workers.dev`                                 |
+| **アクセス制限** | Google または GitHub の個人アカウントでログインし、個別に承認された人のみ閲覧可 |
+| **接続先 API**   | 同一オリジンの `/api/*`（CORS 不要、ステージング DB 接続）                      |
+| **更新契機**     | `main` ブランチへのマージ時に自動デプロイ                                       |
 
-※ Web 画面（HTML/JS/CSS/画像）は Workers の静的アセットとして高速配信され、ゲーム API のみ Worker が処理します。存在しない画面パスは `index.html` へフォールバックするため、SPA の直接アクセスや画面遷移も正常に動作します。
+※ Web 画面を保護するため、静的アセットを含む全リクエストは Worker が認証後に返します。Workers Free の実行回数上限を超えると Web 画面も `429` になるため、内部プレビューの利用量を Cloudflare Dashboard で確認してください。
 
 ## 2. 通常の開発・プレビュー確認の流れ
 
 GitHub 上でコードが `main` ブランチにマージされると、GitHub Actions が自動でビルドとデプロイを実行します。
 
 1. **自動反映**: `main` ブランチに変更がマージされると、ステージング環境が自動更新されます。
-2. **プレビュー確認**: ブラウザで公開 URL（`https://ten-api-staging.<account>.workers.dev`）を開き、Cloudflare Access でログインすると最新の画面を確認できます。
+2. **プレビュー確認**: ブラウザで公開 URL を開き、Google または GitHub でログインします。承認済みのアカウントなら最新の画面を確認できます。
 
 手動で再デプロイしたい場合は、GitHub の **Actions → Deploy Staging Worker → Run workflow** から実行できます。
 
@@ -36,27 +36,49 @@ GitHub 上でコードが `main` ブランチにマージされると、GitHub A
 
 プロジェクト立ち上げ時や環境再構築時に一度だけ実施する作業です。
 
-### ステップ 1: Cloudflare Access の有効化（Worker 保護）
+### ステップ 1: OAuth アプリの作成
 
-1. Cloudflare ダッシュボードの **Workers & Pages** から `ten-api-staging` を選択します。
-2. **Access** タブを開き、**Protect this Worker behind Access** を設定します。
-3. 対象トラフィックで **All traffic** を選択します。
-4. 閲覧を許可するアカウント、組織の IdP、またはメールアドレスを Access ポリシーに登録します。
+Google Cloud Console で Web application の OAuth Client を作成し、次の URI を承認済みリダイレクト URI に登録します。
 
-※ `workers.dev` や将来のカスタムドメインを含む全経路を保護するため、特定ドメインではなく必ず Worker 全体（Worker-level Access: All traffic）に設定してください。本番 Worker（`ten-api-production`）には設定しません。
+```text
+https://ten-api-staging.<account>.workers.dev/auth/callback/google
+```
 
-### ステップ 2: CI 用 Service Token の発行と登録
+GitHub の **Settings → Developer settings → OAuth Apps** で OAuth App を作成し、Authorization callback URL に次の URI を登録します。
 
-GitHub Actions によるデプロイ後のヘルスチェック（`/api/health`）を通すための認証トークンを発行・登録します。
+```text
+https://ten-api-staging.<account>.workers.dev/auth/callback/github
+```
 
-1. Cloudflare Zero Trust の **Access → Service credentials** で `ten-staging-ci-healthcheck` を作成します。
-2. `ten-api-staging` の Access 設定に、このトークンを許可する **Service Auth** ポリシーを追加します。
-3. 発行された Client ID と Client Secret を、[秘密情報の初回設定・管理手順](./secrets.md) に従って `secrets/secrets.staging.age.env` に登録します。
+Google と GitHub の Client ID / Client Secret、および `PREVIEW_SESSION_SECRET` と `PREVIEW_HEALTHCHECK_SECRET` は、[秘密情報の初回設定・管理手順](./secrets.md)に従って `secrets/secrets.staging.age.env` へ登録します。
 
-| 項目名                 | 内容                                          | 備考                  |
-| ---------------------- | --------------------------------------------- | --------------------- |
-| `ACCESS_CLIENT_ID`     | staging ヘルスチェック用 Access Client ID     | CI ヘルスチェック専用 |
-| `ACCESS_CLIENT_SECRET` | staging ヘルスチェック用 Access Client Secret | 上記トークンの Secret |
+### ステップ 2: 利用者の承認
+
+利用者は公開 URL から Google または GitHub で一度ログインします。未承認の場合は、次のような識別子が表示されます。
+
+```text
+google:123456789012345678901
+```
+
+または
+
+```text
+github:12345678
+```
+
+管理者は表示された識別子を確認し、リポジトリのルートから次の SQL を実行して利用を許可します。`provider` と `subject` は表示された値へ置き換えてください。
+
+```bash
+pnpm --filter @ten/worker exec wrangler d1 execute ten-db-staging --remote --env staging \
+  --command "INSERT INTO preview_identities (provider, subject) VALUES ('google', '123456789012345678901');"
+```
+
+利用を停止する場合は、対象 identity を削除せず次の SQL で取り消します。既存のセッションも次のリクエストから無効になります。
+
+```bash
+pnpm --filter @ten/worker exec wrangler d1 execute ten-db-staging --remote --env staging \
+  --command "UPDATE preview_identities SET revoked_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE provider = 'google' AND subject = '123456789012345678901';"
+```
 
 ### ステップ 3: GitHub Environment Variables の設定
 
@@ -79,21 +101,21 @@ pnpm build:worker
 
 ## 5. モバイル staging の確認
 
-モバイルアプリ実機からステージング Worker に接続してテストする場合は、検証端末に **Cloudflare One Client (WARP)** を導入し、Access の **Authenticate with Cloudflare One Client** で認証します。
+モバイルアプリ実機からステージング Worker に接続する認証は、将来の staging モバイルビルドで対応します。Web プレビューの Cookie を APK / IPA に埋め込んだり、OAuth Client Secret をアプリ本体へ含めたりしてはいけません。
 
-※ Access Service Token をアプリ本体（APK / IPA）に埋め込んではいけません。WARP を使わないモバイル staging 検証が必要になった場合は、利用者向けの短命トークン認証を別途設計します。
+モバイル staging が必要になった場合は、Google / GitHub のネイティブ OAuth と PKCE を使い、Worker が短命のモバイル用セッションを発行する方式を追加します。
 
 ## 6. 動作確認とトラブルシューティング
 
 ### 動作確認の手順
 
 1. ブラウザでステージング公開 URL にアクセスします。
-2. Cloudflare Access の認証画面が表示されたら、許可されたメールアドレス等でログインします。
-3. ゲームプレイ、デイリー盤面取得、ランキング送信が正常に行えるか確認します。
+2. ログイン画面で Google または GitHub を選択します。
+3. 承認済み identity でログインし、ゲームプレイ、デイリー盤面取得、ランキング送信が正常に行えるか確認します。
 
 ### よくあるトラブルと対処法
 
-- **Access のログイン画面が出ない / 認証なしでアクセスできてしまう**: `ten-api-staging` の Access タブで Worker-level Access（All traffic）が有効になっているか確認してください。
-- **CI のヘルスチェックが失敗する**: Service Token の有効期限、Access 側の Service Auth ポリシー、`secrets.staging.age.env` の認証情報、`TEN_API_URL` の設定を確認してください。
-- **Web 画面が表示されない / API 通信エラー**: `TEN_API_URL` の末尾に余計なスラッシュ `/` が付いていないか、ステージング D1 / KV のマイグレーションが正しく適用されているか確認してください。
-- **モバイル staging が接続できない**: 端末の Cloudflare One Client (WARP) のログイン状態と Access の端末認証設定を確認してください。
+- **OAuth プロバイダで `redirect_uri_mismatch` が出る**: OAuth アプリに登録した callback URL が公開 URL と完全に一致するか確認してください。
+- **ログイン後に承認待ち画面が出る**: 表示された identity を `preview_identities` へ登録しているか、`revoked_at` が設定されていないか確認してください。
+- **CI のヘルスチェックが失敗する**: `PREVIEW_HEALTHCHECK_SECRET` と `TEN_API_URL` の設定を確認してください。
+- **Web 画面が表示されない / API 通信エラー**: ステージング D1 のマイグレーションが適用済みか、Workers Free の実行回数上限に達していないか確認してください。

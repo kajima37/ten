@@ -278,6 +278,9 @@ importers:
       hono:
         specifier: ^4.13.5
         version: 4.13.5
+      jose:
+        specifier: ^6.2.10
+        version: 6.2.10
       zod:
         specifier: ^4.5.4
         version: 4.5.4
@@ -3204,6 +3207,9 @@ packages:
   jiti@2.7.0:
     resolution: {integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==}
     hasBin: true
+
+  jose@6.2.10:
+    resolution: {integrity: sha512-iiW7J9qRFlGxvCOIBDBDxFePQSn7ZMAnrYGhrrOo6siO/MIqwfyilLR27pkfDgUk+raLuzADS8A3S/KLBisc0g==}
 
   js-binary-schema-parser@2.0.3:
     resolution: {integrity: sha512-xezGJmOb4lk/M1ZZLTR/jaBHQ4gG/lqQnJqdIv4721DMggsa1bDVlHXNeHYogaIEHD9vCRv0fcL4hMA+Coarkg==}
@@ -7148,6 +7154,8 @@ snapshots:
       - '@types/react'
 
   jiti@2.7.0: {}
+
+  jose@6.2.10: {}
 
   js-binary-schema-parser@2.0.3: {}
 

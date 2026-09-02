@@ -677,6 +677,8 @@ export function testEnv() {
       DAILY_CACHE: createKvMock(),
       AUTH_SECRET: 'test-secret',
       ADMIN_SECRET: 'admin-secret',
+      PREVIEW_SESSION_SECRET: 'preview-session-secret',
+      PREVIEW_HEALTHCHECK_SECRET: 'preview-healthcheck-secret',
     },
   }
 }

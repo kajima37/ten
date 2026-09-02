@@ -41,8 +41,20 @@ jobs:
         run: |-
           test -n "$AUTH_SECRET"
           test -n "$ADMIN_SECRET"
+          test -n "$PREVIEW_SESSION_SECRET"
+          test -n "$PREVIEW_HEALTHCHECK_SECRET"
+          test -n "$GOOGLE_OAUTH_CLIENT_ID"
+          test -n "$GOOGLE_OAUTH_CLIENT_SECRET"
+          test -n "$GITHUB_OAUTH_CLIENT_ID"
+          test -n "$GITHUB_OAUTH_CLIENT_SECRET"
           printf '%s' "$AUTH_SECRET" | pnpm --filter @ten/worker exec wrangler secret put AUTH_SECRET --env staging
           printf '%s' "$ADMIN_SECRET" | pnpm --filter @ten/worker exec wrangler secret put ADMIN_SECRET --env staging
+          printf '%s' "$PREVIEW_SESSION_SECRET" | pnpm --filter @ten/worker exec wrangler secret put PREVIEW_SESSION_SECRET --env staging
+          printf '%s' "$PREVIEW_HEALTHCHECK_SECRET" | pnpm --filter @ten/worker exec wrangler secret put PREVIEW_HEALTHCHECK_SECRET --env staging
+          printf '%s' "$GOOGLE_OAUTH_CLIENT_ID" | pnpm --filter @ten/worker exec wrangler secret put GOOGLE_OAUTH_CLIENT_ID --env staging
+          printf '%s' "$GOOGLE_OAUTH_CLIENT_SECRET" | pnpm --filter @ten/worker exec wrangler secret put GOOGLE_OAUTH_CLIENT_SECRET --env staging
+          printf '%s' "$GITHUB_OAUTH_CLIENT_ID" | pnpm --filter @ten/worker exec wrangler secret put GITHUB_OAUTH_CLIENT_ID --env staging
+          printf '%s' "$GITHUB_OAUTH_CLIENT_SECRET" | pnpm --filter @ten/worker exec wrangler secret put GITHUB_OAUTH_CLIENT_SECRET --env staging
       - name: Apply staging D1 migrations
         working-directory: apps/worker
         run: pnpm db:migrate:staging
@@ -51,11 +63,8 @@ jobs:
         run: pnpm deploy:staging
       - name: Check staging Worker
         run: |-
-          test -n "$ACCESS_CLIENT_ID"
-          test -n "$ACCESS_CLIENT_SECRET"
           curl --fail --retry 5 --retry-delay 2 \
-            -H "CF-Access-Client-Id: $ACCESS_CLIENT_ID" \
-            -H "CF-Access-Client-Secret: $ACCESS_CLIENT_SECRET" \
+            -H "Authorization: Bearer $PREVIEW_HEALTHCHECK_SECRET" \
             "$TEN_API_URL/api/health"
         env:
           TEN_API_URL: ${{ vars.TEN_API_URL }}

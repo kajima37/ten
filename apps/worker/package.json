@@ -17,6 +17,7 @@
     "@hono/zod-validator": "^0.9.0",
     "@ten/game-core": "workspace:*",
     "hono": "^4.13.5",
+    "jose": "^6.2.10",
     "zod": "^4.5.4"
   },
   "devDependencies": {
