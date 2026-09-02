@@ -8,13 +8,21 @@ function context(): AudioContext | null {
   return audioContext
 }
 
+export function unlockAudio() {
+  const audio = context()
+  if (!audio) return
+  if (audio.state !== 'running') {
+    void audio.resume().catch(() => undefined)
+  }
+}
+
 const SOUND_NOTES: Record<SoundName, Array<[number, number]>> = {
   select: [[520, 0.035]],
   success: [
     [660, 0.07],
     [880, 0.11],
   ],
-  miss: [[180, 0.09]],
+  miss: [[220, 0.09]],
   bonus: [
     [440, 0.05],
     [660, 0.05],
@@ -22,11 +30,24 @@ const SOUND_NOTES: Record<SoundName, Array<[number, number]>> = {
   ],
 }
 
+const PEAK_GAIN = 0.25
+
 export function playSound(name: SoundName, enabled: boolean, volume: number) {
   if (!enabled || volume <= 0) return
+  void playNotes(name, Math.min(1, volume) * PEAK_GAIN)
+}
+
+async function playNotes(name: SoundName, peakGain: number) {
   const audio = context()
   if (!audio) return
-  if (audio.state === 'suspended') void audio.resume()
+  if (audio.state !== 'running') {
+    try {
+      await audio.resume()
+    } catch {
+      return
+    }
+  }
+  if (audio.state !== 'running') return
 
   let start = audio.currentTime
   for (const [frequency, duration] of SOUND_NOTES[name]) {
@@ -34,7 +55,7 @@ export function playSound(name: SoundName, enabled: boolean, volume: number) {
     const gain = audio.createGain()
     oscillator.type = name === 'miss' ? 'triangle' : 'sine'
     oscillator.frequency.setValueAtTime(frequency, start)
-    gain.gain.setValueAtTime(Math.min(1, volume) * 0.09, start)
+    gain.gain.setValueAtTime(peakGain, start)
     gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
     oscillator.connect(gain)
     gain.connect(audio.destination)

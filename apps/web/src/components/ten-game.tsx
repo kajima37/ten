@@ -37,6 +37,7 @@ import {
 import { getAdsClient } from '#/lib/ads'
 import { getLocalDateKey } from '@ten/game-core'
 import { STORAGE_KEYS, readStorage } from '#/lib/storage'
+import { unlockAudio } from '#/lib/sound'
 import '#/i18n'
 
 function getJstWeekStart(): string {
@@ -90,6 +91,21 @@ export default function TenGame() {
     document.documentElement.lang = i18n.resolvedLanguage ?? 'ja'
     document.title = `TEN. — ${t('home.tagline')}`
   }, [i18n.resolvedLanguage, t])
+
+  useEffect(() => {
+    if (!settings.preferences.sound) return
+
+    const unlock = () => {
+      if (document.visibilityState === 'hidden') return
+      unlockAudio()
+    }
+    window.addEventListener('pointerdown', unlock)
+    document.addEventListener('visibilitychange', unlock)
+    return () => {
+      window.removeEventListener('pointerdown', unlock)
+      document.removeEventListener('visibilitychange', unlock)
+    }
+  }, [settings.preferences.sound])
 
   const showToast = useCallback((message: string) => {
     setToast(message)
