@@ -244,23 +244,6 @@ jobs:
         working-directory: apps/worker
         run: pnpm db:migrate:staging
 
-  deploy-staging-worker:
-    needs: [changes, validate, build-staging-worker-assets, migrate-staging]
-    if: always() && github.ref == 'refs/heads/main' && needs.changes.outputs.worker-staging == 'true' && needs.validate.result == 'success' && needs.build-staging-worker-assets.result == 'success' && needs.migrate-staging.result == 'success'
-    uses: ./.github/workflows/_deploy-worker.yml
-    with:
-      environment: staging
-      sha: ${{ github.sha }}
-      download-assets: true
-
-  deploy-staging-admin:
-    needs: [changes, validate, build-admin-assets, migrate-staging]
-    if: always() && github.ref == 'refs/heads/main' && needs.changes.outputs.admin == 'true' && needs.validate.result == 'success' && needs.build-admin-assets.result == 'success' && needs.migrate-staging.result == 'success'
-    uses: ./.github/workflows/_deploy-admin.yml
-    with:
-      environment: staging
-      sha: ${{ github.sha }}
-
   migrate-production:
     needs: [changes, validate, e2e]
     if: github.ref == 'refs/heads/production' && (needs.changes.outputs.worker-production == 'true' || needs.changes.outputs.admin == 'true')
@@ -298,19 +281,195 @@ jobs:
   deploy-production-worker:
     needs: [changes, validate, e2e, migrate-production]
     if: always() && github.ref == 'refs/heads/production' && needs.changes.outputs.worker-production == 'true' && needs.validate.result == 'success' && needs.e2e.result == 'success' && needs.migrate-production.result == 'success'
-    uses: ./.github/workflows/_deploy-worker.yml
-    with:
-      environment: production
-      sha: ${{ github.sha }}
-      download-assets: false
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DEPLOY_ENV: production
+    steps: &worker-deploy-steps
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v3
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - name: Download staging web assets
+        if: env.DEPLOY_ENV == 'staging'
+        uses: actions/download-artifact@v7
+        with:
+          name: staging-worker-assets-${{ github.sha }}
+          path: apps/web/dist/client
+      - name: Resolve Cloudflare credentials
+        run: |-
+          sops -d "secrets/secrets.$DEPLOY_ENV.age.env" > "$RUNNER_TEMP/environment.env"
+          secret() { sed -n "s/^$1=//p" "$RUNNER_TEMP/environment.env" | head -n 1; }
+          CLOUDFLARE_API_TOKEN="$(secret CLOUDFLARE_API_TOKEN)"
+          CLOUDFLARE_ACCOUNT_ID="$(secret CLOUDFLARE_ACCOUNT_ID)"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+          {
+            echo "CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN"
+            echo "CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID"
+          } >> "$GITHUB_ENV"
+          rm -f "$RUNNER_TEMP/environment.env"
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+      - name: Upload staging Worker secrets
+        if: env.DEPLOY_ENV == 'staging'
+        run: |-
+          sops -d secrets/secrets.staging.age.env > "$RUNNER_TEMP/staging.env"
+          secret() { sed -n "s/^$1=//p" "$RUNNER_TEMP/staging.env" | head -n 1; }
+          require() { test -n "$(secret "$1")" || { echo "missing required secret: $1" >&2; exit 1; }; }
+          require AUTH_SECRET
+          require PREVIEW_SESSION_SECRET
+          require GITHUB_OAUTH_CLIENT_ID
+          require GITHUB_OAUTH_CLIENT_SECRET
+          if [ -n "$(secret GOOGLE_OAUTH_CLIENT_ID)" ] || [ -n "$(secret GOOGLE_OAUTH_CLIENT_SECRET)" ]; then
+            require GOOGLE_OAUTH_CLIENT_ID
+            require GOOGLE_OAUTH_CLIENT_SECRET
+          fi
+          put() {
+            local name="$1" value
+            value="$(secret "$name")"
+            echo "::add-mask::$value"
+            printf '%s' "$value" | pnpm --filter @ten/worker exec wrangler secret put "$name" --env staging
+          }
+          put AUTH_SECRET
+          put PREVIEW_SESSION_SECRET
+          if [ -n "$(secret GOOGLE_OAUTH_CLIENT_ID)" ] || [ -n "$(secret GOOGLE_OAUTH_CLIENT_SECRET)" ]; then
+            put GOOGLE_OAUTH_CLIENT_ID
+            put GOOGLE_OAUTH_CLIENT_SECRET
+          fi
+          put GITHUB_OAUTH_CLIENT_ID
+          put GITHUB_OAUTH_CLIENT_SECRET
+          rm -f "$RUNNER_TEMP/staging.env"
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+      - name: Upload production Worker secrets
+        if: env.DEPLOY_ENV == 'production'
+        run: |-
+          sops -d secrets/secrets.production.age.env > "$RUNNER_TEMP/production.env"
+          secret() { sed -n "s/^$1=//p" "$RUNNER_TEMP/production.env" | head -n 1; }
+          AUTH_SECRET="$(secret AUTH_SECRET)"
+          test -n "$AUTH_SECRET"
+          echo "::add-mask::$AUTH_SECRET"
+          printf '%s' "$AUTH_SECRET" | pnpm --filter @ten/worker exec wrangler secret put AUTH_SECRET --env production
+          rm -f "$RUNNER_TEMP/production.env"
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+      - name: Deploy Worker
+        working-directory: apps/worker
+        run: pnpm exec wrangler deploy --env "$DEPLOY_ENV" --var "DEPLOY_VERSION:$GITHUB_SHA"
+      - name: Check Worker
+        run: |-
+          case "$TEN_API_URL" in
+            https://*.workers.dev) : ;;
+            *) echo "TEN_API_URL must be an https workers.dev URL" >&2; exit 1 ;;
+          esac
+          health="$(curl --fail --retry 5 --retry-delay 2 --proto '=https' --tlsv1.2 "$TEN_API_URL/api/health")"
+          actual="$(printf '%s' "$health" | jq -r '.version // empty')"
+          test "$actual" = "$GITHUB_SHA" || { echo "health version mismatch: $actual != $GITHUB_SHA" >&2; exit 1; }
+        env:
+          TEN_API_URL: ${{ vars.TEN_API_URL }}
+
+  deploy-staging-worker:
+    needs: [changes, validate, build-staging-worker-assets, migrate-staging]
+    if: always() && github.ref == 'refs/heads/main' && needs.changes.outputs.worker-staging == 'true' && needs.validate.result == 'success' && needs.build-staging-worker-assets.result == 'success' && needs.migrate-staging.result == 'success'
+    environment: staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DEPLOY_ENV: staging
+    steps: *worker-deploy-steps
 
   deploy-production-admin:
     needs: [changes, validate, e2e, build-admin-assets, migrate-production]
     if: always() && github.ref == 'refs/heads/production' && needs.changes.outputs.admin == 'true' && needs.validate.result == 'success' && needs.e2e.result == 'success' && needs.build-admin-assets.result == 'success' && needs.migrate-production.result == 'success'
-    uses: ./.github/workflows/_deploy-admin.yml
-    with:
-      environment: production
-      sha: ${{ github.sha }}
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DEPLOY_ENV: production
+    steps: &admin-deploy-steps
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v3
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v7
+        with:
+          name: admin-assets-${{ github.sha }}
+          path: apps/admin/dist/client
+      - name: Resolve Cloudflare credentials
+        run: |-
+          sops -d "secrets/secrets.$DEPLOY_ENV.age.env" > "$RUNNER_TEMP/environment.env"
+          secret() { sed -n "s/^$1=//p" "$RUNNER_TEMP/environment.env" | head -n 1; }
+          CLOUDFLARE_API_TOKEN="$(secret CLOUDFLARE_API_TOKEN)"
+          CLOUDFLARE_ACCOUNT_ID="$(secret CLOUDFLARE_ACCOUNT_ID)"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+          {
+            echo "CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN"
+            echo "CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID"
+          } >> "$GITHUB_ENV"
+          rm -f "$RUNNER_TEMP/environment.env"
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+      - name: Upload Admin secrets
+        run: |-
+          sops -d "secrets/secrets.$DEPLOY_ENV.age.env" > "$RUNNER_TEMP/environment.env"
+          secret() { sed -n "s/^$1=//p" "$RUNNER_TEMP/environment.env" | head -n 1; }
+          require() { test -n "$(secret "$1")" || { echo "missing required secret: $1" >&2; exit 1; }; }
+          require ADMIN_SESSION_SECRET
+          require GITHUB_OAUTH_CLIENT_ID
+          require GITHUB_OAUTH_CLIENT_SECRET
+          if [ -n "$(secret GOOGLE_OAUTH_CLIENT_ID)" ] || [ -n "$(secret GOOGLE_OAUTH_CLIENT_SECRET)" ]; then
+            require GOOGLE_OAUTH_CLIENT_ID
+            require GOOGLE_OAUTH_CLIENT_SECRET
+          fi
+          put() {
+            local name="$1" value
+            value="$(secret "$name")"
+            echo "::add-mask::$value"
+            printf '%s' "$value" | pnpm --filter @ten/admin exec wrangler secret put "$name" --env "$DEPLOY_ENV"
+          }
+          put ADMIN_SESSION_SECRET
+          if [ -n "$(secret GOOGLE_OAUTH_CLIENT_ID)" ] || [ -n "$(secret GOOGLE_OAUTH_CLIENT_SECRET)" ]; then
+            put GOOGLE_OAUTH_CLIENT_ID
+            put GOOGLE_OAUTH_CLIENT_SECRET
+          fi
+          put GITHUB_OAUTH_CLIENT_ID
+          put GITHUB_OAUTH_CLIENT_SECRET
+          rm -f "$RUNNER_TEMP/environment.env"
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+      - name: Deploy Admin
+        working-directory: apps/admin
+        run: pnpm exec wrangler deploy --env "$DEPLOY_ENV" --var "DEPLOY_VERSION:$GITHUB_SHA"
+      - name: Check Admin
+        run: |-
+          case "$TEN_ADMIN_URL" in
+            https://*.workers.dev) : ;;
+            *) echo "TEN_ADMIN_URL must be an https workers.dev URL" >&2; exit 1 ;;
+          esac
+          health="$(curl --fail --retry 5 --retry-delay 2 --proto '=https' --tlsv1.2 "$TEN_ADMIN_URL/api/health")"
+          actual="$(printf '%s' "$health" | jq -r '.version // empty')"
+          test "$actual" = "$GITHUB_SHA" || { echo "health version mismatch: $actual != $GITHUB_SHA" >&2; exit 1; }
+        env:
+          TEN_ADMIN_URL: ${{ vars.TEN_ADMIN_URL }}
+
+  deploy-staging-admin:
+    needs: [changes, validate, build-admin-assets, migrate-staging]
+    if: always() && github.ref == 'refs/heads/main' && needs.changes.outputs.admin == 'true' && needs.validate.result == 'success' && needs.build-admin-assets.result == 'success' && needs.migrate-staging.result == 'success'
+    environment: staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DEPLOY_ENV: staging
+    steps: *admin-deploy-steps
 
   production-ready:
     name: Production ready
