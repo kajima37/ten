@@ -11,6 +11,7 @@ import { ResultScreen } from '#/components/screens/result-screen'
 import { StatsScreen } from '#/components/screens/stats-screen'
 import { Tutorial } from '#/components/screens/tutorial'
 import { BottomNavigation } from '#/components/shared/bottom-navigation'
+import { ConfirmationDialog } from '#/components/shared/confirmation-dialog'
 import type { Screen } from '#/components/shared/screen'
 import { useAccount } from '#/hooks/use-account'
 import { useGame } from '#/hooks/use-game'
@@ -74,6 +75,9 @@ export default function TenGame() {
   const social = useSocial(account.token)
   const [screen, setScreen] = useState<Screen>('home')
   const [toast, setToast] = useState('')
+  const [confirmation, setConfirmation] = useState<
+    'records' | 'settings' | null
+  >(null)
   const [previousBest, setPreviousBest] = useState(0)
   const [isNewBest, setIsNewBest] = useState(false)
   const [serverScore, setServerScore] = useState<{
@@ -359,16 +363,8 @@ export default function TenGame() {
             onUpdateName={account.updateName}
             onExport={exportData}
             onImport={importData}
-            onResetRecords={() => {
-              if (!window.confirm(t('data.resetRecordsConfirm'))) return
-              resetRecords()
-              showToast(t('toast.recordsReset'))
-            }}
-            onResetSettings={() => {
-              if (!window.confirm(t('data.resetSettingsConfirm'))) return
-              settings.resetSettings()
-              showToast(t('toast.settingsReset'))
-            }}
+            onResetRecords={() => setConfirmation('records')}
+            onResetSettings={() => setConfirmation('settings')}
             onTutorial={() => {
               settings.setTutorialStep(0)
               settings.setTutorialOpen(true)
@@ -388,6 +384,38 @@ export default function TenGame() {
       >
         {toast}
       </div>
+
+      {confirmation && (
+        <ConfirmationDialog
+          title={t(
+            confirmation === 'records'
+              ? 'data.resetRecords'
+              : 'data.resetSettings',
+          )}
+          description={t(
+            confirmation === 'records'
+              ? 'data.resetRecordsConfirm'
+              : 'data.resetSettingsConfirm',
+          )}
+          confirmLabel={t(
+            confirmation === 'records'
+              ? 'data.resetRecords'
+              : 'data.resetSettings',
+          )}
+          cancelLabel={t('data.cancel')}
+          onCancel={() => setConfirmation(null)}
+          onConfirm={() => {
+            if (confirmation === 'records') {
+              resetRecords()
+              showToast(t('toast.recordsReset'))
+            } else {
+              settings.resetSettings()
+              showToast(t('toast.settingsReset'))
+            }
+            setConfirmation(null)
+          }}
+        />
+      )}
 
       {settings.tutorialOpen && (
         <Tutorial

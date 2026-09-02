@@ -82,7 +82,7 @@ export function MyPage({
 
   return (
     <section>
-      <ScreenTitle title={t('profile.title')} icon={UserCircle} />
+      <ScreenTitle title={t('profile.title')} />
       <div className="rounded-3xl border bg-card p-6 text-center">
         <div className="mx-auto grid size-16 place-items-center rounded-full bg-gradient-to-b from-zinc-500 to-zinc-900">
           <UserCircle className="size-8" weight="duotone" />
@@ -127,6 +127,14 @@ export function MyPage({
           icon={Fire}
         />
       </div>
+      <Button
+        variant="secondary"
+        className="mb-3 h-12 w-full rounded-full"
+        onClick={onTutorial}
+      >
+        <Question className="mr-2 size-4" weight="bold" />
+        {t('profile.tutorial')}
+      </Button>
       <div className="rounded-3xl border bg-card p-5">
         <strong>{t('profile.theme')}</strong>
         <div className="mt-3 grid grid-cols-6 gap-2">
@@ -253,14 +261,6 @@ export function MyPage({
           />
         </div>
       </div>
-      <Button
-        variant="secondary"
-        className="mt-3 h-12 w-full rounded-full"
-        onClick={onTutorial}
-      >
-        <Question className="mr-2 size-4" weight="bold" />
-        {t('profile.tutorial')}
-      </Button>
       <div className="mt-3 rounded-3xl border bg-card p-5">
         <strong>{t('data.title')}</strong>
         <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">

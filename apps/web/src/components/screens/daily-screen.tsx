@@ -1,4 +1,4 @@
-import { Fire, Question } from '@phosphor-icons/react'
+import { Fire } from '@phosphor-icons/react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '#/components/ui/button'
@@ -37,7 +37,7 @@ export function DailyScreen({
     mine?.topPercent ?? (record.best ? topPercent(record.best) : null)
   return (
     <section>
-      <ScreenTitle title={t('daily.title')} icon={Question} />
+      <ScreenTitle title={t('daily.title')} />
       <div className="rounded-3xl border bg-card p-6 text-center">
         <span className="rounded-full bg-foreground px-3 py-1 text-xs font-bold text-background">
           {date}

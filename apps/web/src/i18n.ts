@@ -118,9 +118,14 @@ const resources = {
         weeklyTitle: '今週のランキング',
         friendsTitle: 'フレンド比較',
         yourCode: 'あなたのコード',
+        shareCodeHint: 'このコードを相手に送ると、フレンド申請を受け取れます。',
         rotateCode: 'コードを再発行',
         friendCode: 'フレンドコード',
-        addFriend: '追加',
+        addFriendTitle: 'フレンドを追加',
+        addFriendHint: '相手のフレンドコードを入力してください。',
+        addFriend: 'フレンド申請を送る',
+        requests: 'フレンド申請',
+        friendList: 'フレンド',
         accept: '承認',
         decline: '辞退',
         pending: '承認待ち',
@@ -233,6 +238,7 @@ const resources = {
         import: '読み込む',
         resetRecords: '記録をリセット',
         resetSettings: '設定をリセット',
+        cancel: 'キャンセル',
         resetRecordsConfirm:
           'すべてのスコア、履歴、実績を削除します。元に戻せません。続けますか？',
         resetSettingsConfirm:
@@ -353,9 +359,15 @@ const resources = {
         weeklyTitle: 'This week',
         friendsTitle: 'Friends',
         yourCode: 'Your code',
+        shareCodeHint:
+          'Send this code to a friend so they can send you a request.',
         rotateCode: 'Rotate code',
         friendCode: 'Friend code',
-        addFriend: 'Add',
+        addFriendTitle: 'Add a friend',
+        addFriendHint: "Enter your friend's code.",
+        addFriend: 'Send friend request',
+        requests: 'Friend requests',
+        friendList: 'Friends',
         accept: 'Accept',
         decline: 'Decline',
         pending: 'Pending',
@@ -466,6 +478,7 @@ const resources = {
         import: 'Import',
         resetRecords: 'Reset records',
         resetSettings: 'Reset settings',
+        cancel: 'Cancel',
         resetRecordsConfirm:
           'Delete all scores, history, and achievements? This cannot be undone.',
         resetSettingsConfirm:
