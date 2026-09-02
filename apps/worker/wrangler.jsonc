@@ -11,7 +11,7 @@
         "run_worker_first": true,
       },
       "vars": {
-        "PREVIEW_ENABLED": "true",
+        "PREVIEW_MODE": "required",
       },
       "d1_databases": [
         {
@@ -32,6 +32,9 @@
     },
     "production": {
       "name": "ten-api-production",
+      "vars": {
+        "PREVIEW_MODE": "disabled",
+      },
       "d1_databases": [
         {
           "binding": "DB",

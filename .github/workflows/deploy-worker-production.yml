@@ -30,25 +30,57 @@ jobs:
         run: pnpm check
       - name: Verify production ref
         run: test "$GITHUB_REF" = "refs/heads/production"
-      - name: Decrypt production secrets
+      - name: Resolve production Cloudflare credentials
         run: |-
           sops -d secrets/secrets.production.age.env > "$RUNNER_TEMP/production.env"
-          sed -E '/^[[:space:]]*(#|$)/d' "$RUNNER_TEMP/production.env" >> "$GITHUB_ENV"
+          secret() {
+            sed -n "s/^$1=//p" "$RUNNER_TEMP/production.env" | head -n 1
+          }
+          export CLOUDFLARE_API_TOKEN
+          CLOUDFLARE_API_TOKEN="$(secret CLOUDFLARE_API_TOKEN)"
+          export CLOUDFLARE_ACCOUNT_ID
+          CLOUDFLARE_ACCOUNT_ID="$(secret CLOUDFLARE_ACCOUNT_ID)"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+          echo "CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN" >> "$GITHUB_ENV"
+          echo "CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID" >> "$GITHUB_ENV"
+          rm -f "$RUNNER_TEMP/production.env"
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
       - name: Upload production Worker secrets
         run: |-
-          test -n "$AUTH_SECRET"
-          test -n "$ADMIN_SECRET"
-          printf '%s' "$AUTH_SECRET" | pnpm --filter @ten/worker exec wrangler secret put AUTH_SECRET --env production
-          printf '%s' "$ADMIN_SECRET" | pnpm --filter @ten/worker exec wrangler secret put ADMIN_SECRET --env production
+          sops -d secrets/secrets.production.age.env > "$RUNNER_TEMP/production.env"
+          secret() {
+            sed -n "s/^$1=//p" "$RUNNER_TEMP/production.env" | head -n 1
+          }
+          require() {
+            test -n "$(secret "$1")" || { echo "missing required secret: $1" >&2; exit 1; }
+          }
+          require AUTH_SECRET
+          require ADMIN_SECRET
+          put() {
+            local name="$1" value
+            value="$(secret "$name")"
+            echo "::add-mask::$value"
+            printf '%s' "$value" | pnpm --filter @ten/worker exec wrangler secret put "$name" --env production
+          }
+          put AUTH_SECRET
+          put ADMIN_SECRET
+          rm -f "$RUNNER_TEMP/production.env"
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
       - name: Apply production D1 migrations
         working-directory: apps/worker
         run: pnpm db:migrate:production
       - name: Deploy production Worker
         working-directory: apps/worker
-        run: pnpm deploy:production
+        run: pnpm exec wrangler deploy --env production --var "DEPLOY_VERSION:$GITHUB_SHA"
       - name: Check production Worker
-        run: curl --fail --retry 5 --retry-delay 2 "$TEN_API_URL/api/health"
+        run: |-
+          health="$(curl --fail --retry 5 --retry-delay 2 --proto '=https' --tlsv1.2 "$TEN_API_URL/api/health")"
+          actual="$(printf '%s' "$health" | jq -r '.version // empty')"
+          test "$actual" = "$GITHUB_SHA" || { echo "health version mismatch: $actual != $GITHUB_SHA" >&2; exit 1; }
         env:
           TEN_API_URL: ${{ vars.TEN_API_URL }}

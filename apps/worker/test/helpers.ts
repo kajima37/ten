@@ -670,15 +670,14 @@ export function createKvMock(): KVNamespace {
   } as unknown as KVNamespace
 }
 
-export function testEnv() {
+export function testEnv(): { env: Env } {
   return {
     env: {
       DB: {} as unknown as D1Database,
       DAILY_CACHE: createKvMock(),
       AUTH_SECRET: 'test-secret',
       ADMIN_SECRET: 'admin-secret',
-      PREVIEW_SESSION_SECRET: 'preview-session-secret',
-      PREVIEW_HEALTHCHECK_SECRET: 'preview-healthcheck-secret',
+      PREVIEW_MODE: 'disabled',
     },
   }
 }

@@ -4,7 +4,7 @@ TEN. の開発中バージョンを、**Cloudflare Workers Static Assets** と G
 
 ## 1. 全体の構成
 
-Web 画面とステージング API を同一の Worker 上でホストし、Worker が OAuth ログインと許可済み identity の確認を行います。未認証または未承認の利用者は Web 画面と API を利用できません。
+Web 画面とステージング API を同一の Worker 上でホストし、Worker が OAuth ログインと承認済み identity の確認を行います。未認証または未承認の利用者は Web 画面と API を利用できません。`/api/health` のみ、稼働確認用に認証対象外です。
 
 ```
 [関係者ブラウザ] ──→ [Google / GitHub ログイン]
@@ -23,12 +23,15 @@ Web 画面とステージング API を同一の Worker 上でホストし、Wor
 
 ※ Web 画面を保護するため、静的アセットを含む全リクエストは Worker が認証後に返します。Workers Free の実行回数上限を超えると Web 画面も `429` になるため、内部プレビューの利用量を Cloudflare Dashboard で確認してください。
 
+※ プレビュー用の画面とアセットには `Cache-Control: private, no-store` を付与し、Service Worker も無効化しています。ログアウト・承認取り消し後もブラウザにコンテンツが残りにくくしています。
+
 ## 2. 通常の開発・プレビュー確認の流れ
 
 GitHub 上でコードが `main` ブランチにマージされると、GitHub Actions が自動でビルドとデプロイを実行します。
 
 1. **自動反映**: `main` ブランチに変更がマージされると、ステージング環境が自動更新されます。
 2. **プレビュー確認**: ブラウザで公開 URL を開き、Google または GitHub でログインします。承認済みのアカウントなら最新の画面を確認できます。
+3. **ログアウト**: `https://ten-api-staging.<account>.workers.dev/auth/logout` の画面からログアウトできます。
 
 手動で再デプロイしたい場合は、GitHub の **Actions → Deploy Staging Worker → Run workflow** から実行できます。
 
@@ -38,46 +41,57 @@ GitHub 上でコードが `main` ブランチにマージされると、GitHub A
 
 ### ステップ 1: OAuth アプリの作成
 
-Google Cloud Console で Web application の OAuth Client を作成し、次の URI を承認済みリダイレクト URI に登録します。
-
-```text
-https://ten-api-staging.<account>.workers.dev/auth/callback/google
-```
-
-GitHub の **Settings → Developer settings → OAuth Apps** で OAuth App を作成し、Authorization callback URL に次の URI を登録します。
+**GitHub**（必須）の **Settings → Developer settings → OAuth Apps** で OAuth App を作成し、Authorization callback URL に次の URI を登録します。
 
 ```text
 https://ten-api-staging.<account>.workers.dev/auth/callback/github
 ```
 
-Google と GitHub の Client ID / Client Secret、および `PREVIEW_SESSION_SECRET` と `PREVIEW_HEALTHCHECK_SECRET` は、[秘密情報の初回設定・管理手順](./secrets.md)に従って `secrets/secrets.staging.age.env` へ登録します。
+**Google**（任意）の OAuth Client を後日追加する場合は、Google Cloud Console で Web application の OAuth Client を作成し、次の URI を承認済みリダイレクト URI に登録します。
+
+```text
+https://ten-api-staging.<account>.workers.dev/auth/callback/google
+```
+
+Google の Client ID / Client Secret が未設定でもデプロイは成功します。その場合、ログイン画面に Google のボタンは表示されず、Google のログイン開始・callback は `503` を返します。導入時に両方の値を登録すれば、追加のデプロイで有効になります。
+
+各 Client ID / Client Secret、および `PREVIEW_SESSION_SECRET` は、[秘密情報の初回設定・管理手順](./secrets.md)に従って `secrets/secrets.staging.age.env` へ登録します。
 
 ### ステップ 2: 利用者の承認
 
-利用者は公開 URL から Google または GitHub で一度ログインします。未承認の場合は、次のような識別子が表示されます。
+利用者は公開 URL から Google または GitHub で一度ログインします。未承認の場合は、次のような識別子と本人確認用の情報が表示されます。
 
 ```text
-google:123456789012345678901
+github:12345678 (octocat)
 ```
 
 または
 
 ```text
-github:12345678
+google:123456789012345678901 (tester@example.com)
 ```
 
-管理者は表示された識別子を確認し、リポジトリのルートから次の SQL を実行して利用を許可します。`provider` と `subject` は表示された値へ置き換えてください。
+初回ログイン時に、この identity が `preview_identities` へ保留状態（`approved_at` が空）で記録されます。管理者は保留一覧を確認し、本人であることを確認してから承認します。
+
+保留一覧の確認（リポジトリのルートから実行）:
 
 ```bash
 pnpm --filter @ten/worker exec wrangler d1 execute ten-db-staging --remote --env staging \
-  --command "INSERT INTO preview_identities (provider, subject) VALUES ('google', '123456789012345678901');"
+  --command "SELECT provider, subject, email, display_name, created_at FROM preview_identities WHERE approved_at IS NULL;"
+```
+
+承認する場合（`<管理者名>` は誰が承認したか分かる値へ置き換え、`provider` と `subject` は保留一覧の値へ置き換えます）:
+
+```bash
+pnpm --filter @ten/worker exec wrangler d1 execute ten-db-staging --remote --env staging \
+  --command "UPDATE preview_identities SET approved_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), approved_by = '<管理者名>' WHERE provider = 'github' AND subject = '12345678';"
 ```
 
 利用を停止する場合は、対象 identity を削除せず次の SQL で取り消します。既存のセッションも次のリクエストから無効になります。
 
 ```bash
 pnpm --filter @ten/worker exec wrangler d1 execute ten-db-staging --remote --env staging \
-  --command "UPDATE preview_identities SET revoked_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE provider = 'google' AND subject = '123456789012345678901';"
+  --command "UPDATE preview_identities SET revoked_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE provider = 'github' AND subject = '12345678';"
 ```
 
 ### ステップ 3: GitHub Environment Variables の設定
@@ -99,6 +113,25 @@ pnpm build:worker
 
 実行後、`apps/web/dist/client/` に静的配信用の Web ファイル一式が生成されます。
 
+### ローカルでの Worker 起動
+
+`pnpm dev:worker` は staging と同じ `PREVIEW_MODE=required` で起動するため、`apps/worker/.dev.vars`（Git 管理外）がないと全リクエストが `503` になります。目的に応じて `apps/worker/.dev.vars` を作成してください。
+
+通常の API 開発では、プレビュー認証を無効化します:
+
+```text
+PREVIEW_MODE=disabled
+```
+
+プレビュー認証ごとローカルで確認する場合は、次の値を設定します。GitHub OAuth App の Authorization callback URL に `http://localhost:8787/auth/callback/github` を登録し、承認済み identity をローカル用 D1 に登録してください。
+
+```text
+PREVIEW_MODE=required
+PREVIEW_SESSION_SECRET=<openssl rand -hex 32 などで生成したランダムな長い文字列>
+GITHUB_OAUTH_CLIENT_ID=<GitHub OAuth App の Client ID>
+GITHUB_OAUTH_CLIENT_SECRET=<GitHub OAuth App の Client Secret>
+```
+
 ## 5. モバイル staging の確認
 
 モバイルアプリ実機からステージング Worker に接続する認証は、将来の staging モバイルビルドで対応します。Web プレビューの Cookie を APK / IPA に埋め込んだり、OAuth Client Secret をアプリ本体へ含めたりしてはいけません。
@@ -112,10 +145,13 @@ pnpm build:worker
 1. ブラウザでステージング公開 URL にアクセスします。
 2. ログイン画面で Google または GitHub を選択します。
 3. 承認済み identity でログインし、ゲームプレイ、デイリー盤面取得、ランキング送信が正常に行えるか確認します。
+4. `curl --fail https://ten-api-staging.<account>.workers.dev/api/health` が `{"status":"ok","version":"..."}` を返すか確認します。`version` はデプロイしたコミット SHA です。
 
 ### よくあるトラブルと対処法
 
 - **OAuth プロバイダで `redirect_uri_mismatch` が出る**: OAuth アプリに登録した callback URL が公開 URL と完全に一致するか確認してください。
-- **ログイン後に承認待ち画面が出る**: 表示された identity を `preview_identities` へ登録しているか、`revoked_at` が設定されていないか確認してください。
-- **CI のヘルスチェックが失敗する**: `PREVIEW_HEALTHCHECK_SECRET` と `TEN_API_URL` の設定を確認してください。
+- **ログイン後に承認待ち画面が出る**: 保留一覧を確認し、`approved_at` を設定して承認してください。`revoked_at` が設定されていないかも確認してください。
+- **ログイン画面に Google / GitHub のボタンが出ない**: 対応する Client ID / Client Secret が `secrets/secrets.staging.age.env` に登録されているか確認してください。両方が無いプロバイダのボタンは表示されません。
+- **プレビュー自体が `503` になる**: `PREVIEW_SESSION_SECRET` や OAuth 設定の不足、または `PREVIEW_MODE` の設定漏れが考えられます。staging の Worker 設定を確認してください。
+- **CI のヘルスチェックが失敗する**: CI は `/api/health` の `version` がデプロイしたコミット SHA と一致すること、および未ログインで `/` を開くとログイン画面が返ることを確認します。`TEN_API_URL` が `https://...workers.dev` になっているか確認してください。ヘルスチェックは認証不要ですが、`/api/health` 以外の API と Web 画面は認証必須です。
 - **Web 画面が表示されない / API 通信エラー**: ステージング D1 のマイグレーションが適用済みか、Workers Free の実行回数上限に達していないか確認してください。

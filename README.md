@@ -51,6 +51,8 @@ pnpm --filter @ten/worker db:migrate:local
 pnpm dev:worker
 ```
 
+`pnpm dev:worker` は staging と同じプレビュー認証ありの設定で起動するため、`apps/worker/.dev.vars`（Git 管理外）の準備が必要です。詳しくは[ステージング Web プレビューの公開](./docs/deployment/cloudflare-worker-preview.md)の「ローカルでの Worker 起動」を参照してください。
+
 ## コード品質チェック・テスト
 
 プルリクエスト前や動作確認には、以下のコマンドを実行します。

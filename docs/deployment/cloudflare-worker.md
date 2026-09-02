@@ -59,8 +59,9 @@ pnpm --filter @ten/worker exec wrangler kv namespace create DAILY_CACHE_PRODUCTI
 公開された Worker が正常に応答しているかは、ブラウザや `curl` コマンドで簡単に確認できます。
 
 ```bash
-# ヘルスチェック (status: ok が返れば正常)
+# ヘルスチェック (status: ok が返れば正常。version はデプロイしたコミット SHA)
 curl "https://ten-api-production.<account>.workers.dev/api/health"
+# => {"status":"ok","version":"<commit-sha>"}
 
 # 今日のデイリー盤面取得
 curl "https://ten-api-production.<account>.workers.dev/api/daily"

@@ -82,12 +82,11 @@ sops secrets/secrets.staging.age.env
 | `CLOUDFLARE_ACCOUNT_ID`      | Cloudflare アカウント ID                 | Cloudflare ダッシュボードの Workers 概要画面で確認                           |
 | `AUTH_SECRET`                | ユーザー認証トークンの署名用シークレット | ランダムな長い文字列（例: `openssl rand -hex 32`）                           |
 | `ADMIN_SECRET`               | 管理者用 API の認証キー                  | ランダムな長い文字列（例: `openssl rand -hex 32`）                           |
-| `PREVIEW_SESSION_SECRET`     | プレビューセッションの署名鍵             | ランダムな長い文字列（例: `openssl rand -hex 32`）                           |
-| `PREVIEW_HEALTHCHECK_SECRET` | CI ヘルスチェックの認証キー              | ランダムな長い文字列（例: `openssl rand -hex 32`）。アプリへ含めない         |
-| `GOOGLE_OAUTH_CLIENT_ID`     | Google OAuth Client ID                   | Google Cloud Console で作成した Web application の Client ID                 |
-| `GOOGLE_OAUTH_CLIENT_SECRET` | Google OAuth Client Secret               | 上記 OAuth Client の Secret。アプリへ含めない                                |
-| `GITHUB_OAUTH_CLIENT_ID`     | GitHub OAuth App Client ID               | GitHub の OAuth App 設定で作成した Client ID                                 |
-| `GITHUB_OAUTH_CLIENT_SECRET` | GitHub OAuth App Client Secret           | 上記 OAuth App の Client Secret。アプリへ含めない                            |
+| `PREVIEW_SESSION_SECRET`     | プレビューセッションの署名鍵             | ランダムな長い文字列（例: `openssl rand -hex 32`）。必須                     |
+| `GOOGLE_OAUTH_CLIENT_ID`     | Google OAuth Client ID                   | 任意。Google Cloud Console で作成した Web application の Client ID           |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | Google OAuth Client Secret               | 任意。上記 Client ID とセットで登録する。アプリへ含めない                    |
+| `GITHUB_OAUTH_CLIENT_ID`     | GitHub OAuth App Client ID               | GitHub の OAuth App 設定で作成した Client ID。必須                           |
+| `GITHUB_OAUTH_CLIENT_SECRET` | GitHub OAuth App Client Secret           | 上記 OAuth App の Client Secret。必須。アプリへ含めない                      |
 
 ### 2. 本番環境の設定 (`secrets.production.age.env`)
 

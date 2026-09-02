@@ -24,7 +24,7 @@ test('health endpoint responds ok', async () => {
   const { app, env } = createTestContext()
   const response = await app.request('https://example.com/api/health', {}, env)
   assert.equal(response.status, 200)
-  assert.deepEqual(await readJson(response), { status: 'ok' })
+  assert.deepEqual(await readJson(response), { status: 'ok', version: null })
 })
 
 test('unknown routes return 404', async () => {

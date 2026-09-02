@@ -21,6 +21,8 @@ import {
 } from './auth.ts'
 import { createD1Store } from './db.ts'
 import type { Store } from './db.ts'
+import { parseEnv } from './env.ts'
+import type { EnvValidationResult, RuntimeEnv } from './env.ts'
 import { handlePreviewAuth } from './preview-auth.ts'
 import {
   adminPlayersQuerySchema,
@@ -32,19 +34,30 @@ import {
   weeklyLeaderboardQuerySchema,
 } from './schemas.ts'
 
-export interface Env {
+export type Env = RuntimeEnv & {
   DB: D1Database
   DAILY_CACHE: KVNamespace
   ASSETS?: Fetcher
-  AUTH_SECRET: string
-  ADMIN_SECRET: string
-  PREVIEW_ENABLED?: string
-  PREVIEW_SESSION_SECRET?: string
-  PREVIEW_HEALTHCHECK_SECRET?: string
-  GOOGLE_OAUTH_CLIENT_ID?: string
-  GOOGLE_OAUTH_CLIENT_SECRET?: string
-  GITHUB_OAUTH_CLIENT_ID?: string
-  GITHUB_OAUTH_CLIENT_SECRET?: string
+}
+
+const envValidationCache = new WeakMap<object, EnvValidationResult>()
+
+function parseEnvironment(env: Env): EnvValidationResult {
+  const cached = envValidationCache.get(env)
+  if (cached) return cached
+  const result = parseEnv(env)
+  envValidationCache.set(env, result)
+  return result
+}
+
+function noStore(response: Response): Response {
+  const headers = new Headers(response.headers)
+  headers.set('cache-control', 'private, no-store')
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
 }
 
 type AppContext = {
@@ -187,7 +200,9 @@ export function createApp(storeFactory: (env: Env) => Store): Hono<AppContext> {
     await next()
   }
 
-  app.get('/api/health', (c) => c.json({ status: 'ok' }))
+  app.get('/api/health', (c) =>
+    c.json({ status: 'ok', version: c.env.DEPLOY_VERSION ?? null }),
+  )
 
   app.post('/api/auth/register', jsonValidator(registerSchema), async (c) => {
     const body = c.req.valid('json')
@@ -580,18 +595,31 @@ export function createApp(storeFactory: (env: Env) => Store): Hono<AppContext> {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    if (env.PREVIEW_ENABLED === 'true') {
-      const authResponse = await handlePreviewAuth(request, env)
+    const parsed = parseEnvironment(env)
+    if (!parsed.ok) {
+      console.error(
+        'invalid environment configuration:',
+        parsed.issues.map((issue) => `${issue.path}: ${issue.message}`),
+      )
+      return new Response('service is misconfigured', { status: 503 })
+    }
+    const config = parsed.config
+    if (config.previewMode === 'required') {
+      const authResponse = await handlePreviewAuth(
+        request,
+        config.preview,
+        env.DB,
+      )
       if (authResponse) return authResponse
       if (!new URL(request.url).pathname.startsWith('/api/')) {
         if (!env.ASSETS)
           return new Response('assets are not configured', { status: 500 })
-        return env.ASSETS.fetch(request)
+        return noStore(await env.ASSETS.fetch(request))
       }
     }
-    return createApp((bindings) => createD1Store(bindings.DB)).fetch(
-      request,
-      env,
-    )
+    const response = await createApp((bindings) =>
+      createD1Store(bindings.DB),
+    ).fetch(request, env)
+    return config.previewMode === 'required' ? noStore(response) : response
   },
 } satisfies ExportedHandler<Env>
