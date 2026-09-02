@@ -52,7 +52,7 @@ production 環境では画面全体に警告色のバナーを表示し、危険
 
 既存の OAuth アプリ（[ステージング Web プレビューの公開](./cloudflare-worker-preview.md)で作成したもの）に、管理画面分の callback URL を追加登録します。
 
-- **GitHub**（Settings → Developer settings → OAuth Apps → Authorization callback URL には 1 件のみ登録可能なため、**管理画面用に OAuth App を新規作成**するか、既存 App の callback を管理画面側へ変更してください。プレビューと管理画面で同じ App を使い回す場合は、双方の URL を登録できる Google を推奨）:
+- **GitHub**（Settings → Developer settings → OAuth Apps → Callback URL は複数登録できるため、既存 App に次の URL を追加登録してください）:
   ```text
   https://ten-admin-staging.<account>.workers.dev/auth/callback/github
   https://ten-admin-production.<account>.workers.dev/auth/callback/github
