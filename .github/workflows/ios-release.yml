@@ -98,7 +98,7 @@ jobs:
       - name: Download provisioning profile
         uses: apple-actions/download-provisioning-profiles@ef4c72c40493b58ca46a63a5714a31dc6b62998e # v6
         with:
-          bundle-id: com.ten.game
+          bundle-id: net.sajima.ten
           profile-type: IOS_APP_STORE
           issuer-id: ${{ env.APP_STORE_CONNECT_ISSUER_ID }}
           api-key-id: ${{ env.APP_STORE_CONNECT_KEY_ID }}

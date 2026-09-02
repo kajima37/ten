@@ -1,4 +1,4 @@
-package com.ten.game;
+package net.sajima.ten;
 
 import com.getcapacitor.BridgeActivity;
 

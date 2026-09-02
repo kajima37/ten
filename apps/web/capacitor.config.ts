@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-  appId: 'com.ten.game',
+  appId: 'net.sajima.ten',
   appName: 'TEN.',
   webDir: 'dist/client',
   backgroundColor: '#09090a',
