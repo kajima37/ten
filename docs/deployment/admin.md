@@ -48,24 +48,24 @@ production 環境では画面全体に警告色のバナーを表示し、危険
 
 ## 4. 初回のみ必要な準備（管理者向け）
 
-### ステップ 1: OAuth アプリへの callback URL 追加
+### ステップ 1: OAuth アプリの準備
 
-既存の OAuth アプリ（[ステージング Web プレビューの公開](./cloudflare-worker-preview.md)で作成したもの）に、管理画面分の callback URL を追加登録します。
+OAuth App は **staging と production で別々のものを使用します**。staging は、プレビュー用に作成した OAuth App（[ステージング Web プレビューの公開](./cloudflare-worker-preview.md)で作成したもの）に管理画面分の callback URL を追加して使い回します。production は staging とは別の OAuth App を新規作成し、シークレットの漏洩や更新の影響が環境をまたがないようにします。両プロバイダとも callback URL は複数登録できます（GitHub は Settings → Developer settings → OAuth Apps、Google は Google Cloud Console → 認証情報 → 承認済みリダイレクト URI）。
 
-- **GitHub**（Settings → Developer settings → OAuth Apps → Callback URL は複数登録できるため、既存 App に次の URL を追加登録してください）:
+- **staging**（既存 App に追加登録）:
   ```text
   https://ten-admin-staging.<account>.workers.dev/auth/callback/github
-  https://ten-admin-production.<account>.workers.dev/auth/callback/github
-  ```
-- **Google**（Google Cloud Console → 認証情報 → 承認済みリダイレクト URI に追加）:
-  ```text
   https://ten-admin-staging.<account>.workers.dev/auth/callback/google
+  ```
+- **production**（新規作成した App に登録）:
+  ```text
+  https://ten-admin-production.<account>.workers.dev/auth/callback/github
   https://ten-admin-production.<account>.workers.dev/auth/callback/google
   ```
 
 ### ステップ 2: 秘密情報の登録
 
-[秘密情報の初回設定・管理手順](./secrets.md) に従い、`ADMIN_SESSION_SECRET` と OAuth クライアント情報を `secrets/secrets.staging.age.env` と `secrets/secrets.production.age.env` に登録します。production 用の OAuth Client ID / Secret は、staging と同じ値でも新しいものでも構いません（URL が異なるため callback 登録が必須です）。
+[秘密情報の初回設定・管理手順](./secrets.md) に従い、`ADMIN_SESSION_SECRET` と OAuth クライアント情報を `secrets/secrets.staging.age.env` と `secrets/secrets.production.age.env` に登録します。production には、ステップ 1 で新規作成した production 専用 OAuth App の Client ID / Secret を登録してください（staging の値を使い回さないでください）。
 
 ### ステップ 3: GitHub Environment の設定
 

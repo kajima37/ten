@@ -98,7 +98,7 @@ export SOPS_AGE_KEY="$(cat secrets/.private/production.agekey)"
 sops secrets/secrets.production.age.env
 ```
 
-staging と同様に、本番専用の Cloudflare API トークンと `AUTH_SECRET` を登録します（※ staging と同じシークレットを使い回さないでください）。加えて、管理画面（production）のために `ADMIN_SESSION_SECRET` と、production の公開 URL を callback に登録した OAuth Client 情報（`GITHUB_OAUTH_CLIENT_ID` / `GITHUB_OAUTH_CLIENT_SECRET`、必要なら Google のペア）を登録します。詳細は [管理画面の公開と運用](./admin.md) を参照してください。
+staging と同様に、本番専用の Cloudflare API トークンと `AUTH_SECRET` を登録します（※ staging と同じシークレットを使い回さないでください）。加えて、管理画面（production）のために `ADMIN_SESSION_SECRET` と、**staging とは別に作成した** production 専用 OAuth App の Client 情報（`GITHUB_OAUTH_CLIENT_ID` / `GITHUB_OAUTH_CLIENT_SECRET`、必要なら Google のペア）を登録します。OAuth App は環境ごとに分離し、staging の Client ID / Secret を使い回さないでください。詳細は [管理画面の公開と運用](./admin.md) を参照してください。
 
 ### 3. Android リリース設定 (`secrets.android-release.age.env`)
 

@@ -58,6 +58,8 @@ Google の Client ID / Client Secret が未設定でもデプロイは成功し�
 
 各 Client ID / Client Secret、および `PREVIEW_SESSION_SECRET` は、[秘密情報の初回設定・管理手順](./secrets.md)に従って `secrets/secrets.staging.age.env` へ登録します。
 
+※ ここで作成する OAuth App は staging（プレビューと管理画面）専用です。production の管理画面では、staging と別の OAuth App を作成してください（[管理画面の公開と運用](./admin.md) を参照）。
+
 ### ステップ 2: 利用者の承認
 
 利用者は公開 URL から Google または GitHub で一度ログインします。未承認の場合は、次のような識別子と本人確認用の情報が表示されます。
