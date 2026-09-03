@@ -31,7 +31,7 @@ jobs:
         run: |-
           deadline=$((SECONDS + 3600))
           while [ "$SECONDS" -lt "$deadline" ]; do
-            conclusion="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/check-runs?filter=latest" --jq '[.check_runs[] | select(.name == "Production ready") | .conclusion] | if any(.[]; . == "success") then "success" elif any(.[]; . == "failure") then "failure" else (last // empty) end')"
+            conclusion="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/check-runs" --jq '[.check_runs[] | select(.name == "Production ready") | .conclusion] | if any(.[]; . == "success") then "success" elif any(.[]; . == "failure") then "failure" else (last // empty) end')"
             case "$conclusion" in
               success) exit 0 ;;
               '') sleep 30 ;;

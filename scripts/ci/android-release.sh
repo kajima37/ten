@@ -22,5 +22,6 @@ export TEN_KEYSTORE_PASSWORD="$ANDROID_KEYSTORE_PASSWORD"
 export TEN_KEY_ALIAS="$ANDROID_KEY_ALIAS"
 export TEN_KEY_PASSWORD="$ANDROID_KEY_PASSWORD"
 
+chmod +x apps/web/android/gradlew
 pnpm mobile:sync
 ./apps/web/android/gradlew -p apps/web/android bundleRelease --no-daemon
