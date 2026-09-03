@@ -11,6 +11,7 @@ concurrency:
 
 permissions:
   contents: read
+  actions: read
   checks: read
 
 jobs:
@@ -28,18 +29,7 @@ jobs:
           git fetch --quiet origin production &&
           git merge-base --is-ancestor "$GITHUB_SHA" origin/production
       - name: Wait for production pipeline
-        run: |-
-          deadline=$((SECONDS + 3600))
-          while [ "$SECONDS" -lt "$deadline" ]; do
-            conclusion="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/check-runs" --jq '[.check_runs[] | select(.name == "Production ready") | .conclusion] | if any(.[]; . == "success") then "success" elif any(.[]; . == "failure") then "failure" else (last // empty) end')"
-            case "$conclusion" in
-              success) exit 0 ;;
-              '') sleep 30 ;;
-              *) echo "Production ready concluded: $conclusion" >&2; exit 1 ;;
-            esac
-          done
-          echo 'timed out waiting for Production ready' >&2
-          exit 1
+        run: bash scripts/ci/wait-for-production-pipeline.sh
         env:
           GH_TOKEN: ${{ github.token }}
   release:
@@ -147,6 +137,14 @@ jobs:
           -archivePath "$RUNNER_TEMP/App.xcarchive"
           -exportPath "$RUNNER_TEMP/ipa"
           -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
+      - name: Upload release IPA artifact
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ten-ios-release-build-${{ github.ref_name }}
+          path: ${{ runner.temp }}/ipa/App.ipa
+          if-no-files-found: ignore
+          retention-days: 90
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@94c406fd91f8b13b4c1fb078f1de09a76910513a # v5
         with:
