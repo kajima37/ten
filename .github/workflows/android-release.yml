@@ -67,12 +67,6 @@ jobs:
           "build-tools;35.0.0"
           "build-tools;36.0.0"
       - run: pnpm install --frozen-lockfile
-      - name: Decrypt release secrets
-        run: |-
-          sops -d secrets/secrets.android-release.age.env > "$RUNNER_TEMP/android-release.env"
-          sed -E '/^[[:space:]]*(#|$)/d' "$RUNNER_TEMP/android-release.env" >> "$GITHUB_ENV"
-        env:
-          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
       - name: Derive version
         id: version
         run: |-
@@ -92,29 +86,17 @@ jobs:
         run: test -n "$ADMOB_APP_ID"
         env:
           ADMOB_APP_ID: ${{ vars.ADMOB_APP_ID }}
-      - run: pnpm mobile:sync
+      - name: Build release AAB
+        run: sops exec-env secrets/secrets.android-release.age.env -- bash scripts/ci/android-release.sh
         env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
           VITE_API_URL: ${{ vars.TEN_API_URL }}
           ADMOB_APP_ID: ${{ vars.ADMOB_APP_ID }}
-      - name: Restore keystore
-        run: |-
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
-          {
-            echo "TEN_KEYSTORE_FILE=$RUNNER_TEMP/release.jks"
-            echo "TEN_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
-            echo "TEN_KEY_ALIAS=$ANDROID_KEY_ALIAS"
-            echo "TEN_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
-          } >> "$GITHUB_ENV"
-      - name: Build release AAB
-        working-directory: apps/web/android
-        run: ./gradlew bundleRelease --no-daemon
       - name: Verify signed AAB
         working-directory: apps/web/android
         run: |-
           test -f app/build/outputs/bundle/release/app-release.aab
           jarsigner -verify app/build/outputs/bundle/release/app-release.aab
-      - name: Write service account
-        run: printf '%s' "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/service-account.json"
       - name: Upload to Google Play
         uses: r0adkll/upload-google-play@eb49699984a39f23558439581660aa6f088acfd6 # v1
         with:
@@ -129,3 +111,6 @@ jobs:
           path: apps/web/android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 90
+      - name: Remove release files
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks" "$RUNNER_TEMP/service-account.json"

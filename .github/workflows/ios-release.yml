@@ -55,10 +55,9 @@ jobs:
         with:
           cache: true
       - run: pnpm install --frozen-lockfile
-      - name: Decrypt release secrets
-        run: |-
-          sops -d secrets/secrets.ios-release.age.env > "$RUNNER_TEMP/ios-release.env"
-          sed -E '/^[[:space:]]*(#|$)/d' "$RUNNER_TEMP/ios-release.env" >> "$GITHUB_ENV"
+      - name: Resolve release secrets
+        id: release-secrets
+        run: sops exec-env secrets/secrets.ios-release.age.env -- bash scripts/ci/ios-release-secrets.sh "$GITHUB_OUTPUT"
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
       - name: Derive version
@@ -90,19 +89,22 @@ jobs:
         run: |-
           mkdir -p "$HOME/private_keys"
           printf '%s\n' "$APP_STORE_CONNECT_PRIVATE_KEY" > "$HOME/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
+        env:
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ steps.release-secrets.outputs.APP_STORE_CONNECT_PRIVATE_KEY }}
+          APP_STORE_CONNECT_KEY_ID: ${{ steps.release-secrets.outputs.APP_STORE_CONNECT_KEY_ID }}
       - name: Import codesigning certificates
         uses: apple-actions/import-codesign-certs@7abe6dfe88f6bf6b1fa06e6a5704a2605d897418 # v7
         with:
-          p12-file-base64: ${{ env.APPLE_CERTIFICATE_BASE64 }}
-          p12-password: ${{ env.APPLE_CERTIFICATE_PASSWORD }}
+          p12-file-base64: ${{ steps.release-secrets.outputs.APPLE_CERTIFICATE_BASE64 }}
+          p12-password: ${{ steps.release-secrets.outputs.APPLE_CERTIFICATE_PASSWORD }}
       - name: Download provisioning profile
         uses: apple-actions/download-provisioning-profiles@ef4c72c40493b58ca46a63a5714a31dc6b62998e # v6
         with:
           bundle-id: net.sajima.ten
           profile-type: IOS_APP_STORE
-          issuer-id: ${{ env.APP_STORE_CONNECT_ISSUER_ID }}
-          api-key-id: ${{ env.APP_STORE_CONNECT_KEY_ID }}
-          api-private-key: ${{ env.APP_STORE_CONNECT_PRIVATE_KEY }}
+          issuer-id: ${{ steps.release-secrets.outputs.APP_STORE_CONNECT_ISSUER_ID }}
+          api-key-id: ${{ steps.release-secrets.outputs.APP_STORE_CONNECT_KEY_ID }}
+          api-private-key: ${{ steps.release-secrets.outputs.APP_STORE_CONNECT_PRIVATE_KEY }}
       - name: Archive app
         run: >-
           xcodebuild archive
@@ -111,14 +113,18 @@ jobs:
           -configuration Release
           -archivePath "$RUNNER_TEMP/App.xcarchive"
           -destination 'generic/platform=iOS'
-          -allowProvisioningUpdates
-          -authenticationKeyPath "$HOME/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
+           -allowProvisioningUpdates
+           -authenticationKeyPath "$HOME/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
           -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID"
           -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
           DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
           CODE_SIGN_STYLE=Automatic
           MARKETING_VERSION="$TEN_VERSION_NAME"
-          CURRENT_PROJECT_VERSION="$TEN_BUILD_NUMBER"
+           CURRENT_PROJECT_VERSION="$TEN_BUILD_NUMBER"
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ steps.release-secrets.outputs.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ steps.release-secrets.outputs.APP_STORE_CONNECT_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ steps.release-secrets.outputs.APPLE_TEAM_ID }}
       - name: Write export options
         run: |-
           cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
@@ -131,7 +137,7 @@ jobs:
               <key>signingStyle</key>
               <string>automatic</string>
               <key>teamID</key>
-              <string>$APPLE_TEAM_ID</string>
+              <string>${{ steps.release-secrets.outputs.APPLE_TEAM_ID }}</string>
           </dict>
           </plist>
           PLIST
@@ -145,9 +151,9 @@ jobs:
         uses: apple-actions/upload-testflight-build@94c406fd91f8b13b4c1fb078f1de09a76910513a # v5
         with:
           app-path: ${{ runner.temp }}/ipa/App.ipa
-          issuer-id: ${{ env.APP_STORE_CONNECT_ISSUER_ID }}
-          api-key-id: ${{ env.APP_STORE_CONNECT_KEY_ID }}
-          api-private-key: ${{ env.APP_STORE_CONNECT_PRIVATE_KEY }}
+          issuer-id: ${{ steps.release-secrets.outputs.APP_STORE_CONNECT_ISSUER_ID }}
+          api-key-id: ${{ steps.release-secrets.outputs.APP_STORE_CONNECT_KEY_ID }}
+          api-private-key: ${{ steps.release-secrets.outputs.APP_STORE_CONNECT_PRIVATE_KEY }}
           wait-for-processing: 'true'
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
@@ -155,3 +161,6 @@ jobs:
           path: ${{ runner.temp }}/ipa/App.ipa
           if-no-files-found: error
           retention-days: 90
+      - name: Remove release files
+        if: always()
+        run: rm -rf "$HOME/private_keys" "$RUNNER_TEMP/ios-release.env"
