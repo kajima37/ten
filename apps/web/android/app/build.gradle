@@ -7,7 +7,7 @@ android {
         applicationId "net.sajima.ten"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode (System.getenv("TEN_VERSION_CODE") ?: "1").toInteger()
+        versionCode ((System.getenv("TEN_VERSION_CODE") ?: "1").toInteger())
         versionName System.getenv("TEN_VERSION_NAME") ?: "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
