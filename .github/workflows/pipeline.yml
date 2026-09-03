@@ -223,7 +223,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Apply staging D1 migrations
         working-directory: apps/worker
-        run: sops exec-env "${{ github.workspace }}/secrets/secrets.staging.age.env" -- pnpm db:migrate:staging
+        run: sops exec-env "${{ github.workspace }}/secrets/secrets.staging.age.env" pnpm db:migrate:staging
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
 
@@ -244,7 +244,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Apply production D1 migrations
         working-directory: apps/worker
-        run: sops exec-env "${{ github.workspace }}/secrets/secrets.production.age.env" -- pnpm db:migrate:production
+        run: sops exec-env "${{ github.workspace }}/secrets/secrets.production.age.env" pnpm db:migrate:production
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
 
@@ -270,17 +270,17 @@ jobs:
           path: apps/web/dist/client
       - name: Upload staging Worker secrets
         if: env.DEPLOY_ENV == 'staging'
-        run: sops exec-env secrets/secrets.staging.age.env -- bash scripts/ci/upload-worker-secrets.sh staging
+        run: sops exec-env secrets/secrets.staging.age.env bash scripts/ci/upload-worker-secrets.sh staging
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
       - name: Upload production Worker secrets
         if: env.DEPLOY_ENV == 'production'
-        run: sops exec-env secrets/secrets.production.age.env -- bash scripts/ci/upload-worker-secrets.sh production
+        run: sops exec-env secrets/secrets.production.age.env bash scripts/ci/upload-worker-secrets.sh production
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
       - name: Deploy Worker
         working-directory: apps/worker
-        run: sops exec-env "${{ github.workspace }}/secrets/secrets.$DEPLOY_ENV.age.env" -- pnpm exec wrangler deploy --env "$DEPLOY_ENV" --var "DEPLOY_VERSION:$GITHUB_SHA"
+        run: sops exec-env "${{ github.workspace }}/secrets/secrets.$DEPLOY_ENV.age.env" pnpm exec wrangler deploy --env "$DEPLOY_ENV" --var "DEPLOY_VERSION:$GITHUB_SHA"
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
       - name: Check Worker
@@ -332,12 +332,12 @@ jobs:
           name: admin-assets-${{ github.sha }}
           path: apps/admin/dist/client
       - name: Upload Admin secrets
-        run: sops exec-env "secrets/secrets.$DEPLOY_ENV.age.env" -- bash scripts/ci/upload-admin-secrets.sh "$DEPLOY_ENV"
+        run: sops exec-env "secrets/secrets.$DEPLOY_ENV.age.env" bash scripts/ci/upload-admin-secrets.sh "$DEPLOY_ENV"
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
       - name: Deploy Admin
         working-directory: apps/admin
-        run: sops exec-env "${{ github.workspace }}/secrets/secrets.$DEPLOY_ENV.age.env" -- pnpm exec wrangler deploy --env "$DEPLOY_ENV" --var "DEPLOY_VERSION:$GITHUB_SHA"
+        run: sops exec-env "${{ github.workspace }}/secrets/secrets.$DEPLOY_ENV.age.env" pnpm exec wrangler deploy --env "$DEPLOY_ENV" --var "DEPLOY_VERSION:$GITHUB_SHA"
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
       - name: Check Admin
