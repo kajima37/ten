@@ -43,12 +43,18 @@ jobs:
           VITE_API_URL: ${{ vars.TEN_API_URL }}
       - name: Make Gradle wrapper executable
         run: chmod +x apps/web/android/gradlew
-      - name: Build debug APK
+      - name: Build debug APK and App Bundle
         working-directory: apps/web/android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug bundleDebug --no-daemon
       - uses: actions/upload-artifact@v6
         with:
           name: ten-android-debug-${{ github.sha }}
           path: apps/web/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v6
+        with:
+          name: ten-android-debug-bundle-${{ github.sha }}
+          path: apps/web/android/app/build/outputs/bundle/debug/app-debug.aab
           if-no-files-found: error
           retention-days: 14
