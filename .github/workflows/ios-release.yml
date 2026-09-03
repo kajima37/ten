@@ -57,7 +57,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Resolve release secrets
         id: release-secrets
-        run: sops exec-env secrets/secrets.ios-release.age.env bash scripts/ci/ios-release-secrets.sh "$GITHUB_OUTPUT"
+        run: sops exec-env secrets/secrets.ios-release.age.env "bash scripts/ci/ios-release-secrets.sh \"$GITHUB_OUTPUT\""
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
       - name: Derive version

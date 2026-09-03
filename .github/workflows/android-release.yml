@@ -87,7 +87,7 @@ jobs:
         env:
           ADMOB_APP_ID: ${{ vars.ADMOB_APP_ID }}
       - name: Build release AAB
-        run: sops exec-env secrets/secrets.android-release.age.env bash scripts/ci/android-release.sh
+        run: sops exec-env secrets/secrets.android-release.age.env 'bash scripts/ci/android-release.sh'
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
           VITE_API_URL: ${{ vars.TEN_API_URL }}
