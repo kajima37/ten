@@ -106,13 +106,15 @@ staging と同様に、本番専用の Cloudflare API トークンと `AUTH_SECR
 sops secrets/secrets.android-release.age.env
 ```
 
-| 項目名                             | 内容                                      | 形式・備考                                          |
-| ---------------------------------- | ----------------------------------------- | --------------------------------------------------- |
-| `ANDROID_KEYSTORE_BASE64`          | 署名用キーストアファイル (`.keystore`)    | `base64 -w 0 your.keystore` で 1 行に変換した文字列 |
-| `ANDROID_KEYSTORE_PASSWORD`        | キーストアのパスワード                    | 文字列                                              |
-| `ANDROID_KEY_ALIAS`                | 署名鍵のエイリアス名                      | 文字列                                              |
-| `ANDROID_KEY_PASSWORD`             | 署名鍵のパスワード                        | 文字列                                              |
-| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | Google Play 提出用サービスアカウント JSON | Google Cloud で発行した JSON キーの中身全体         |
+| 項目名                                    | 内容                                      | 形式・備考                                                |
+| ----------------------------------------- | ----------------------------------------- | --------------------------------------------------------- |
+| `ANDROID_KEYSTORE_BASE64`                 | 署名用キーストアファイル (`.keystore`)    | `base64 -w 0 your.keystore` で 1 行に変換した文字列       |
+| `ANDROID_KEYSTORE_PASSWORD`               | キーストアのパスワード                    | 文字列                                                    |
+| `ANDROID_KEY_ALIAS`                       | 署名鍵のエイリアス名                      | 文字列                                                    |
+| `ANDROID_KEY_PASSWORD`                    | 署名鍵のパスワード                        | 文字列                                                    |
+| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_BASE64` | Google Play 提出用サービスアカウント JSON | JSON ファイル全体を `base64 -w 0` で 1 行に変換した文字列 |
+
+Google Play の JSON は、JSON ファイル全体を Base64 化して設定します。Linux では `base64 -w 0 service-account.json`、macOS では `base64 < service-account.json | tr -d '\n'` を使います。SOPS の dotenv 値にはクォートや実改行を含めず、生成された 1 行をそのまま設定してください。
 
 ### 4. iOS リリース設定 (`secrets.ios-release.age.env`)
 
