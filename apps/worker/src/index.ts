@@ -160,8 +160,8 @@ function legalLayout(
   env: Env,
   locale: 'ja' | 'en' = 'ja',
 ): Response {
-  const developer = htmlEscape(env.LEGAL_DEVELOPER_NAME ?? 'Kajima')
-  const email = htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'kajima37@example.com')
+  const developer = htmlEscape(env.LEGAL_DEVELOPER_NAME ?? 'Sajima')
+  const email = htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'sn178178178@gmail.com')
   const labels =
     locale === 'en'
       ? ['Privacy', 'Terms', 'Delete account', 'Legal', 'Language']
@@ -178,7 +178,7 @@ function legalLayout(
 function privacyPage(env: Env): Response {
   return legalLayout(
     'プライバシーポリシー',
-    `<h1>プライバシーポリシー</h1><p>最終更新日: 2026年9月4日</p><p>TEN.（以下「本アプリ」）は、${htmlEscape(env.LEGAL_DEVELOPER_NAME ?? 'Kajima')}が提供します。</p><section><h2>収集する情報</h2><p>本アプリは、プレイヤーID、表示名、端末識別子、スコア、プレイ結果、フレンドコードおよびフレンド関係を、ランキングとゲーム機能の提供、不正利用防止のために収集します。送信元IPアドレスは不正利用防止のためハッシュ化して利用します。</p></section><section><h2>広告</h2><p>本アプリはGoogle AdMobを使用します。広告SDKが扱う情報と利用目的は、Googleの最新のポリシーおよび設定に従います。</p></section><section><h2>保存と共有</h2><p>ゲームサーバー上のデータは、サービス提供に必要な期間保存します。広告配信に必要な情報を除き、個人情報を第三者へ販売しません。データは通信時に暗号化されます。</p></section><section><h2>削除</h2><p>アプリの「マイページ」からアカウントを削除できます。アプリを利用できない場合は<a href="/account-deletion">アカウント削除ページ</a>を利用してください。削除するとプレイヤー、スコア、フレンド関連データを削除します。</p></section><section><h2>問い合わせ</h2><p><a href="mailto:${htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'kajima37@example.com')}">${htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'kajima37@example.com')}</a></p></section>`,
+    `<h1>プライバシーポリシー</h1><p>最終更新日: 2026年9月4日</p><p>TEN.（以下「本アプリ」）は、${htmlEscape(env.LEGAL_DEVELOPER_NAME ?? 'Sajima')}が提供します。</p><section><h2>収集する情報</h2><p>本アプリは、プレイヤーID、表示名、端末識別子、スコア、プレイ結果、フレンドコードおよびフレンド関係を、ランキングとゲーム機能の提供、不正利用防止のために収集します。送信元IPアドレスは不正利用防止のためハッシュ化して利用します。広告配信のため、Google AdMobが広告識別子を収集し、Googleと共有します。</p></section><section><h2>広告</h2><p>本アプリはGoogle AdMobを使用します。広告SDKが扱う情報と利用目的は、Googleの最新のポリシーおよび設定に従います。</p></section><section><h2>保存と共有</h2><p>ゲームサーバー上のデータは、サービス提供に必要な期間保存します。広告配信に必要な情報を除き、個人情報を第三者へ販売しません。データは通信時に暗号化されます。</p></section><section><h2>削除</h2><p>アプリの「マイページ」からアカウントを削除できます。アプリを利用できない場合は<a href="/account-deletion">アカウント削除ページ</a>を利用してください。削除するとプレイヤー、スコア、フレンド関連データを削除します。</p></section><section><h2>問い合わせ</h2><p><a href="mailto:${htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'sn178178178@gmail.com')}">${htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'sn178178178@gmail.com')}</a></p></section>`,
     env,
   )
 }
@@ -186,7 +186,7 @@ function privacyPage(env: Env): Response {
 function termsPage(env: Env): Response {
   return legalLayout(
     '利用規約',
-    `<h1>利用規約</h1><p>最終更新日: 2026年9月4日</p><section><h2>利用</h2><p>本アプリは個人で楽しむゲームサービスです。利用者は、他の利用者やサービスに損害を与える行為、不正な操作、過度な負荷をかける行為をしてはいけません。</p></section><section><h2>ランキング</h2><p>不正利用が確認されたスコアは非表示または削除することがあります。</p></section><section><h2>変更・停止</h2><p>運営上必要な場合、機能の変更、停止、データの削除を行うことがあります。</p></section><section><h2>問い合わせ</h2><p><a href="mailto:${htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'kajima37@example.com')}">${htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'kajima37@example.com')}</a></p></section>`,
+    `<h1>利用規約</h1><p>最終更新日: 2026年9月4日</p><section><h2>利用</h2><p>本アプリは個人で楽しむゲームサービスです。利用者は、他の利用者やサービスに損害を与える行為、不正な操作、過度な負荷をかける行為をしてはいけません。</p></section><section><h2>ランキング</h2><p>不正利用が確認されたスコアは非表示または削除することがあります。</p></section><section><h2>変更・停止</h2><p>運営上必要な場合、機能の変更、停止、データの削除を行うことがあります。</p></section><section><h2>問い合わせ</h2><p><a href="mailto:${htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'sn178178178@gmail.com')}">${htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'sn178178178@gmail.com')}</a></p></section>`,
     env,
   )
 }
@@ -209,8 +209,8 @@ function requestedLocale(request: Request): 'ja' | 'en' {
 }
 
 function aboutPage(env: Env, locale: 'ja' | 'en'): Response {
-  const developer = htmlEscape(env.LEGAL_DEVELOPER_NAME ?? 'Kajima')
-  const email = htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'kajima37@example.com')
+  const developer = htmlEscape(env.LEGAL_DEVELOPER_NAME ?? 'Sajima')
+  const email = htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'sn178178178@gmail.com')
   if (locale === 'en') {
     return legalLayout(
       'About TEN.',
@@ -228,18 +228,18 @@ function aboutPage(env: Env, locale: 'ja' | 'en'): Response {
 }
 
 function englishPrivacyPage(env: Env): Response {
-  const developer = htmlEscape(env.LEGAL_DEVELOPER_NAME ?? 'Kajima')
-  const email = htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'kajima37@example.com')
+  const developer = htmlEscape(env.LEGAL_DEVELOPER_NAME ?? 'Sajima')
+  const email = htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'sn178178178@gmail.com')
   return legalLayout(
     'Privacy policy',
-    `<h1>Privacy policy</h1><p>Last updated: September 4, 2026</p><p>TEN. is provided by ${developer}.</p><section><h2>Information we collect</h2><p>We collect a player ID, display name, device identifier, scores, play results, friend codes, and friend relationships to provide game features and leaderboards and to prevent abuse. Source IP addresses are hashed and used for abuse prevention.</p></section><section><h2>Advertising</h2><p>TEN. uses Google AdMob. Information handled by the advertising SDK is governed by Google's current policies and settings.</p></section><section><h2>Storage and sharing</h2><p>Server data is retained for as long as needed to provide the service. Except where necessary for advertising delivery, we do not sell personal information to third parties. Data is encrypted in transit.</p></section><section><h2>Deletion</h2><p>You can delete your account from My Page. If you cannot use the app, use the <a href="/account-deletion?lang=en">account deletion page</a>. Player, score, and social data are deleted.</p></section><section><h2>Contact</h2><p><a href="mailto:${email}">${email}</a></p></section>`,
+    `<h1>Privacy policy</h1><p>Last updated: September 4, 2026</p><p>TEN. is provided by ${developer}.</p><section><h2>Information we collect</h2><p>We collect a player ID, display name, device identifier, scores, play results, friend codes, and friend relationships to provide game features and leaderboards and to prevent abuse. Source IP addresses are hashed and used for abuse prevention. For advertising delivery, Google AdMob collects advertising identifiers and shares them with Google.</p></section><section><h2>Advertising</h2><p>TEN. uses Google AdMob. Information handled by the advertising SDK is governed by Google's current policies and settings.</p></section><section><h2>Storage and sharing</h2><p>Server data is retained for as long as needed to provide the service. Except where necessary for advertising delivery, we do not sell personal information to third parties. Data is encrypted in transit.</p></section><section><h2>Deletion</h2><p>You can delete your account from My Page. If you cannot use the app, use the <a href="/account-deletion?lang=en">account deletion page</a>. Player, score, and social data are deleted.</p></section><section><h2>Contact</h2><p><a href="mailto:${email}">${email}</a></p></section>`,
     env,
     'en',
   )
 }
 
 function englishTermsPage(env: Env): Response {
-  const email = htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'kajima37@example.com')
+  const email = htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'sn178178178@gmail.com')
   return legalLayout(
     'Terms of service',
     `<h1>Terms of service</h1><p>Last updated: September 4, 2026</p><section><h2>Use of the service</h2><p>TEN. is a game service for personal enjoyment. Do not harm other users or the service, use unfair methods, or place excessive load on the service.</p></section><section><h2>Leaderboards</h2><p>Scores identified as fraudulent may be hidden or deleted.</p></section><section><h2>Changes and suspension</h2><p>We may change, suspend, or delete service data when necessary for operation.</p></section><section><h2>Contact</h2><p><a href="mailto:${email}">${email}</a></p></section>`,
@@ -250,7 +250,7 @@ function englishTermsPage(env: Env): Response {
 
 function englishDeletionPage(env: Env, code: string): Response {
   const escapedCode = htmlEscape(code)
-  const email = htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'kajima37@example.com')
+  const email = htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'sn178178178@gmail.com')
   return legalLayout(
     'Account deletion',
     `<h1>Account deletion</h1><p>Confirm the deletion code and press the button below. Your player, scores, and social data cannot be restored.</p><form method="post" action="/api/account/delete"><input type="hidden" name="deletionCode" value="${escapedCode}"><button type="submit">Delete account</button></form><p><a href="/privacy?lang=en">Privacy policy</a></p><p>Contact: <a href="mailto:${email}">${email}</a></p>`,

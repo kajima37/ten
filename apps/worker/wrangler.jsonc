@@ -12,8 +12,8 @@
       },
       "vars": {
         "PREVIEW_MODE": "required",
-        "LEGAL_DEVELOPER_NAME": "Kajima",
-        "LEGAL_CONTACT_EMAIL": "kajima37@example.com",
+        "LEGAL_DEVELOPER_NAME": "Sajima",
+        "LEGAL_CONTACT_EMAIL": "sn178178178@gmail.com",
       },
       "d1_databases": [
         {
@@ -36,8 +36,8 @@
       "name": "ten-api-production",
       "vars": {
         "PREVIEW_MODE": "disabled",
-        "LEGAL_DEVELOPER_NAME": "Kajima",
-        "LEGAL_CONTACT_EMAIL": "kajima37@example.com",
+        "LEGAL_DEVELOPER_NAME": "Sajima",
+        "LEGAL_CONTACT_EMAIL": "sn178178178@gmail.com",
       },
       "d1_databases": [
         {

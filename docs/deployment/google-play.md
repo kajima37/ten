@@ -73,7 +73,7 @@
 - Terms of Service: `${TEN_API_URL}/terms`
 - Account deletion: `${TEN_API_URL}/account-deletion`
 
-現在の開発者名と問い合わせ先は仮値（Kajima / `kajima37@example.com`）です。公開前に必ず実際の情報へ変更し、法的内容を確認してください。ポリシーはPlay Consoleだけでなく、アプリからもアクセスできるようにしてください。
+開発者名は `Sajima`、問い合わせ先は `sn178178178@gmail.com` です。公開前に法的内容を最終確認してください。ポリシーはPlay Consoleだけでなく、アプリからもアクセスできるようにしてください。
 
 ### 5. アカウント削除
 
@@ -103,18 +103,23 @@ Play Console の **Policy and programs → App content** で、次を実際の�
 
 Data safety はアプリ本体だけでなく、AdMobなど同梱SDKのデータ取扱いも含めて申告します。回答は実装とプライバシーポリシーに一致させ、データ取扱いを変更したときは更新します。
 
-現行実装から確認できる申告候補は次のとおりです。最終回答は開発者がSDKの最新資料と実際の設定を確認して確定します。
+現在のコードベースに基づく申告内容は次のとおりです。Data safetyの「収集」は端末外への送信、「共有」はサービス提供者以外への提供を指します。
 
-| データ                              | 収集元・用途の候補                                                             |
-| ----------------------------------- | ------------------------------------------------------------------------------ |
-| Device or other IDs                 | Web/アプリの端末ID、プレイヤー識別、チート対策。AdMobの広告ID等はSDK資料を確認 |
-| User IDs                            | サーバーが発行するプレイヤーID                                                 |
-| Name                                | ユーザーが設定する表示名                                                       |
-| App activity / Other actions        | プレイ回数、スコア、コンボ、デイリー記録、ランキング                           |
-| Contacts / social graphに類する情報 | フレンドコード、フレンド申請、フレンド関係                                     |
-| IP address由来の情報                | サーバー側の不正対策用IPハッシュ。Data safety上の分類は用途を確認              |
+| データタイプ                 | 収集 | 共有 | 目的                   | 補足                                                           |
+| ---------------------------- | ---- | ---- | ---------------------- | -------------------------------------------------------------- |
+| Personal info → User IDs     | Yes  | No   | アプリ機能             | サーバーが発行するプレイヤーID                                 |
+| Personal info → Name         | Yes  | No   | アプリ機能             | 表示名。入力は任意で、未設定時は Player                        |
+| Device or other IDs          | Yes  | Yes  | アプリ機能、広告       | 自前端末ID（自サーバーのみ）と、AdMobの広告ID（Googleへ共有）  |
+| App activity → Other actions | Yes  | No   | アプリ機能             | スコア、コンボ、プレイ記録、実績、フレンドコード・フレンド関係 |
+| App info and performance     | Yes  | No   | 不正防止、セキュリティ | 送信元IPのHMACハッシュ。平文のIPは保存しない                   |
 
-端末内だけに保存するプレイ履歴・設定・バックアップファイルは、端末外へ送信しない範囲ではData safetyの「収集」とは別扱いになります。ただし、アプリ、Worker、AdMob SDKをまとめて確認してください。
+フォームの共通質問への回答は次のとおりです。
+
+- 通信の暗号化: **Yes**（全通信がHTTPS）
+- データ削除手段: **Yes**（アプリ内削除 + `https://ten-api-production.kajima37.workers.dev/account-deletion`）
+- 収集の任意性: 表示名は任意。それ以外はオンライン機能の利用に必須
+
+AdMob固有の申告（Approximate location や App interactions などSDKが取得する可能性のある項目）は、Googleの公式ガイド「AdMob に固有の Data safety の回答」で最新の推奨回答を確認して追加します。端末内だけに保存するプレイ履歴・設定・バックアップファイルは、端末外へ送信しないためData safetyの「収集」対象外です。
 
 ### 7. テストとリリース
 
