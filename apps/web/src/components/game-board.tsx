@@ -173,6 +173,8 @@ export default function GameBoard({
                   color: palette.accent,
                   width: 6,
                   alpha: 0.55,
+                  cap: 'round',
+                  join: 'round',
                 })
               }}
             />
@@ -197,7 +199,7 @@ export default function GameBoard({
                 <pixiGraphics
                   draw={(graphics) => {
                     graphics.clear()
-                    graphics.roundRect(0, 0, CELL_SIZE, CELL_SIZE, 12)
+                    graphics.roundRect(0, 0, CELL_SIZE, CELL_SIZE, 20)
                     graphics.fill(highlighted ? palette.selected : palette.cell)
                     graphics.stroke({
                       color: highlighted ? palette.accent : palette.border,
