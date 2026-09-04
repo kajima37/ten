@@ -37,6 +37,7 @@ import {
 import { getAdsClient } from '#/lib/ads'
 import { getLocalDateKey } from '@ten/game-core'
 import { STORAGE_KEYS, readStorage } from '#/lib/storage'
+import { API_ENABLED } from '#/lib/api'
 import { unlockAudio } from '#/lib/sound'
 import '#/i18n'
 
@@ -208,27 +209,25 @@ export default function TenGame() {
 
   const beginGame = useCallback(
     async (daily: boolean) => {
-      if (daily && !serverDaily.data) {
+      const dailyPayload = serverDaily.data
+      if (daily && !dailyPayload) {
         showToast(t('daily.loading'))
         return
       }
       runIdRef.current += 1
-      const started = daily ? await account.startDaily() : null
-      if (daily && !started) {
+      const started = daily && API_ENABLED ? await account.startDaily() : null
+      if (daily && API_ENABLED && !started) {
         showToast(t('network.leaderboardError'))
         return
       }
+      const startOptions = daily
+        ? (started ?? {
+            dateKey: dailyPayload!.dateKey,
+            board: dailyPayload!.board,
+          })
+        : undefined
       setServerScore(null)
-      game.startGame(
-        daily,
-        daily && started
-          ? {
-              dateKey: started.dateKey,
-              board: started.board,
-              startToken: started.startToken,
-            }
-          : undefined,
-      )
+      game.startGame(daily, startOptions)
       setScreen('game')
     },
     [account, game.startGame, serverDaily.data, showToast, t],
@@ -281,6 +280,7 @@ export default function TenGame() {
           <HomeScreen
             onPlay={() => void beginGame(false)}
             onRank={() => setScreen('rank')}
+            showRanking={API_ENABLED}
           />
         )}
         {screen === 'game' && (
@@ -340,6 +340,7 @@ export default function TenGame() {
             onPlay={() => void beginGame(true)}
             onRetryDaily={serverDaily.refresh}
             onRetryLeaderboard={leaderboard.refresh}
+            showRanking={API_ENABLED}
           />
         )}
         {screen === 'rank' && (
@@ -391,7 +392,11 @@ export default function TenGame() {
       </div>
 
       {screen !== 'game' && screen !== 'result' && (
-        <BottomNavigation active={screen} onNavigate={setScreen} />
+        <BottomNavigation
+          active={screen}
+          onNavigate={setScreen}
+          showRanking={API_ENABLED}
+        />
       )}
 
       <div

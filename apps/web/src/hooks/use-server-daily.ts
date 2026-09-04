@@ -1,17 +1,38 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import { api } from '#/lib/api'
+import { API_ENABLED, api } from '#/lib/api'
 import type {
   DailyPayload,
   LeaderboardResponse,
   WeeklyLeaderboardResponse,
 } from '#/lib/api'
+import { createDailyRandom, makeBoard } from '@ten/game-core'
+
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000
+
+function getJstDateKey(date = new Date()): string {
+  return new Date(date.getTime() + JST_OFFSET_MS).toISOString().slice(0, 10)
+}
+
+function getLocalDaily(): DailyPayload {
+  const dateKey = getJstDateKey()
+  return { dateKey, board: makeBoard(createDailyRandom(dateKey)) }
+}
 
 export function useDailyBoard() {
-  const [daily, setDaily] = useState<DailyPayload | null>(null)
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [daily, setDaily] = useState<DailyPayload | null>(() =>
+    API_ENABLED ? null : getLocalDaily(),
+  )
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(() =>
+    API_ENABLED ? 'loading' : 'ready',
+  )
 
   const refresh = useCallback(() => {
+    if (!API_ENABLED) {
+      setDaily(getLocalDaily())
+      setStatus('ready')
+      return Promise.resolve()
+    }
     setStatus('loading')
     return api
       .daily()
@@ -36,6 +57,7 @@ export function useLeaderboard(dateKey: string | null, token: string | null) {
   )
 
   const refresh = useCallback(() => {
+    if (!API_ENABLED) return
     if (!dateKey) return
     setStatus('loading')
     void api
@@ -63,6 +85,7 @@ export function useWeeklyLeaderboard(
   )
 
   const refresh = useCallback(() => {
+    if (!API_ENABLED) return
     if (scope === 'friends' && !token) return
     setStatus('loading')
     void api

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import { api } from '#/lib/api'
+import { API_ENABLED, api } from '#/lib/api'
 import type {
   PlayerProfile,
   DailyStartPayload,
@@ -29,6 +29,7 @@ function getDeviceId(): string {
 }
 
 async function ensureSession(): Promise<RegisterResponse | null> {
+  if (!API_ENABLED) return null
   const token = readStorage(STORAGE_KEYS.token)
   const player = readJson<PlayerProfile>(STORAGE_KEYS.playerProfile)
   if (token && player) return { token, player }
@@ -55,13 +56,16 @@ function clearSession() {
 
 export function useAccount() {
   const [token, setToken] = useState<string | null>(() =>
-    readStorage(STORAGE_KEYS.token),
+    API_ENABLED ? readStorage(STORAGE_KEYS.token) : null,
   )
   const [player, setPlayer] = useState<PlayerProfile | null>(() =>
-    readJson<PlayerProfile>(STORAGE_KEYS.playerProfile),
+    API_ENABLED
+      ? readJson<PlayerProfile>(STORAGE_KEYS.playerProfile)
+      : { id: 'local-player', name: 'Player' },
   )
 
   useEffect(() => {
+    if (!API_ENABLED) return
     let cancelled = false
     void ensureSession().then((session) => {
       if (cancelled || !session) return
@@ -75,6 +79,7 @@ export function useAccount() {
 
   const submitScore = useCallback(
     async (submission: ScoreSubmission): Promise<ScoreResponse | null> => {
+      if (!API_ENABLED) return null
       try {
         const response = await authenticatedRequest({
           getSession: ensureSession,
@@ -93,6 +98,12 @@ export function useAccount() {
   )
 
   const updateName = useCallback(async (name: string): Promise<boolean> => {
+    if (!API_ENABLED) {
+      const profile = { id: 'local-player', name }
+      writeJson(STORAGE_KEYS.playerProfile, profile)
+      setPlayer(profile)
+      return true
+    }
     try {
       const response = await authenticatedRequest({
         getSession: ensureSession,
@@ -112,6 +123,7 @@ export function useAccount() {
 
   const startDaily =
     useCallback(async (): Promise<DailyStartPayload | null> => {
+      if (!API_ENABLED) return null
       try {
         const response = await authenticatedRequest({
           getSession: ensureSession,

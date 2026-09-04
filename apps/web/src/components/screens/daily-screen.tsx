@@ -18,6 +18,7 @@ export function DailyScreen({
   onPlay,
   onRetryDaily,
   onRetryLeaderboard,
+  showRanking,
 }: {
   dateKey: string
   dailyStatus: 'loading' | 'ready' | 'error'
@@ -28,6 +29,7 @@ export function DailyScreen({
   onPlay: () => void
   onRetryDaily: () => void
   onRetryLeaderboard: () => void
+  showRanking: boolean
 }) {
   const { i18n, t } = useTranslation()
   const today = new Date(`${dateKey}T12:00:00`)
@@ -53,19 +55,21 @@ export function DailyScreen({
           value={record.best.toLocaleString()}
           accent
         />
-        <Metric
-          label={t('daily.nationalRank')}
-          value={
-            rankPercent
-              ? mine
-                ? t('daily.rankAndPercent', {
-                    rank: mine.rank,
-                    percent: mine.topPercent,
-                  })
-                : t('result.topPercent', { percent: rankPercent })
-              : t('daily.notPlayed')
-          }
-        />
+        {showRanking && (
+          <Metric
+            label={t('daily.nationalRank')}
+            value={
+              rankPercent
+                ? mine
+                  ? t('daily.rankAndPercent', {
+                      rank: mine.rank,
+                      percent: mine.topPercent,
+                    })
+                  : t('result.topPercent', { percent: rankPercent })
+                : t('daily.notPlayed')
+            }
+          />
+        )}
         <Metric label={t('daily.playCount')} value={String(record.plays)} />
         <Metric
           label={t('daily.streak')}
@@ -84,7 +88,7 @@ export function DailyScreen({
             ? t('network.retryDaily')
             : t('daily.play')}
       </Button>
-      {leaderboardStatus === 'error' && (
+      {showRanking && leaderboardStatus === 'error' && (
         <button
           type="button"
           className="mt-3 w-full text-center text-xs font-bold text-accent underline-offset-4 hover:underline"

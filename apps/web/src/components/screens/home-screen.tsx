@@ -6,9 +6,11 @@ import { Button } from '#/components/ui/button'
 export function HomeScreen({
   onPlay,
   onRank,
+  showRanking,
 }: {
   onPlay: () => void
   onRank: () => void
+  showRanking: boolean
 }) {
   const { t } = useTranslation()
 
@@ -26,13 +28,15 @@ export function HomeScreen({
       >
         {t('home.play')}
       </Button>
-      <Button
-        variant="ghost"
-        className="mt-5 gap-2 text-xs text-muted-foreground"
-        onClick={onRank}
-      >
-        <Crown className="size-4" weight="bold" /> {t('home.ranking')}
-      </Button>
+      {showRanking && (
+        <Button
+          variant="ghost"
+          className="mt-5 gap-2 text-xs text-muted-foreground"
+          onClick={onRank}
+        >
+          <Crown className="size-4" weight="bold" /> {t('home.ranking')}
+        </Button>
+      )}
     </section>
   )
 }

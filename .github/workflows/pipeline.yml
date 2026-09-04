@@ -162,6 +162,45 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  build-pages:
+    needs: [changes, validate]
+    if: github.ref == 'refs/heads/main' && needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v3
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - name: Build API-free GitHub Pages demo
+        run: pnpm build:pages
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+      - name: Verify Pages bundle
+        run: test -f apps/web/dist/client/index.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: apps/web/dist/client
+
+  deploy-pages:
+    name: Deploy GitHub Pages demo
+    needs: [changes, validate, build-pages]
+    if: always() && github.ref == 'refs/heads/main' && needs.changes.outputs.web == 'true' && needs.validate.result == 'success' && needs.build-pages.result == 'success'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy GitHub Pages demo
+        id: deployment
+        uses: actions/deploy-pages@v4
+
   build-admin-assets:
     needs: [changes, validate]
     if: needs.changes.outputs.admin == 'true'

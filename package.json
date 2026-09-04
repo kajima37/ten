@@ -8,6 +8,7 @@
     "dev:worker": "pnpm --filter @ten/worker dev",
     "generate-routes": "pnpm --filter @ten/web generate-routes",
     "build": "pnpm --filter @ten/web build",
+    "build:pages": "pnpm --filter @ten/web build:pages",
     "build:worker": "pnpm --filter @ten/web build:worker",
     "build:mobile": "pnpm --filter @ten/web build:mobile",
     "mobile:sync": "pnpm --filter @ten/web mobile:sync",

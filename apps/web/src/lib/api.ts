@@ -1,7 +1,9 @@
 import type { GameEvent } from '@ten/game-core'
 
+export const API_ENABLED = import.meta.env.MODE !== 'github-pages'
+
 export const API_URL: string =
-  import.meta.env.MODE === 'worker'
+  !API_ENABLED || import.meta.env.MODE === 'worker'
     ? ''
     : (import.meta.env.VITE_API_URL ?? 'http://localhost:8787')
 
@@ -102,6 +104,7 @@ async function request<T>(
   init: RequestInit = {},
   token?: string | null,
 ): Promise<T> {
+  if (!API_ENABLED) throw new ApiError(503, 'API is disabled in this build')
   const headers = new Headers(init.headers)
   headers.set('content-type', 'application/json')
   if (token) headers.set('authorization', `Bearer ${token}`)
