@@ -1,7 +1,8 @@
-import { Crown } from '@phosphor-icons/react'
+import { Crown, GearSix } from '@phosphor-icons/react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '#/components/ui/button'
+import { ADMIN_URL } from '#/lib/api'
 
 export function HomeScreen({
   onPlay,
@@ -35,6 +36,17 @@ export function HomeScreen({
           onClick={onRank}
         >
           <Crown className="size-4" weight="bold" /> {t('home.ranking')}
+        </Button>
+      )}
+      {ADMIN_URL && (
+        <Button
+          variant="ghost"
+          className="mt-4 gap-2 text-xs text-muted-foreground"
+          onClick={() =>
+            window.open(ADMIN_URL ?? undefined, '_blank', 'noopener,noreferrer')
+          }
+        >
+          <GearSix className="size-4" weight="bold" /> {t('home.admin')}
         </Button>
       )}
     </section>

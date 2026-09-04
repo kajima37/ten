@@ -11,6 +11,7 @@ const resources = {
         tagline: '10を作って、自己ベストへ。',
         play: 'プレイ',
         ranking: 'プレイ統計',
+        admin: '管理画面',
       },
       network: {
         loading: '読み込み中…',
@@ -267,6 +268,7 @@ const resources = {
         tagline: 'MAKE 10. BEAT YOUR BEST.',
         play: 'PLAY',
         ranking: 'STATS',
+        admin: 'Admin panel',
       },
       network: {
         loading: 'Loading…',

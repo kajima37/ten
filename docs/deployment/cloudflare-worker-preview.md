@@ -131,7 +131,8 @@ GITHUB_OAUTH_CLIENT_SECRET=<GitHub OAuth App の Client Secret>
 1. ブラウザでステージング公開 URL にアクセスします。
 2. ログイン画面で Google または GitHub を選択します。
 3. 承認済み identity でログインし、ゲームプレイ、デイリー盤面取得、ランキング送信が正常に行えるか確認します。
-4. `curl --fail https://ten-api-staging.<account>.workers.dev/api/health` が `{"status":"ok","version":"..."}` を返すか確認します。`version` はデプロイしたコミット SHA です。
+4. トップページの「管理画面」ボタンから、staging の管理画面を新しいタブで開けます（テスターが承認状況の確認や問い合わせに使うための導線です。GitHub Pages 版やモバイル版には表示されません）。
+5. `curl --fail https://ten-api-staging.<account>.workers.dev/api/health` が `{"status":"ok","version":"..."}` を返すか確認します。`version` はデプロイしたコミット SHA です。
 
 ### よくあるトラブルと対処法
 

@@ -12,6 +12,12 @@ export const LEGAL_BASE_URL: string = API_ENABLED
   : (import.meta.env.VITE_LEGAL_BASE_URL ??
     'https://ten-api-staging.kajima37.workers.dev')
 
+export const ADMIN_URL: string | null =
+  import.meta.env.MODE === 'worker'
+    ? (import.meta.env.VITE_ADMIN_URL ??
+      'https://ten-admin-staging.kajima37.workers.dev')
+    : null
+
 export type DailyPayload = {
   dateKey: string
   board: Array<number>
