@@ -317,6 +317,14 @@ test('external deletion link deletes an account with a generated code', async ()
   assert.equal(englishTerms.status, 200)
   assert.match(await englishTerms.text(), /Terms of service/)
 
+  const about = await app.request(
+    'https://example.com/about?lang=en',
+    undefined,
+    env,
+  )
+  assert.equal(about.status, 200)
+  assert.match(await about.text(), /About TEN\./)
+
   const deletion = await app.request(
     'https://example.com/api/account/delete',
     jsonInit({

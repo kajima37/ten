@@ -76,7 +76,12 @@ const ALLOWED_ORIGINS = new Set([
   'https://localhost',
   'capacitor://localhost',
 ])
-const LEGAL_PATHS = new Set(['/privacy', '/terms', '/account-deletion'])
+const PREVIEW_WORKER_PATHS = new Set([
+  '/about',
+  '/privacy',
+  '/terms',
+  '/account-deletion',
+])
 
 const MAX_BODY_BYTES = 65_536
 const REGISTRATION_IP_LIMIT = 20
@@ -162,7 +167,7 @@ function legalLayout(
       ? ['Privacy', 'Terms', 'Delete account', 'Legal', 'Language']
       : ['プライバシー', '利用規約', 'アカウント削除', '法務情報', '言語']
   content = content.replace(/<p><a href="\/privacy[^>]*">[^<]+<\/a><\/p>/g, '')
-  content = `<style>.legal-card{position:relative}.header-link{visibility:hidden}.language-switch{position:absolute;top:-48px;right:0;font-size:.7rem}.language-switch a{margin-left:10px;color:var(--muted);text-decoration:none}.language-switch a:hover{color:var(--accent)}.legal-nav{position:absolute;top:100%;left:0;width:100%;margin-top:24px;border-top:0;padding-top:0}.legal-nav .language-nav{display:none}.legal-shell{padding-bottom:120px}.legal-card>p:has(>a[href*="/privacy"]){display:none}</style><nav class="language-switch" aria-label="${labels[4]}"><a href="?lang=ja">日本語</a><a href="?lang=en">English</a></nav>${content}`
+  content = `<style>.legal-card{position:relative}.brand{visibility:hidden}.brand-home{position:absolute;top:-48px;left:0;color:var(--foreground);font-size:1.1rem;font-weight:900;letter-spacing:.16em;text-decoration:none}.header-link{visibility:hidden}.language-switch{position:absolute;top:-48px;right:0;font-size:.7rem}.language-switch a{margin-left:10px;color:var(--muted);text-decoration:none}.language-switch a:hover{color:var(--accent)}.legal-nav{position:absolute;top:100%;left:0;width:100%;margin-top:24px;border-top:0;padding-top:0}.legal-nav .language-nav{display:none}.legal-shell{padding-bottom:120px}.legal-card>p:has(>a[href*="/privacy"]){display:none}</style><a class="brand-home" href="/about?lang=${locale}">TEN.</a><nav class="language-switch" aria-label="${labels[4]}"><a href="?lang=ja">日本語</a><a href="?lang=en">English</a></nav>${content}`
   content = `<style>.legal-footer{display:none}.legal-nav{margin-top:32px;border-top:1px solid var(--border);padding-top:20px;text-align:center;font-size:.72rem}.legal-nav a{margin:0 8px;color:var(--muted);text-decoration:none}.legal-nav a:hover{color:var(--accent)}.language-nav{margin-top:14px;text-align:center;font-size:.68rem}.language-nav a{margin:0 6px;color:var(--muted)}</style>${content}<footer class="legal-nav"><nav aria-label="${labels[3]}"><a href="/privacy?lang=${locale}">${labels[0]}</a><a href="/terms?lang=${locale}">${labels[1]}</a><a href="/account-deletion?lang=${locale}">${labels[2]}</a></nav><nav class="language-nav" aria-label="${labels[4]}"><a href="?lang=ja">日本語</a><a href="?lang=en">English</a></nav></footer>`
   return new Response(
     `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#09090a"><title>${htmlEscape(title)} | TEN.</title><style>:root{color-scheme:dark;font-family:'Noto Sans JP',ui-sans-serif,system-ui,sans-serif;--background:#09090a;--foreground:#f6f3ed;--card:#121214;--muted:#9f9c95;--accent:#f3c75f;--border:#2a2a2d}*{box-sizing:border-box}html{background:var(--background)}body{margin:0;min-width:320px;background:radial-gradient(circle at 50% -20%,#342b19 0,transparent 34rem),var(--background);color:var(--foreground);line-height:1.8}.legal-shell{width:min(100% - 32px,760px);margin:0 auto;padding:24px 0 48px}.legal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}.brand{color:var(--foreground);font-size:1.1rem;font-weight:900;letter-spacing:.16em;text-decoration:none}.header-link{color:var(--muted);font-size:.7rem;text-decoration:none}.legal-card{border:1px solid var(--border);border-radius:1.8rem;background:color-mix(in srgb,var(--card) 94%,transparent);padding:clamp(24px,6vw,48px);box-shadow:0 24px 60px #0008}.legal-card h1{margin:0 0 32px;font-size:clamp(1.6rem,5vw,2.25rem);font-weight:900;letter-spacing:-.04em}.legal-card h1:after{display:block;width:3rem;height:3px;margin-top:12px;border-radius:99px;background:var(--accent);content:''}.legal-card section{margin:28px 0}.legal-card h2{margin:0 0 8px;font-size:1rem;font-weight:900;color:var(--accent)}.legal-card p{margin:8px 0;color:#d4d0c8;font-size:.9rem}.legal-card a{color:var(--accent);text-underline-offset:3px}.legal-card form{margin-top:24px}.legal-card button{border:0;border-radius:999px;background:var(--accent);color:#15120a;padding:12px 20px;font:inherit;font-size:.85rem;font-weight:900;cursor:pointer}.legal-card button:focus-visible,.legal-card a:focus-visible{outline:2px solid var(--accent);outline-offset:4px}.legal-footer{margin-top:20px;color:var(--muted);font-size:.7rem}.legal-footer a{color:var(--muted)}hr{margin:20px 0;border:0;border-top:1px solid var(--border)}</style></head><body><div class="legal-shell"><header class="legal-header"><a class="brand" href="/">TEN.</a><a class="header-link" href="/privacy">PRIVACY</a></header><main class="legal-card">${content}</main><footer class="legal-footer"><hr><small>${developer} · <a href="mailto:${email}">${email}</a></small></footer></div></body></html>`,
@@ -201,6 +206,25 @@ function requestedLocale(request: Request): 'ja' | 'en' {
   return request.headers.get('accept-language')?.toLowerCase().startsWith('en')
     ? 'en'
     : 'ja'
+}
+
+function aboutPage(env: Env, locale: 'ja' | 'en'): Response {
+  const developer = htmlEscape(env.LEGAL_DEVELOPER_NAME ?? 'Kajima')
+  const email = htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'kajima37@example.com')
+  if (locale === 'en') {
+    return legalLayout(
+      'About TEN.',
+      `<h1>About TEN.</h1><p>A focused number puzzle game by ${developer}. Find connected numbers that add up to ten, build combos, and beat your best score.</p><section><h2>Play</h2><p>The daily challenge, leaderboards, and friend features are available in the app.</p></section><section><h2>Google Play</h2><p>The store listing will be available here when TEN. is published.</p></section><section><h2>Contact</h2><p><a href="mailto:${email}">${email}</a></p></section>`,
+      env,
+      locale,
+    )
+  }
+  return legalLayout(
+    'TEN.について',
+    `<h1>TEN.について</h1><p>${developer}が提供する、つながった数字を選び、合計10を作ってコンボをつなぐ集中型の数字パズルゲームです。</p><section><h2>遊ぶ</h2><p>デイリーチャレンジ、ランキング、フレンド機能をアプリで利用できます。</p></section><section><h2>Google Play</h2><p>TEN.の公開後、こちらからストアページへ案内します。</p></section><section><h2>問い合わせ</h2><p><a href="mailto:${email}">${email}</a></p></section>`,
+    env,
+    locale,
+  )
 }
 
 function englishPrivacyPage(env: Env): Response {
@@ -595,6 +619,7 @@ export function createApp(storeFactory: (env: Env) => Store): Hono<AppContext> {
     )
   })
 
+  app.get('/about', (c) => aboutPage(c.env, requestedLocale(c.req.raw)))
   app.get('/privacy', (c) =>
     requestedLocale(c.req.raw) === 'en'
       ? englishPrivacyPage(c.env)
@@ -710,7 +735,10 @@ export default {
       )
       if (authResponse) return authResponse
       const pathname = new URL(request.url).pathname
-      if (!pathname.startsWith('/api/') && !LEGAL_PATHS.has(pathname)) {
+      if (
+        !pathname.startsWith('/api/') &&
+        !PREVIEW_WORKER_PATHS.has(pathname)
+      ) {
         if (!env.ASSETS)
           return new Response('assets are not configured', { status: 500 })
         return noStore(await env.ASSETS.fetch(request))

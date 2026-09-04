@@ -1128,6 +1128,15 @@ test('preview mode serves legal pages after authentication', async () => {
   )
   assert.equal(response.status, 200)
   assert.match(await response.text(), /利用規約/)
+
+  const about = await worker.fetch(
+    request('/about', {
+      headers: { cookie: await sessionCookie('session-active') },
+    }),
+    env,
+  )
+  assert.equal(about.status, 200)
+  assert.match(await about.text(), /TEN\.について/)
 })
 
 test('unset preview mode with preview bindings fails closed', async () => {
