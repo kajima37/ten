@@ -11,6 +11,8 @@
 
 ランキング、週間ランキング、フレンド、サーバーへのスコア送信はGitHub Pages版では利用できません。通常のWeb版、staging Worker、モバイル版のAPI動作には影響しません。
 
+マイページにはプライバシーポリシーと利用規約へのリンクが表示されます。リンク先はstaging Workerの法務ページで、表示はプレビュー認証が必要です。リンク先は `VITE_LEGAL_BASE_URL` で変更できます（既定: `https://ten-api-staging.kajima37.workers.dev`）。
+
 ## 初回設定
 
 GitHubリポジトリの **Settings → Pages → Build and deployment → Source** で **GitHub Actions** を選択します。

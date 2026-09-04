@@ -7,6 +7,11 @@ export const API_URL: string =
     ? ''
     : (import.meta.env.VITE_API_URL ?? 'http://localhost:8787')
 
+export const LEGAL_BASE_URL: string = API_ENABLED
+  ? API_URL
+  : (import.meta.env.VITE_LEGAL_BASE_URL ??
+    'https://ten-api-staging.kajima37.workers.dev')
+
 export type DailyPayload = {
   dateKey: string
   board: Array<number>
