@@ -537,6 +537,8 @@ test('Google callback records a pending identity and denies access', async () =>
     assert.equal(response?.status, 403)
     const body = await response.text()
     assert.match(body, /google:new-user/)
+    assert.match(body, /再度ログイン/)
+    assert.match(body, /auth\/login\/google/)
     assert.equal(db.sessions.size, 0)
     const identity = db.identities.get('google:new-user')
     assert.ok(identity)
@@ -677,6 +679,9 @@ test('Google callback rejects a mismatched state and clears the cookie', async (
   )
   assert.equal(response?.status, 401)
   assert.equal(cookieFromResponse(response, `${OAUTH_COOKIE}google`), '')
+  const body = await response.text()
+  assert.match(body, /ログイン画面へ戻る/)
+  assert.match(body, /auth\/login/)
 })
 
 test('OAuth transaction is consumed once and cannot be replayed', async () => {

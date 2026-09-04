@@ -206,13 +206,18 @@ function providerConfig(
   return provider === 'google' ? config.google : config.github
 }
 
-function loginPage(config: OAuthAppConfig): Response {
+function providerLinksHtml(config: OAuthAppConfig): string {
   const links: string[] = []
   if (config.google)
     links.push('<p><a href="/auth/login/google">Google でログイン</a></p>')
   if (config.github)
     links.push('<p><a href="/auth/login/github">GitHub でログイン</a></p>')
-  if (!links.length) {
+  return links.join('')
+}
+
+function loginPage(config: OAuthAppConfig): Response {
+  const links = providerLinksHtml(config)
+  if (!links) {
     return configErrorResponse(
       '利用できるログイン方法が設定されていません',
       config.loginTitle,
@@ -220,7 +225,7 @@ function loginPage(config: OAuthAppConfig): Response {
   }
   return htmlResponse(
     config.loginTitle,
-    `<h1>${escapeHtml(config.loginHeading)}</h1><p>${escapeHtml(config.loginDescription)}</p>${links.join('')}`,
+    `<h1>${escapeHtml(config.loginHeading)}</h1><p>${escapeHtml(config.loginDescription)}</p>${links}`,
   )
 }
 
@@ -420,7 +425,7 @@ async function completeLogin(
   const fail = (message: string): Response => {
     const response = htmlResponse(
       'ログインに失敗しました',
-      `<p>${escapeHtml(message)}</p>`,
+      `<p>${escapeHtml(message)}</p><p><a href="/auth/login">ログイン画面へ戻る</a></p>`,
       401,
     )
     response.headers.set('set-cookie', clearCookieHeader(cookieName))
@@ -484,7 +489,9 @@ async function completeLogin(
       `<h1>${escapeHtml(config.unapprovedHeading)}</h1>
        <p>${escapeHtml(config.unapprovedDescription)}</p>
        <code>${escapeHtml(identity.provider)}:${escapeHtml(identity.subject)}</code>
-       <p>(${escapeHtml(label)})</p>`,
+       <p>(${escapeHtml(label)})</p>
+       <p>承認されたら、下のボタンから再度ログインできます。</p>
+       ${providerLinksHtml(config)}`,
       403,
     )
     response.headers.set('set-cookie', clearCookieHeader(cookieName))
