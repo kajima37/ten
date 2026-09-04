@@ -129,7 +129,7 @@ Data safety はアプリ本体だけでなく、AdMobなど同梱SDKのデータ
 
 ## 現行CIとの対応
 
-現行の `.github/workflows/android-release.yml` は、タグを起点に次を自動化しています。
+現行の `.github/workflows/android-release.yml` は、タグを起点に次を自動化しています。手動実行ではタグをrefに指定し、`track` に `internal`、`closed`、`production` のいずれかを選択できます。Productionを選ぶ場合はGitHubの `release` Environment承認を必須にしてください。
 
 - productionブランチへの到達確認
 - Production pipelineの完了待ち

@@ -255,6 +255,10 @@ const resources = {
         resetSettingsConfirm:
           'テーマ、言語、振動、アニメーション、チュートリアル設定を初期状態に戻しますか？',
       },
+      legal: {
+        privacy: 'プライバシーポリシー',
+        terms: '利用規約',
+      },
     },
   },
   en: {
@@ -505,6 +509,10 @@ const resources = {
           'Delete all scores, history, and achievements? This cannot be undone.',
         resetSettingsConfirm:
           'Restore theme, language, vibration, motion, and tutorial settings to their defaults?',
+      },
+      legal: {
+        privacy: 'Privacy policy',
+        terms: 'Terms of service',
       },
     },
   },

@@ -17,6 +17,7 @@ import { Button } from '#/components/ui/button'
 import { Metric } from '#/components/shared/metric'
 import { ScreenTitle } from '#/components/shared/screen-title'
 import { ACHIEVEMENT_IDS } from '#/lib/achievements'
+import { API_ENABLED, API_URL } from '#/lib/api'
 import type { PlayerProfile } from '#/lib/api'
 import type { Preferences } from '#/lib/preferences'
 import { THEMES } from '#/lib/themes'
@@ -217,6 +218,24 @@ export function MyPage({
           >
             {t('data.openDeletionPage')}
           </Button>
+        </div>
+      )}
+      {API_ENABLED && (
+        <div className="mt-3 flex justify-center gap-4 text-[10px] text-muted-foreground">
+          <a
+            href={`${API_URL || window.location.origin}/privacy`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {t('legal.privacy')}
+          </a>
+          <a
+            href={`${API_URL || window.location.origin}/terms`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {t('legal.terms')}
+          </a>
         </div>
       )}
       <div className="mt-3 rounded-3xl border bg-card p-5">

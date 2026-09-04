@@ -4,6 +4,14 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      track:
+        description: Google Play track
+        required: true
+        default: internal
+        type: choice
+        options: [internal, closed, production]
 
 concurrency:
   group: android-release
@@ -101,7 +109,7 @@ jobs:
           serviceAccountJson: ${{ runner.temp }}/service-account.json
           packageName: net.sajima.ten
           releaseFiles: apps/web/android/app/build/outputs/bundle/release/app-release.aab
-          tracks: internal
+          tracks: ${{ inputs.track || 'internal' }}
           releaseName: ${{ steps.version.outputs.name }}
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
