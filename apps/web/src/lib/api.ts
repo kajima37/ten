@@ -231,4 +231,16 @@ export const api = {
       token,
     )
   },
+
+  deleteAccount(token: string): Promise<{ deleted: true }> {
+    return request<{ deleted: true }>('/api/me', { method: 'DELETE' }, token)
+  },
+
+  deletionCode(token: string): Promise<{ deletionCode: string }> {
+    return request<{ deletionCode: string }>(
+      '/api/me/deletion-code',
+      undefined,
+      token,
+    )
+  },
 }

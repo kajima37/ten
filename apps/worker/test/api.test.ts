@@ -239,6 +239,88 @@ test('profile name can be updated', async () => {
   })
 })
 
+test('account deletion removes the player and related data', async () => {
+  const { app, env, store } = createTestContext()
+  const { body: registerBody } = await register(app, env, 'device-alpha')
+  const playerId = registerBody.player.id
+  store.scores.push({
+    playerId,
+    mode: 'daily',
+    dateKey: '2026-09-04',
+    score: 10,
+    combo: 1,
+    createdAt: new Date().toISOString(),
+    hiddenAt: null,
+  })
+  store.proofs.push({
+    playerId,
+    dateKey: '2026-09-04',
+    score: 10,
+    events: '[]',
+  })
+  store.logs.push(`${playerId}:2026-09-04T00:00:00.000Z`)
+  store.friendCodes.set(playerId, { code: 'TEN-ABCD', expiresAt: '2099-01-01' })
+
+  const response = await app.request(
+    'https://example.com/api/me',
+    jsonInit({
+      method: 'DELETE',
+      headers: { authorization: `Bearer ${registerBody.token}` },
+    }),
+    env,
+  )
+  assert.equal(response.status, 200)
+  assert.deepEqual(await readJson(response), { deleted: true })
+  assert.equal(store.players.has(playerId), false)
+  assert.equal(
+    store.scores.some((entry) => entry.playerId === playerId),
+    false,
+  )
+  assert.equal(
+    store.proofs.some((entry) => entry.playerId === playerId),
+    false,
+  )
+  assert.equal(
+    store.logs.some((entry) => entry.startsWith(`${playerId}:`)),
+    false,
+  )
+  assert.equal(store.friendCodes.has(playerId), false)
+})
+
+test('external deletion link deletes an account with a generated code', async () => {
+  const { app, env, store } = createTestContext()
+  const { body: registerBody } = await register(app, env, 'device-alpha')
+  const codeResponse = await app.request(
+    'https://example.com/api/me/deletion-code',
+    jsonInit({
+      headers: { authorization: `Bearer ${registerBody.token}` },
+    }),
+    env,
+  )
+  assert.equal(codeResponse.status, 200)
+  const { deletionCode } = await readJson<{ deletionCode: string }>(
+    codeResponse,
+  )
+  const page = await app.request(
+    `https://example.com/account-deletion?code=${encodeURIComponent(deletionCode)}`,
+    undefined,
+    env,
+  )
+  assert.equal(page.status, 200)
+  assert.match(await page.text(), /アカウント削除/)
+
+  const deletion = await app.request(
+    'https://example.com/api/account/delete',
+    jsonInit({
+      method: 'POST',
+      body: JSON.stringify({ deletionCode }),
+    }),
+    env,
+  )
+  assert.equal(deletion.status, 200)
+  assert.equal(store.players.has(registerBody.player.id), false)
+})
+
 test('repeated submissions are rate limited', async () => {
   const { app, env } = createTestContext()
   const { body: registerBody } = await register(app, env, 'device-alpha')

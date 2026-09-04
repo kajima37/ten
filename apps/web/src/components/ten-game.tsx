@@ -78,7 +78,7 @@ export default function TenGame() {
   const [screen, setScreen] = useState<Screen>('home')
   const [toast, setToast] = useState('')
   const [confirmation, setConfirmation] = useState<
-    'records' | 'settings' | null
+    'records' | 'settings' | 'account' | null
   >(null)
   const [previousBest, setPreviousBest] = useState(0)
   const [isNewBest, setIsNewBest] = useState(false)
@@ -378,6 +378,16 @@ export default function TenGame() {
             onThemeChange={settings.setTheme}
             onLanguageChange={settings.setLanguage}
             onUpdateName={account.updateName}
+            onDeleteAccount={() => setConfirmation('account')}
+            onOpenDeletionLink={async () => {
+              const link = await account.createDeletionLink()
+              if (!link) {
+                showToast(t('toast.accountDeleteLinkFailed'))
+                return
+              }
+              window.open(link, '_blank', 'noopener,noreferrer')
+              showToast(t('toast.accountDeleteLinkCreated'))
+            }}
             onExport={exportData}
             onImport={importData}
             onResetRecords={() => setConfirmation('records')}
@@ -411,17 +421,23 @@ export default function TenGame() {
           title={t(
             confirmation === 'records'
               ? 'data.resetRecords'
-              : 'data.resetSettings',
+              : confirmation === 'settings'
+                ? 'data.resetSettings'
+                : 'data.deleteAccount',
           )}
           description={t(
             confirmation === 'records'
               ? 'data.resetRecordsConfirm'
-              : 'data.resetSettingsConfirm',
+              : confirmation === 'settings'
+                ? 'data.resetSettingsConfirm'
+                : 'data.deleteAccountConfirm',
           )}
           confirmLabel={t(
             confirmation === 'records'
               ? 'data.resetRecords'
-              : 'data.resetSettings',
+              : confirmation === 'settings'
+                ? 'data.resetSettings'
+                : 'data.deleteAccount',
           )}
           cancelLabel={t('data.cancel')}
           onCancel={() => setConfirmation(null)}
@@ -429,9 +445,20 @@ export default function TenGame() {
             if (confirmation === 'records') {
               resetRecords()
               showToast(t('toast.recordsReset'))
-            } else {
+            } else if (confirmation === 'settings') {
               settings.resetSettings()
               showToast(t('toast.settingsReset'))
+            } else {
+              void account.deleteAccount().then((deleted) => {
+                if (deleted) resetRecords()
+                showToast(
+                  t(
+                    deleted
+                      ? 'toast.accountDeleted'
+                      : 'toast.accountDeleteFailed',
+                  ),
+                )
+              })
             }
             setConfirmation(null)
           }}

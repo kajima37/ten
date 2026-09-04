@@ -87,6 +87,7 @@ export interface Store {
     ipHash: string,
   ) => Promise<void>
   updatePlayerName: (id: string, name: string) => Promise<void>
+  deletePlayer: (id: string) => Promise<boolean>
   countRecentRegistrations: (
     ipHash: string,
     sinceIso: string,
@@ -204,6 +205,22 @@ export function createD1Store(db: D1Database): Store {
         .prepare('UPDATE players SET name = ? WHERE id = ?')
         .bind(name, id)
         .run()
+    },
+
+    async deletePlayer(id) {
+      const results = await db.batch([
+        db.prepare('DELETE FROM score_proofs WHERE player_id = ?').bind(id),
+        db.prepare('DELETE FROM scores WHERE player_id = ?').bind(id),
+        db.prepare('DELETE FROM submission_log WHERE player_id = ?').bind(id),
+        db
+          .prepare(
+            'DELETE FROM friend_requests WHERE player_low_id = ? OR player_high_id = ? OR requested_by_id = ?',
+          )
+          .bind(id, id, id),
+        db.prepare('DELETE FROM friend_codes WHERE player_id = ?').bind(id),
+        db.prepare('DELETE FROM players WHERE id = ?').bind(id),
+      ])
+      return results[results.length - 1]?.meta.changes === 1
     },
 
     async countRecentRegistrations(ipHash, sinceIso) {

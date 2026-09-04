@@ -46,3 +46,7 @@ export const friendCodeSchema = z.object({
     .trim()
     .regex(/^[A-Z0-9]{8}$/i),
 })
+
+export const deletionCodeSchema = z.object({
+  deletionCode: z.string().min(20).max(2048),
+})

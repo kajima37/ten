@@ -58,6 +58,10 @@ const resources = {
         dataImportFailed: 'バックアップを読み込めませんでした',
         recordsReset: 'プレイ記録をリセットしました',
         settingsReset: '設定をリセットしました',
+        accountDeleted: 'アカウントを削除しました',
+        accountDeleteFailed: 'アカウントを削除できませんでした',
+        accountDeleteLinkCreated: '削除ページを開きました',
+        accountDeleteLinkFailed: '削除ページを作成できませんでした',
         nameSaved: '名前を保存しました',
         nameSaveFailed: 'オフラインのため保存できません',
       },
@@ -229,6 +233,13 @@ const resources = {
         off: 'オフ',
       },
       data: {
+        account: 'アカウント',
+        deleteAccount: 'アカウントを削除',
+        deleteAccountDescription:
+          'サーバー上のプレイヤー、スコア、フレンド情報を削除します。この操作は取り消せません。',
+        deleteAccountConfirm:
+          'アカウントとサーバー上の関連データをすべて削除します。続行しますか？',
+        openDeletionPage: '外部削除ページを開く',
         title: 'データ管理',
         description:
           'プレイ記録と設定をJSONファイルに保存し、この端末や別の端末で復元できます。',
@@ -299,6 +310,10 @@ const resources = {
         dataImportFailed: 'Could not read the backup',
         recordsReset: 'Play records reset',
         settingsReset: 'Settings reset',
+        accountDeleted: 'Account deleted',
+        accountDeleteFailed: 'Could not delete account',
+        accountDeleteLinkCreated: 'Deletion page opened',
+        accountDeleteLinkFailed: 'Could not create deletion page',
         nameSaved: 'Name saved',
         nameSaveFailed: 'Could not save while offline',
       },
@@ -469,6 +484,13 @@ const resources = {
         off: 'Off',
       },
       data: {
+        account: 'Account',
+        deleteAccount: 'Delete account',
+        deleteAccountDescription:
+          'Delete your player, scores, and social data from the server. This cannot be undone.',
+        deleteAccountConfirm:
+          'Delete your account and all related server data? This cannot be undone.',
+        openDeletionPage: 'Open external deletion page',
         title: 'Data management',
         description:
           'Save your play records and settings as JSON, then restore them on this or another device.',

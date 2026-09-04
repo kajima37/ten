@@ -121,6 +121,40 @@ export function useAccount() {
     }
   }, [])
 
+  const deleteAccount = useCallback(async (): Promise<boolean> => {
+    if (!API_ENABLED) return false
+    try {
+      const response = await authenticatedRequest({
+        getSession: ensureSession,
+        clearSession,
+        request: (value) => api.deleteAccount(value),
+      })
+      if (!response) return false
+      clearSession()
+      removeStorage(STORAGE_KEYS.deviceId)
+      setToken(null)
+      setPlayer(null)
+      return true
+    } catch {
+      return false
+    }
+  }, [])
+
+  const createDeletionLink = useCallback(async (): Promise<string | null> => {
+    if (!API_ENABLED) return null
+    try {
+      const response = await authenticatedRequest({
+        getSession: ensureSession,
+        clearSession,
+        request: (value) => api.deletionCode(value),
+      })
+      if (!response) return null
+      return `${window.location.origin}/account-deletion?code=${encodeURIComponent(response.result.deletionCode)}`
+    } catch {
+      return null
+    }
+  }, [])
+
   const startDaily =
     useCallback(async (): Promise<DailyStartPayload | null> => {
       if (!API_ENABLED) return null
@@ -139,5 +173,13 @@ export function useAccount() {
       }
     }, [])
 
-  return { token, player, submitScore, updateName, startDaily }
+  return {
+    token,
+    player,
+    submitScore,
+    updateName,
+    deleteAccount,
+    createDeletionLink,
+    startDaily,
+  }
 }

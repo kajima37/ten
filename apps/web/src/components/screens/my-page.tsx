@@ -33,6 +33,8 @@ export function MyPage({
   onThemeChange,
   onLanguageChange,
   onUpdateName,
+  onDeleteAccount,
+  onOpenDeletionLink,
   onExport,
   onImport,
   onResetRecords,
@@ -49,6 +51,8 @@ export function MyPage({
   onThemeChange: (theme: ThemeId) => void
   onLanguageChange: (language: 'ja' | 'en') => void
   onUpdateName: (name: string) => Promise<boolean>
+  onDeleteAccount: () => void
+  onOpenDeletionLink: () => Promise<void>
   onExport: () => void
   onImport: (file: File) => Promise<void>
   onResetRecords: () => void
@@ -193,6 +197,28 @@ export function MyPage({
           })}
         </div>
       </div>
+      {player && (
+        <div className="mt-3 rounded-3xl border border-destructive/40 bg-card p-5">
+          <strong>{t('data.account')}</strong>
+          <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+            {t('data.deleteAccountDescription')}
+          </p>
+          <Button
+            variant="destructive"
+            className="mt-3 w-full rounded-full"
+            onClick={onDeleteAccount}
+          >
+            {t('data.deleteAccount')}
+          </Button>
+          <Button
+            variant="secondary"
+            className="mt-2 w-full rounded-full"
+            onClick={() => void onOpenDeletionLink()}
+          >
+            {t('data.openDeletionPage')}
+          </Button>
+        </div>
+      )}
       <div className="mt-3 rounded-3xl border bg-card p-5">
         <strong>{t('profile.language')}</strong>
         <div className="mt-3 grid grid-cols-2 gap-2">

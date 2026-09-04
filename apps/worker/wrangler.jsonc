@@ -12,6 +12,8 @@
       },
       "vars": {
         "PREVIEW_MODE": "required",
+        "LEGAL_DEVELOPER_NAME": "Kajima",
+        "LEGAL_CONTACT_EMAIL": "kajima37@example.com",
       },
       "d1_databases": [
         {
@@ -34,6 +36,8 @@
       "name": "ten-api-production",
       "vars": {
         "PREVIEW_MODE": "disabled",
+        "LEGAL_DEVELOPER_NAME": "Kajima",
+        "LEGAL_CONTACT_EMAIL": "kajima37@example.com",
       },
       "d1_databases": [
         {

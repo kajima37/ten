@@ -4,6 +4,8 @@ export const envConfigSchema = z
   .object({
     PREVIEW_MODE: z.enum(['required', 'disabled']).optional(),
     DEPLOY_VERSION: z.string().min(1).optional(),
+    LEGAL_DEVELOPER_NAME: z.string().min(1).optional(),
+    LEGAL_CONTACT_EMAIL: z.string().email().optional(),
     AUTH_SECRET: z.string().min(1),
     PREVIEW_SESSION_SECRET: z.string().min(1).optional(),
     GOOGLE_OAUTH_CLIENT_ID: z.string().min(1).optional(),

@@ -276,6 +276,31 @@ export function createMemoryStore(): Store & {
       if (player) players.set(id, { ...player, name })
     },
 
+    async deletePlayer(id) {
+      if (!players.delete(id)) return false
+      for (let index = scores.length - 1; index >= 0; index -= 1) {
+        if (scores[index].playerId === id) scores.splice(index, 1)
+      }
+      for (let index = proofs.length - 1; index >= 0; index -= 1) {
+        if (proofs[index].playerId === id) proofs.splice(index, 1)
+      }
+      for (let index = logs.length - 1; index >= 0; index -= 1) {
+        if (logs[index].startsWith(`${id}:`)) logs.splice(index, 1)
+      }
+      friendCodes.delete(id)
+      for (let index = friendRequests.length - 1; index >= 0; index -= 1) {
+        const request = friendRequests[index]
+        if (
+          request.low === id ||
+          request.high === id ||
+          request.requestedBy === id
+        ) {
+          friendRequests.splice(index, 1)
+        }
+      }
+      return true
+    },
+
     async countRecentRegistrations(ipHash, sinceIso) {
       let count = 0
       for (const player of players.values()) {

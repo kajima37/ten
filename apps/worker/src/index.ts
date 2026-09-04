@@ -26,6 +26,7 @@ import type { EnvValidationResult, RuntimeEnv } from './env.ts'
 import { handlePreviewAuth } from './preview-auth.ts'
 import {
   friendCodeSchema,
+  deletionCodeSchema,
   leaderboardQuerySchema,
   nameSchema,
   registerSchema,
@@ -135,6 +136,50 @@ function isPlayerBanned(
 ): boolean {
   if (player.banned !== 1) return false
   return player.bannedUntil === null || new Date(player.bannedUntil) > now
+}
+
+function htmlEscape(value: string): string {
+  return value.replace(
+    /[&<>"']/g,
+    (character) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[
+        character
+      ] ?? character,
+  )
+}
+
+function legalLayout(title: string, content: string, env: Env): Response {
+  const developer = htmlEscape(env.LEGAL_DEVELOPER_NAME ?? 'Kajima')
+  const email = htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'kajima37@example.com')
+  return new Response(
+    `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${htmlEscape(title)} | TEN.</title><style>body{font-family:system-ui,sans-serif;line-height:1.7;max-width:760px;margin:0 auto;padding:24px;color:#202124}a{color:#155eef}code{word-break:break-all}section{margin:2rem 0}small{color:#666}</style></head><body><header><a href="/">TEN.</a></header>${content}<hr><small>${developer} · <a href="mailto:${email}">${email}</a></small></body></html>`,
+    { headers: { 'content-type': 'text/html; charset=UTF-8' } },
+  )
+}
+
+function privacyPage(env: Env): Response {
+  return legalLayout(
+    'プライバシーポリシー',
+    `<h1>プライバシーポリシー</h1><p>最終更新日: 2026年9月4日</p><p>TEN.（以下「本アプリ」）は、${htmlEscape(env.LEGAL_DEVELOPER_NAME ?? 'Kajima')}が提供します。</p><section><h2>収集する情報</h2><p>本アプリは、プレイヤーID、表示名、端末識別子、スコア、プレイ結果、フレンドコードおよびフレンド関係を、ランキングとゲーム機能の提供、不正利用防止のために収集します。送信元IPアドレスは不正利用防止のためハッシュ化して利用します。</p></section><section><h2>広告</h2><p>本アプリはGoogle AdMobを使用します。広告SDKが扱う情報と利用目的は、Googleの最新のポリシーおよび設定に従います。</p></section><section><h2>保存と共有</h2><p>ゲームサーバー上のデータは、サービス提供に必要な期間保存します。広告配信に必要な情報を除き、個人情報を第三者へ販売しません。データは通信時に暗号化されます。</p></section><section><h2>削除</h2><p>アプリの「マイページ」からアカウントを削除できます。アプリを利用できない場合は<a href="/account-deletion">アカウント削除ページ</a>を利用してください。削除するとプレイヤー、スコア、フレンド関連データを削除します。</p></section><section><h2>問い合わせ</h2><p><a href="mailto:${htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'kajima37@example.com')}">${htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'kajima37@example.com')}</a></p></section>`,
+    env,
+  )
+}
+
+function termsPage(env: Env): Response {
+  return legalLayout(
+    '利用規約',
+    `<h1>利用規約</h1><p>最終更新日: 2026年9月4日</p><section><h2>利用</h2><p>本アプリは個人で楽しむゲームサービスです。利用者は、他の利用者やサービスに損害を与える行為、不正な操作、過度な負荷をかける行為をしてはいけません。</p></section><section><h2>ランキング</h2><p>不正利用が確認されたスコアは非表示または削除することがあります。</p></section><section><h2>変更・停止</h2><p>運営上必要な場合、機能の変更、停止、データの削除を行うことがあります。</p></section><section><h2>問い合わせ</h2><p><a href="mailto:${htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'kajima37@example.com')}">${htmlEscape(env.LEGAL_CONTACT_EMAIL ?? 'kajima37@example.com')}</a></p></section>`,
+    env,
+  )
+}
+
+function deletionPage(env: Env, code: string): Response {
+  const escapedCode = htmlEscape(code)
+  return legalLayout(
+    'アカウント削除',
+    `<h1>アカウント削除</h1><p>削除コードを確認し、下のボタンを押してください。プレイヤー、スコア、フレンド関連データは復元できません。</p><form method="post" action="/api/account/delete"><input type="hidden" name="deletionCode" value="${escapedCode}"><button type="submit">アカウントを削除する</button></form><p><a href="/privacy">プライバシーポリシー</a></p>`,
+    env,
+  )
 }
 
 export function createApp(storeFactory: (env: Env) => Store): Hono<AppContext> {
@@ -452,6 +497,12 @@ export function createApp(storeFactory: (env: Env) => Store): Hono<AppContext> {
     })
   })
 
+  app.get('/api/me/deletion-code', authPlayer, async (c) => {
+    return c.json({
+      deletionCode: await signToken(c.get('playerId'), c.env.AUTH_SECRET),
+    })
+  })
+
   app.patch(
     '/api/me',
     authPlayer,
@@ -464,6 +515,37 @@ export function createApp(storeFactory: (env: Env) => Store): Hono<AppContext> {
       await store.updatePlayerName(playerId, body.name)
       return c.json({ id: playerId, name: body.name })
     },
+  )
+
+  app.delete('/api/me', authPlayer, async (c) => {
+    const deleted = await c.get('store').deletePlayer(c.get('playerId'))
+    if (!deleted) return c.json({ error: 'unknown player' }, 404)
+    return c.json({ deleted: true as const })
+  })
+
+  app.post('/api/account/delete', async (c) => {
+    const contentType = c.req.header('content-type') ?? ''
+    const body = contentType.includes('application/json')
+      ? await c.req.json<unknown>()
+      : await c.req.parseBody()
+    const parsed = deletionCodeSchema.safeParse(body)
+    if (!parsed.success) return c.json({ error: 'validation failed' }, 400)
+    const playerId = await verifyToken(
+      parsed.data.deletionCode,
+      c.env.AUTH_SECRET,
+    )
+    if (!playerId) return c.json({ error: 'invalid deletion code' }, 401)
+    const deleted = await c.get('store').deletePlayer(playerId)
+    if (!deleted) return c.json({ error: 'unknown player' }, 404)
+    return c.html(
+      '<!doctype html><meta charset="utf-8"><title>アカウント削除完了</title><p>アカウントを削除しました。このページを閉じてください。</p>',
+    )
+  })
+
+  app.get('/privacy', (c) => privacyPage(c.env))
+  app.get('/terms', (c) => termsPage(c.env))
+  app.get('/account-deletion', (c) =>
+    deletionPage(c.env, c.req.query('code') ?? ''),
   )
 
   app.post('/api/me/friend-code', authPlayer, activePlayer, async (c) => {
