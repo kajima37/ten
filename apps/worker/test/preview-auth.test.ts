@@ -1096,6 +1096,40 @@ test('preview mode requires authentication before assets', async () => {
   assert.equal(authenticated.headers.get('cache-control'), 'private, no-store')
 })
 
+test('preview mode serves legal pages after authentication', async () => {
+  const db = createPreviewDb({
+    identities: [
+      {
+        provider: 'github',
+        subject: '12345678',
+        approvedAt: FIXED_NOW,
+      },
+    ],
+    sessions: [
+      { id: 'session-active', provider: 'github', subject: '12345678' },
+    ],
+  })
+  const env: Env = {
+    DB: db,
+    DAILY_CACHE: {} as KVNamespace,
+    AUTH_SECRET: 'auth-secret',
+    PREVIEW_MODE: 'required',
+    PREVIEW_SESSION_SECRET: 'preview-session-secret',
+    GITHUB_OAUTH_CLIENT_ID: 'github-client-id',
+    GITHUB_OAUTH_CLIENT_SECRET: 'github-client-secret',
+    ASSETS: { fetch: async () => new Response('asset') } as unknown as Fetcher,
+  }
+
+  const response = await worker.fetch(
+    request('/terms', {
+      headers: { cookie: await sessionCookie('session-active') },
+    }),
+    env,
+  )
+  assert.equal(response.status, 200)
+  assert.match(await response.text(), /利用規約/)
+})
+
 test('unset preview mode with preview bindings fails closed', async () => {
   const env: Env = {
     DB: {} as unknown as D1Database,

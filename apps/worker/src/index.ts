@@ -76,6 +76,7 @@ const ALLOWED_ORIGINS = new Set([
   'https://localhost',
   'capacitor://localhost',
 ])
+const LEGAL_PATHS = new Set(['/privacy', '/terms', '/account-deletion'])
 
 const MAX_BODY_BYTES = 65_536
 const REGISTRATION_IP_LIMIT = 20
@@ -645,7 +646,8 @@ export default {
         env.DB,
       )
       if (authResponse) return authResponse
-      if (!new URL(request.url).pathname.startsWith('/api/')) {
+      const pathname = new URL(request.url).pathname
+      if (!pathname.startsWith('/api/') && !LEGAL_PATHS.has(pathname)) {
         if (!env.ASSETS)
           return new Response('assets are not configured', { status: 500 })
         return noStore(await env.ASSETS.fetch(request))
