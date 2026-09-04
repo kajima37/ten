@@ -6,6 +6,8 @@ export const CELL_PITCH = 70
 export const CELL_PADDING = 8
 export const CELL_SIZE = 64
 export const CELL_CENTER_OFFSET = CELL_PADDING + CELL_SIZE / 2
+export const BOARD_SIZE =
+  CELL_PADDING * 2 + CELL_SIZE + CELL_PITCH * (GRID_SIZE - 1)
 
 export function getCellCenter(index: number): BoardPoint {
   return {
