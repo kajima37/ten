@@ -74,6 +74,17 @@ jobs:
             echo "TEN_VERSION_NAME=$name"
             echo "TEN_VERSION_CODE=${{ github.run_number }}"
           } >> "$GITHUB_ENV"
+      - name: Resolve Google Play track
+        id: track
+        env:
+          REQUESTED_TRACK: ${{ inputs.track || 'internal' }}
+        run: |-
+          case "$REQUESTED_TRACK" in
+            internal|production) track="$REQUESTED_TRACK" ;;
+            closed) track=alpha ;;
+            *) echo "Unsupported Google Play track: $REQUESTED_TRACK" >&2; exit 1 ;;
+          esac
+          echo "name=$track" >> "$GITHUB_OUTPUT"
       - name: Verify API URL
         run: >-
           test -n "$VITE_API_URL" &&
@@ -120,7 +131,7 @@ jobs:
           serviceAccountJson: ${{ runner.temp }}/service-account.json
           packageName: net.sajima.ten
           releaseFiles: apps/web/android/app/build/outputs/bundle/release/app-release.aab
-          tracks: ${{ inputs.track || 'internal' }}
+          tracks: ${{ steps.track.outputs.name }}
           releaseName: ${{ steps.version.outputs.name }}
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
