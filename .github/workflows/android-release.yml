@@ -84,12 +84,23 @@ jobs:
         run: test -n "$ADMOB_APP_ID"
         env:
           ADMOB_APP_ID: ${{ vars.ADMOB_APP_ID }}
+      - name: Verify production AdMob unit IDs
+        if: inputs.track == 'production'
+        run: |-
+          test -n "$REWARDED_UNIT_ID"
+          test -n "$INTERSTITIAL_UNIT_ID"
+          ! printf '%s\n%s' "$REWARDED_UNIT_ID" "$INTERSTITIAL_UNIT_ID" | grep -Fq 'ca-app-pub-3940256099942544/'
+        env:
+          REWARDED_UNIT_ID: ${{ vars.ADMOB_REWARDED_UNIT_ID }}
+          INTERSTITIAL_UNIT_ID: ${{ vars.ADMOB_INTERSTITIAL_UNIT_ID }}
       - name: Build release AAB
         run: sops exec-env secrets/secrets.android-release.age.env 'bash scripts/ci/android-release.sh'
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
           VITE_API_URL: ${{ vars.TEN_API_URL }}
           ADMOB_APP_ID: ${{ vars.ADMOB_APP_ID }}
+          VITE_ADMOB_REWARDED_UNIT_ID: ${{ inputs.track == 'production' && vars.ADMOB_REWARDED_UNIT_ID || '' }}
+          VITE_ADMOB_INTERSTITIAL_UNIT_ID: ${{ inputs.track == 'production' && vars.ADMOB_INTERSTITIAL_UNIT_ID || '' }}
       - name: Upload release AAB artifact
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6

@@ -6,7 +6,7 @@ umask 077
 keystore_file="$RUNNER_TEMP/release.jks"
 service_account_file="$RUNNER_TEMP/service-account.json"
 
-trap 'rm -f "$keystore_file"' EXIT
+trap 'rm -f "$keystore_file" "$service_account_file"' EXIT
 
 : "${ANDROID_KEYSTORE_BASE64:?missing Android keystore}"
 : "${ANDROID_KEYSTORE_PASSWORD:?missing Android keystore password}"

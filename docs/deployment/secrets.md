@@ -161,6 +161,8 @@ GitHub Actions がビルド時に自動で暗号化ファイルを復号でき�
    - **Secret**: `SOPS_AGE_KEY` = `secrets/.private/production.agekey` の中身全体
    - **Variable**: `TEN_API_URL` = `https://ten-api-production.<account>.workers.dev`
    - **Variable**: `ADMOB_APP_ID` = 本番 AdMob の App ID（Android / iOS）
+   - **Variable**: `ADMOB_REWARDED_UNIT_ID` = 本番 AdMob のリワード広告ユニット ID（Android）
+   - **Variable**: `ADMOB_INTERSTITIAL_UNIT_ID` = 本番 AdMob のインタースティシャル広告ユニット ID（Android）
    - **Deployment branches**: `v*` タグのみ許可、「Required reviewers」を設定推奨
 
 ## 5. 運用時の確認・トラブルシューティング

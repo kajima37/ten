@@ -214,6 +214,8 @@ gh variable set TEN_ADMIN_URL --env production --body "https://ten-admin-product
 gh secret set SOPS_AGE_KEY --env release --body "$(cat secrets/.private/production.agekey)"
 gh variable set TEN_API_URL --env release --body "https://ten-api-production.<account>.workers.dev"
 gh variable set ADMOB_APP_ID --env release --body "<your AdMob App ID>"
+gh variable set ADMOB_REWARDED_UNIT_ID --env release --body "<your rewarded ad unit ID>"
+gh variable set ADMOB_INTERSTITIAL_UNIT_ID --env release --body "<your interstitial ad unit ID>"
 
 gh api repos/{owner}/{repo}/pages -X POST -f build_type=workflow
 ```

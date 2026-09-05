@@ -49,11 +49,13 @@ Google Playで一般公開するための掲載情報、プライバシーポリ
 
 GitHub リポジトリの `Settings → Environments → release` に以下を設定します。
 
-| 項目           | 種類     | 内容                                                                         | 備考                               |
-| -------------- | -------- | ---------------------------------------------------------------------------- | ---------------------------------- |
-| `TEN_API_URL`  | Variable | 本番 Worker の URL（例: `https://ten-api-production.<account>.workers.dev`） | 公開情報                           |
-| `ADMOB_APP_ID` | Variable | 本番 AdMob のアプリ ID                                                       | 公開情報                           |
-| `SOPS_AGE_KEY` | Secret   | 本番系の age 秘密鍵                                                          | 署名キーや証明書を復号するための鍵 |
+| 項目                         | 種類     | 内容                                                                         | 備考                               |
+| ---------------------------- | -------- | ---------------------------------------------------------------------------- | ---------------------------------- |
+| `TEN_API_URL`                | Variable | 本番 Worker の URL（例: `https://ten-api-production.<account>.workers.dev`） | 公開情報                           |
+| `ADMOB_APP_ID`               | Variable | 本番 AdMob のアプリ ID                                                       | 公開情報                           |
+| `ADMOB_REWARDED_UNIT_ID`     | Variable | 本番 AdMob のリワード広告ユニット ID                                         | Productionビルドで必須             |
+| `ADMOB_INTERSTITIAL_UNIT_ID` | Variable | 本番 AdMob のインタースティシャル広告ユニット ID                             | Productionビルドで必須             |
+| `SOPS_AGE_KEY`               | Secret   | 本番系の age 秘密鍵                                                          | 署名キーや証明書を復号するための鍵 |
 
 ※ キーストア本体や証明書などの機密データは、[秘密情報の一元管理](./secrets.md) の暗号化ファイル（`secrets/secrets.android-release.age.env` / `secrets/secrets.ios-release.age.env`）に保管します。
 
