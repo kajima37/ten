@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500" role="img" aria-labelledby="title desc">
+  <title id="title">TEN. feature graphic</title>
+  <desc id="desc">Minimal dark feature graphic for TEN. number puzzle game</desc>
+  <defs>
+    <radialGradient id="glow" cx="72%" cy="42%" r="60%">
+      <stop offset="0" stop-color="#3b321e" stop-opacity=".72" />
+      <stop offset="1" stop-color="#09090a" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="gold" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#f7d77d" />
+      <stop offset="1" stop-color="#c89b3c" />
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="500" fill="#09090a" />
+  <rect width="1024" height="500" fill="url(#glow)" />
+  <g opacity=".38" fill="none" stroke="#f3c75f" stroke-width="2">
+    <path d="M612 92h320v320H612z" />
+    <path d="M692 92v320M772 92v320M852 92v320M612 172h320M612 252h320M612 332h320" />
+  </g>
+  <g fill="#f6f3ed" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="700" text-anchor="middle" opacity=".82">
+    <text x="652" y="145">1</text><text x="732" y="145">4</text><text x="812" y="145">2</text><text x="892" y="145">3</text>
+    <text x="652" y="225">5</text><text x="732" y="225">2</text><text x="812" y="225">1</text><text x="892" y="225">4</text>
+    <text x="652" y="305">3</text><text x="732" y="305">1</text><text x="812" y="305">5</text><text x="892" y="305">2</text>
+    <text x="652" y="385">2</text><text x="732" y="385">3</text><text x="812" y="385">4</text><text x="892" y="385">1</text>
+  </g>
+  <path d="M652 124C695 148 719 181 732 205s43 28 80 20 58-2 80 24" fill="none" stroke="url(#gold)" stroke-linecap="round" stroke-linejoin="round" stroke-width="8" />
+  <circle cx="652" cy="124" r="9" fill="#f3c75f" /><circle cx="892" cy="249" r="9" fill="#f3c75f" />
+  <text x="92" y="220" fill="#f6f3ed" font-family="Arial, Helvetica, sans-serif" font-size="92" font-weight="800" letter-spacing="16">TEN.</text>
+  <text x="98" y="278" fill="#f3c75f" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" letter-spacing="5">MAKE 10. BEAT YOUR BEST.</text>
+  <rect x="98" y="316" width="78" height="4" rx="2" fill="#f3c75f" />
+</svg>
