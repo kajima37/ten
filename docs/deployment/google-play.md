@@ -172,7 +172,7 @@ git push origin vX.Y.Z
 - `0.1.2` / version code `1` が内部テストに公開済み
 - テスターリスト `TEN. Testers` に2名登録済み
 - AABのビルド、署名検証、Google PlayへのアップロードをCIで完了
-- ストア掲載文、アイコン、フィーチャーグラフィック、スクリーンショット5枚をPlay Consoleへ保存済み
+- 日本語（ja-JP）と英語（米国、en-US）のストア掲載文、アイコン、フィーチャーグラフィック、スクリーンショット5枚をPlay Consoleへ保存済み
 - Play Consoleのアプリ設定は完了。画像アセットの元データは `assets/google-play/` に保管
 
 ### 掲載アセット

@@ -13,18 +13,25 @@
   </defs>
   <rect width="1024" height="500" fill="#09090a" />
   <rect width="1024" height="500" fill="url(#glow)" />
-  <g opacity=".38" fill="none" stroke="#f3c75f" stroke-width="2">
-    <path d="M612 92h320v320H612z" />
-    <path d="M692 92v320M772 92v320M852 92v320M612 172h320M612 252h320M612 332h320" />
+  <g opacity=".95">
+    <rect x="644" y="70" width="314" height="354" rx="28" fill="#121214" stroke="#2a2a2d" stroke-width="2" />
+    <g fill="#1b1b1f" stroke="#34343a" stroke-width="2">
+      <rect x="660" y="86" width="50" height="50" rx="12" /><rect x="716" y="86" width="50" height="50" rx="12" /><rect x="772" y="86" width="50" height="50" rx="12" /><rect x="828" y="86" width="50" height="50" rx="12" /><rect x="884" y="86" width="50" height="50" rx="12" />
+      <rect x="660" y="148" width="50" height="50" rx="12" /><rect x="716" y="148" width="50" height="50" rx="12" /><rect x="772" y="148" width="50" height="50" rx="12" /><rect x="828" y="148" width="50" height="50" rx="12" /><rect x="884" y="148" width="50" height="50" rx="12" />
+      <rect x="660" y="210" width="50" height="50" rx="12" /><rect x="716" y="210" width="50" height="50" rx="12" /><rect x="772" y="210" width="50" height="50" rx="12" /><rect x="828" y="210" width="50" height="50" rx="12" /><rect x="884" y="210" width="50" height="50" rx="12" />
+      <rect x="660" y="272" width="50" height="50" rx="12" /><rect x="716" y="272" width="50" height="50" rx="12" /><rect x="772" y="272" width="50" height="50" rx="12" /><rect x="828" y="272" width="50" height="50" rx="12" /><rect x="884" y="272" width="50" height="50" rx="12" />
+      <rect x="660" y="334" width="50" height="50" rx="12" /><rect x="716" y="334" width="50" height="50" rx="12" /><rect x="772" y="334" width="50" height="50" rx="12" /><rect x="828" y="334" width="50" height="50" rx="12" /><rect x="884" y="334" width="50" height="50" rx="12" />
+    </g>
   </g>
-  <g fill="#f6f3ed" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="700" text-anchor="middle" opacity=".82">
-    <text x="652" y="145">1</text><text x="732" y="145">4</text><text x="812" y="145">2</text><text x="892" y="145">3</text>
-    <text x="652" y="225">5</text><text x="732" y="225">2</text><text x="812" y="225">1</text><text x="892" y="225">4</text>
-    <text x="652" y="305">3</text><text x="732" y="305">1</text><text x="812" y="305">5</text><text x="892" y="305">2</text>
-    <text x="652" y="385">2</text><text x="732" y="385">3</text><text x="812" y="385">4</text><text x="892" y="385">1</text>
+  <path d="M797 173C797 194 797 216 797 235S773 274 741 297" fill="none" stroke="url(#gold)" stroke-linecap="round" stroke-linejoin="round" stroke-width="7" />
+  <g fill="#f6f3ed" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" text-anchor="middle" opacity=".92">
+    <text x="685" y="120">2</text><text x="741" y="120">6</text><text x="797" y="120">1</text><text x="853" y="120">7</text><text x="909" y="120">4</text>
+    <text x="685" y="182">9</text><text x="741" y="182">3</text><text x="797" y="182" fill="#f3c75f">5</text><text x="853" y="182">2</text><text x="909" y="182">8</text>
+    <text x="685" y="244">4</text><text x="741" y="244">8</text><text x="797" y="244" fill="#f3c75f">2</text><text x="853" y="244">6</text><text x="909" y="244">1</text>
+    <text x="685" y="306">3</text><text x="741" y="306" fill="#f3c75f">3</text><text x="797" y="306">9</text><text x="853" y="306">4</text><text x="909" y="306">7</text>
+    <text x="685" y="368">5</text><text x="741" y="368">2</text><text x="797" y="368">6</text><text x="853" y="368">3</text><text x="909" y="368">9</text>
   </g>
-  <path d="M652 124C695 148 719 181 732 205s43 28 80 20 58-2 80 24" fill="none" stroke="url(#gold)" stroke-linecap="round" stroke-linejoin="round" stroke-width="8" />
-  <circle cx="652" cy="124" r="9" fill="#f3c75f" /><circle cx="892" cy="249" r="9" fill="#f3c75f" />
+  <circle cx="797" cy="173" r="8" fill="#f3c75f" /><circle cx="741" cy="297" r="8" fill="#f3c75f" />
   <text x="92" y="220" fill="#f6f3ed" font-family="Arial, Helvetica, sans-serif" font-size="92" font-weight="800" letter-spacing="16">TEN.</text>
   <text x="98" y="278" fill="#f3c75f" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" letter-spacing="5">MAKE 10. BEAT YOUR BEST.</text>
   <rect x="98" y="316" width="78" height="4" rx="2" fill="#f3c75f" />
