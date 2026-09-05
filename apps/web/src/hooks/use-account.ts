@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 
-import { API_ENABLED, api } from '#/lib/api'
+import { API_ENABLED, LEGAL_BASE_URL, api } from '#/lib/api'
 import type {
   PlayerProfile,
   DailyStartPayload,
@@ -63,19 +63,6 @@ export function useAccount() {
       ? readJson<PlayerProfile>(STORAGE_KEYS.playerProfile)
       : { id: 'local-player', name: 'Player' },
   )
-
-  useEffect(() => {
-    if (!API_ENABLED) return
-    let cancelled = false
-    void ensureSession().then((session) => {
-      if (cancelled || !session) return
-      setToken(session.token)
-      setPlayer(session.player)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   const submitScore = useCallback(
     async (submission: ScoreSubmission): Promise<ScoreResponse | null> => {
@@ -149,7 +136,7 @@ export function useAccount() {
         request: (value) => api.deletionCode(value),
       })
       if (!response) return null
-      return `${window.location.origin}/account-deletion?code=${encodeURIComponent(response.result.deletionCode)}`
+      return `${LEGAL_BASE_URL}/account-deletion?code=${encodeURIComponent(response.result.deletionCode)}`
     } catch {
       return null
     }

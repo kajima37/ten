@@ -4,8 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '#/components/ui/button'
 import { Metric } from '#/components/shared/metric'
 import { ScreenTitle } from '#/components/shared/screen-title'
-import { formatShortDate, topPercent } from '#/lib/format'
+import { LEGAL_BASE_URL } from '#/lib/api'
 import type { LeaderboardResponse } from '#/lib/api'
+import { formatShortDate, topPercent } from '#/lib/format'
 import type { DailyRecord } from '#/lib/player-state'
 
 export function DailyScreen({
@@ -48,6 +49,17 @@ export function DailyScreen({
           10
         </div>
         <p className="text-sm text-muted-foreground">{t('daily.invitation')}</p>
+        <p className="mt-3 text-left text-[10px] leading-relaxed text-muted-foreground">
+          {t('daily.onlineNotice')}{' '}
+          <a
+            className="underline underline-offset-2"
+            href={`${LEGAL_BASE_URL}/privacy?lang=${i18n.resolvedLanguage === 'en' ? 'en' : 'ja'}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {t('legal.privacy')}
+          </a>
+        </p>
       </div>
       <div className="my-3 rounded-3xl border bg-card px-5">
         <Metric

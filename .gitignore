@@ -30,3 +30,4 @@ __unconfig*
 todos.json
 apps/web/playwright-report/
 apps/web/test-results/
+.setup-state.json

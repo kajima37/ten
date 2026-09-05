@@ -1,6 +1,7 @@
 [tools]
 age = "1.2.1"
 android-sdk = "latest"
+gh = "latest"
 java = "21"
 node = "26.8.1"
 pnpm = "11.21.0"
@@ -28,4 +29,9 @@ depends = ["install"]
 [tasks.build]
 description = "Create a production build"
 run = "pnpm build"
+depends = ["install"]
+
+[tasks.setup]
+description = "Run the interactive setup wizard"
+run = "pnpm setup"
 depends = ["install"]

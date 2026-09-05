@@ -31,6 +31,9 @@
                 age
                 sops
 
+                # GitHub CLI
+                gh
+
                 # fundamental tools
                 git
                 curl

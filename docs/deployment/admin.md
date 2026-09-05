@@ -50,6 +50,8 @@ production 環境では画面全体に警告色のバナーを表示し、危険
 
 ## 4. 初回のみ必要な準備（管理者向け）
 
+プロジェクト立ち上げ時に一度だけ実施する作業です。`pnpm setup` で自動化できます。手動で行う場合は以下の手順に従います。詳細は[初回セットアップガイド](./setup.md)を参照してください。
+
 ### ステップ 1: OAuth アプリの準備
 
 OAuth App は **staging と production で別々のものを使用します**。staging は、プレビュー用に作成した OAuth App（[ステージング Web プレビューの公開](./cloudflare-worker-preview.md)で作成したもの）に管理画面分の callback URL を追加して使い回します。production は staging とは別の OAuth App を新規作成し、シークレットの漏洩や更新の影響が環境をまたがないようにします。両プロバイダとも callback URL は複数登録できます（GitHub は Settings → Developer settings → OAuth Apps、Google は Google Cloud Console → 認証情報 → 承認済みリダイレクト URI）。

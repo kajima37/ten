@@ -132,16 +132,34 @@ jobs:
     needs: [changes, validate]
     if: needs.changes.outputs.mobile == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
       - uses: jdx/mise-action@v3
         with:
           cache: true
+      - name: Install Android SDK packages
+        run: >-
+          sdkmanager
+          "platform-tools"
+          "platforms;android-36"
+          "build-tools;36.0.0"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build:mobile
+      - run: pnpm mobile:sync
       - name: Verify Capacitor web bundle
         run: test -f apps/web/dist/client/index.html
+      - name: Make Gradle wrapper executable
+        run: chmod +x apps/web/android/gradlew
+      - name: Build Android debug APK
+        working-directory: apps/web/android
+        run: ./gradlew assembleDebug --no-daemon
+      - name: Verify Android debug APK
+        run: test -f apps/web/android/app/build/outputs/apk/debug/app-debug.apk
 
   build-staging-worker-assets:
     needs: [changes, validate]

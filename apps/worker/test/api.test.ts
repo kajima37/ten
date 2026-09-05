@@ -307,7 +307,30 @@ test('external deletion link deletes an account with a generated code', async ()
     env,
   )
   assert.equal(page.status, 200)
-  assert.match(await page.text(), /アカウント削除/)
+  const pageText = await page.text()
+  assert.match(pageText, /アカウント削除/)
+  assert.match(pageText, /削除を申請/)
+  assert.match(pageText, /mailto:/)
+
+  const noCodePage = await app.request(
+    'https://example.com/account-deletion',
+    undefined,
+    env,
+  )
+  assert.equal(noCodePage.status, 200)
+  const noCodePageText = await noCodePage.text()
+  assert.match(noCodePageText, /アプリを利用できない場合/)
+  assert.match(noCodePageText, /mailto:/)
+
+  const englishDeletionPage = await app.request(
+    'https://example.com/account-deletion?lang=en',
+    undefined,
+    env,
+  )
+  assert.equal(englishDeletionPage.status, 200)
+  const englishDeletionPageText = await englishDeletionPage.text()
+  assert.match(englishDeletionPageText, /<html lang="en">/)
+  assert.match(englishDeletionPageText, /If you cannot use the app/)
 
   const englishTerms = await app.request(
     'https://example.com/terms?lang=en',
@@ -326,7 +349,7 @@ test('external deletion link deletes an account with a generated code', async ()
   assert.match(await about.text(), /About TEN\./)
 
   const deletion = await app.request(
-    'https://example.com/api/account/delete',
+    'https://example.com/api/account/delete?lang=en',
     jsonInit({
       method: 'POST',
       body: JSON.stringify({ deletionCode }),
@@ -334,6 +357,9 @@ test('external deletion link deletes an account with a generated code', async ()
     env,
   )
   assert.equal(deletion.status, 200)
+  const deletionText = await deletion.text()
+  assert.match(deletionText, /<html lang="en">/)
+  assert.match(deletionText, /Account deleted/)
   assert.equal(store.players.has(registerBody.player.id), false)
 })
 

@@ -104,6 +104,8 @@ const resources = {
         title: '今日のTEN.',
         loading: '今日の問題を確認中です',
         invitation: '今日のTEN.に挑戦しよう',
+        onlineNotice:
+          'デイリーをプレイすると、匿名のプレイヤーID・スコア・プレイ結果をランキングのためサーバーに保存します。',
         record: '今日の記録',
         nationalRank: '全国順位',
         rankAndPercent: '{{rank}}位 · 上位{{percent}}%',
@@ -361,6 +363,8 @@ const resources = {
         title: "TODAY'S TEN.",
         loading: "Checking today's puzzle",
         invitation: "Take on today's TEN.",
+        onlineNotice:
+          'Playing the daily challenge stores an anonymous player ID, score, and play result on our server for the leaderboard.',
         record: "Today's score",
         nationalRank: 'National rank',
         rankAndPercent: 'Rank #{{rank}} · Top {{percent}}%',

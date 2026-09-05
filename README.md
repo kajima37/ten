@@ -42,6 +42,18 @@ mise install
 pnpm install
 ```
 
+### 初回セットアップ（Cloudflare / GitHub 設定含む）
+
+ステージングや本番環境を公開する場合は、以下のコマンドで対話式のセットアップウィザードが起動します。
+
+```bash
+pnpm setup
+```
+
+暗号鍵の生成、シークレットの登録、Cloudflare リソースの作成、GitHub の設定手順までを自動で進行します。詳細は[初回セットアップガイド](./docs/deployment/setup.md)を参照してください。
+
+ローカルでのゲーム開発のみなら `pnpm install` で十分です。
+
 ### ローカルでゲームを起動する
 
 ```bash
@@ -71,6 +83,8 @@ nix develop --command pnpm test:e2e
 
 目的に応じて各ドキュメントを参照してください。
 
+- **[初回セットアップガイド](./docs/deployment/setup.md)**:
+  暗号鍵の生成、シークレット登録、Cloudflare リソース作成、GitHub 環境設定など、プロジェクトの初回セットアップをまとめた統合ガイドです。`pnpm setup` で自動化できます。
 - **[モバイルアプリの公開・ビルド](./docs/deployment/mobile.md)**:  
   `production` ブランチでバージョンタグ（例: `v1.0.0`）をプッシュするだけで、Android（Google Play 内部テスト）と iOS（TestFlight）へ自動提出されます。
 - **[Cloudflare Worker の公開と運用](./docs/deployment/cloudflare-worker.md)**:  
